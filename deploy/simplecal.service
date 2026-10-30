@@ -1,0 +1,30 @@
+[Unit]
+Description=SimpleCal calendar, contact and DAV server
+After=network.target
+
+[Service]
+Type=simple
+User=simplecal
+Group=simplecal
+WorkingDirectory=/opt/simplecal
+Environment=NODE_ENV=production
+Environment=CALDAV_DATA_DIR=/var/lib/simplecal
+Environment=CALDAV_WEB_DIR=/opt/simplecal/www
+Environment=CALDAV_HOST=127.0.0.1
+Environment=CALDAV_PORT=5280
+EnvironmentFile=-/etc/simplecal/simplecal.env
+ExecStart=/usr/bin/node /opt/simplecal/server/server.mjs
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=15
+StateDirectory=simplecal
+StateDirectoryMode=0700
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/simplecal
+
+[Install]
+WantedBy=multi-user.target

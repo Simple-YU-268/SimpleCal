@@ -1,7 +1,6 @@
-#!/usr/bin/env node
 /**
  * 构建期版本戳（0.2.8；机制与 0.2.4 相同，仅版本号随 manifest 走）：
- *   1. Service Worker 缓存名：`fncal-shell-v<N>` / `fncal-shell-<旧版本>` → `fncal-shell-<version>`；
+ *   1. Service Worker 缓存名：`simplecal-shell-v<N>` / `simplecal-shell-<旧版本>` → `simplecal-shell-<version>`；
  *   2. `index.html` 里 favicon / apple-touch-icon / manifest 链接追加 `?v=<version>`
  *      —— 浏览器对 favicon 强缓存，升级后靠 URL 变化取新图（用户不用清缓存）；
  *   3. `site.webmanifest` 的 `icons[].src` 同样追加 `?v=<version>`（PWA/桌面图标同步刷新）。
@@ -55,32 +54,32 @@ export function computeBuildFingerprint(distDir, { buildTime = Date.now() } = {}
   return `${content}-${short}`;
 }
 
-/** 0.2.23（H4）：把构建指纹写进 index.html 的 `<meta name="fncal-build">`（幂等）。 */
+/** 0.2.23（H4）：把构建指纹写进 index.html 的 `<meta name="simplecal-build">`（幂等）。 */
 export function stampBuildMeta(distDir, fingerprint) {
   const indexPath = path.join(distDir, 'index.html');
   if (!fs.existsSync(indexPath)) throw new Error(`前端产物缺少 index.html：${indexPath}`);
-  const tag = `<meta name="fncal-build" content="${fingerprint}">`;
+  const tag = `<meta name="simplecal-build" content="${fingerprint}">`;
   let html = fs.readFileSync(indexPath, 'utf8');
-  const re = /<meta name="fncal-build" content="[^"]*">/;
+  const re = /<meta name="simplecal-build" content="[^"]*">/;
   html = re.test(html) ? html.replace(re, tag) : html.replace(/<\/head>/, `    ${tag}\n  </head>`);
-  if (!html.includes(`name="fncal-build" content="${fingerprint}"`)) {
+  if (!html.includes(`name="simplecal-build" content="${fingerprint}"`)) {
     throw new Error('index.html 注入前端指纹失败');
   }
   fs.writeFileSync(indexPath, html);
   return fingerprint;
 }
 
-/** 0.2.24（I3）：把**前端自己的版本号**写进 index.html 的 `<meta name="fncal-version">`。
+/** 0.2.24（I3）：把**前端自己的版本号**写进 index.html 的 `<meta name="simplecal-version">`。
  *  页脚改成显示它、不再显示后端 `/api/version`：旧资源就显示旧版本号，一行字同时满足
  *  「不加新的指纹行」（用户 m00780「不要这行」）与「版本自证」（G5 那次绕圈的根因）。 */
 export function stampVersionMeta(distDir, version) {
   const indexPath = path.join(distDir, 'index.html');
   if (!fs.existsSync(indexPath)) throw new Error(`前端产物缺少 index.html：${indexPath}`);
-  const tag = `<meta name="fncal-version" content="${version}">`;
+  const tag = `<meta name="simplecal-version" content="${version}">`;
   let html = fs.readFileSync(indexPath, 'utf8');
-  const re = /<meta name="fncal-version" content="[^"]*">/;
+  const re = /<meta name="simplecal-version" content="[^"]*">/;
   html = re.test(html) ? html.replace(re, tag) : html.replace(/<\/head>/, `    ${tag}\n  </head>`);
-  if (!html.includes(`name="fncal-version" content="${version}"`)) {
+  if (!html.includes(`name="simplecal-version" content="${version}"`)) {
     throw new Error('index.html 注入前端版本失败');
   }
   fs.writeFileSync(indexPath, html);
@@ -91,14 +90,14 @@ export function stampVersionMeta(distDir, version) {
 export function stampServiceWorker(distDir, version, fingerprint = '') {
   const swPath = path.join(distDir, 'sw.js');
   if (!fs.existsSync(swPath)) throw new Error(`前端产物缺少 sw.js：${swPath}`);
-  const cacheName = `fncal-shell-${version}${fingerprint ? `-${fingerprint}` : ''}`;
+  const cacheName = `simplecal-shell-${version}${fingerprint ? `-${fingerprint}` : ''}`;
   const before = fs.readFileSync(swPath, 'utf8');
   // 允许已有版本或「版本-指纹」后缀，重复执行只替换不叠加。
-  let after = before.replace(/(fncal-shell-)(?:v\d+|\d+\.\d+\.\d+)(?:-[0-9a-f]+-[0-9a-z]+)?/g, () => cacheName);
+  let after = before.replace(/(simplecal-shell-)(?:v\d+|\d+\.\d+\.\d+)(?:-[0-9a-f]+-[0-9a-z]+)?/g, () => cacheName);
   // 0.2.4 ⑭：外壳预缓存里的 accent-prepaint.js 也带版本串（与 index.html 一致）。
   after = after.replace(/\.\/accent-prepaint\.js(?:\?v=[^'"`]*)?/g, `./accent-prepaint.js?v=${version}`);
   if (after === before && !before.includes(cacheName)) {
-    throw new Error('sw.js 里没有可替换的缓存名（期望 fncal-shell-v<N>）');
+    throw new Error('sw.js 里没有可替换的缓存名（期望 simplecal-shell-v<N>）');
   }
   fs.writeFileSync(swPath, after);
   return cacheName;
@@ -203,7 +202,7 @@ function main() {
   }
   try {
     const { version, fingerprint, swCache, links, icons } = stampDist({ distDir, manifestPath: manifest });
-    console.log(`[stamp] 前端构建指纹 = ${fingerprint}（写进 index.html 的 meta[name=fncal-build]）`);
+    console.log(`[stamp] 前端构建指纹 = ${fingerprint}（写进 index.html 的 meta[name=simplecal-build]）`);
     console.log(`[stamp] sw.js cache = ${swCache}（manifest ${version}）`);
     console.log(`[stamp] index.html 图标/manifest 版本串：${links.join(', ')}`);
     console.log(`[stamp] site.webmanifest icons：${icons.join(', ')}`);

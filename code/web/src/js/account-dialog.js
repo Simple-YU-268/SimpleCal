@@ -682,7 +682,7 @@ export function openAccountDialog({
           const stamp = new Date().toISOString().slice(0, 10);
           const a = document.createElement('a');
           a.href = url;
-          a.download = `FnCal-diagnostic-${stamp}.json`;
+          a.download = `SimpleCal-diagnostic-${stamp}.json`;
           document.body.append(a);
           a.click();
           a.remove();
@@ -892,14 +892,14 @@ export function openAccountDialog({
   }
 
   // 0.2.24（I3）：页脚只留**一行**版本号，而且这行显示的是**前端自己的版本**
-  // （构建期写进 index.html 的 `<meta name="fncal-version">`）——旧资源就显示旧版本，
+  // （构建期写进 index.html 的 `<meta name="simplecal-version">`）——旧资源就显示旧版本，
   // 一行字同时满足「不加新的指纹行」（用户 m00780「不要这行」）与版本自证。
   // 后端 `/api/version` 仍会取一次，但只用来判断「是否需要刷新」：两边不一致就在
   // 这行后面补「· 需刷新」，刷新后自然消失；不弹窗、不加第二行。
   const versionEl = el('span', { class: 'settings__version' });
   const frontendVersion = getFrontendVersion();
   function setVersion(v) {
-    versionEl.textContent = v ? t('settings.version', { version: v }) : 'FnCal';
+    versionEl.textContent = v ? t('settings.version', { version: v }) : 'SimpleCal';
   }
   setVersion(frontendVersion || version || '');
   getAppVersion().then((backendVersion) => {
@@ -910,9 +910,9 @@ export function openAccountDialog({
 
   // 0.2.44：页脚再补一行「开发者 / 项目仓库」——fnOS 应用中心里的 maintainer / distributor
   // 与界面上这一行都指向同一个仓库地址，两处必须同源（另一处在 code/fnos/manifest）。
-  const REPO_URL = 'https://github.com/PaulCAI1593/FnCal';
+  const REPO_URL = 'https://github.com/Simple-YU-268/SimpleCal';
   const aboutMeta = el('div', { class: 'settings__about-meta' }, [
-    el('span', { text: t('settings.about.developer', { name: 'PaulCAI1593' }) }),
+    el('span', { text: t('settings.about.developer', { name: 'Simple-YU-268' }) }),
     el('span', { class: 'settings__about-dot', 'aria-hidden': 'true', text: '·' }),
     el('a', {
       class: 'settings__repo',

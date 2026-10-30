@@ -38,7 +38,8 @@ import {
 export const AI_CREDENTIALS_NAME = 'ai-credentials';
 export const AI_PROPOSALS_NAME = 'ai-proposals';
 export const AI_SETTINGS_FILE = 'ai-settings.json';
-export const AI_TOKEN_PREFIX = 'fncal_ai_';
+export const AI_TOKEN_PREFIX = 'simplecal_ai_';
+const AI_TOKEN_PREFIXES = [AI_TOKEN_PREFIX, 'fncal_ai_'];
 export const DEFAULT_MCP_PATH = '/mcp';
 export const PROPOSAL_TTL_MS = 24 * 60 * 60 * 1000;
 export const PROPOSAL_ACTIONS = Object.freeze(['create', 'update', 'delete']);
@@ -53,18 +54,18 @@ const NOTE_MAX = 500;
 const UID_RE = /^[A-Za-z0-9._@-]{1,200}$/;
 
 export function mintToken() {
-  // fncal_ai_ + 32 字符 base64url（randomToken(24) 正好 32 个字符）。
+  // simplecal_ai_ + 32 字符 base64url（randomToken(24) 正好 32 个字符）。
   return `${AI_TOKEN_PREFIX}${randomToken(24)}`;
 }
 
 export function isAiToken(value) {
-  return typeof value === 'string' && new RegExp(`^${AI_TOKEN_PREFIX}[A-Za-z0-9_-]{32}$`).test(value);
+  return typeof value === 'string' && AI_TOKEN_PREFIXES.some((prefix) =>
+    new RegExp(`^${prefix}[A-Za-z0-9_-]{32}$`).test(value));
 }
 
 export function tokenHintOf(token) {
-  return typeof token === 'string' && token.startsWith(AI_TOKEN_PREFIX)
-    ? token.slice(AI_TOKEN_PREFIX.length, AI_TOKEN_PREFIX.length + 4)
-    : '';
+  const prefix = typeof token === 'string' && AI_TOKEN_PREFIXES.find((prefix) => token.startsWith(prefix));
+  return prefix ? token.slice(prefix.length, prefix.length + 4) : '';
 }
 
 /**

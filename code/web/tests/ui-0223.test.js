@@ -409,21 +409,21 @@ describe('0.2.23 H4 前端构建指纹自证', () => {
       await fsp.writeFile(path.join(dir, 'sw.js'), swSource);
       await fsp.writeFile(path.join(dir, 'site.webmanifest'), READ('public/site.webmanifest'));
       const manifestPath = path.join(dir, 'manifest');
-      await fsp.writeFile(manifestPath, 'appname=FnCal\nversion=0.2.23\n');
+      await fsp.writeFile(manifestPath, 'appname=SimpleCal\nversion=0.2.23\n');
 
       const first = stampDist({ distDir: dir, manifestPath });
       expect(first.fingerprint).toMatch(/^[0-9a-f]{8}-[0-9a-z]{5}$/);
       const html1 = await fsp.readFile(path.join(dir, 'index.html'), 'utf8');
-      expect(html1).toContain(`<meta name="fncal-build" content="${first.fingerprint}">`);
+      expect(html1).toContain(`<meta name="simplecal-build" content="${first.fingerprint}">`);
       const sw1 = await fsp.readFile(path.join(dir, 'sw.js'), 'utf8');
-      expect(sw1).toContain(`const CACHE = 'fncal-shell-0.2.23-${first.fingerprint}';`);
+      expect(sw1).toContain(`const CACHE = 'simplecal-shell-0.2.23-${first.fingerprint}';`);
 
       // 幂等：同内容再跑一次，指纹不变、缓存名不叠后缀
       const second = stampDist({ distDir: dir, manifestPath });
       expect(second.fingerprint).toBe(first.fingerprint);
       const sw2 = await fsp.readFile(path.join(dir, 'sw.js'), 'utf8');
-      expect(sw2).toContain(`fncal-shell-0.2.23-${first.fingerprint}`);
-      expect((sw2.match(/fncal-shell-/g) || [])).toHaveLength(1);
+      expect(sw2).toContain(`simplecal-shell-0.2.23-${first.fingerprint}`);
+      expect((sw2.match(/simplecal-shell-/g) || [])).toHaveLength(1);
 
       // 资源内容一变，指纹就变（内容哈希，不是版本号）
       await fsp.writeFile(path.join(dir, 'assets', 'index-aaaa.js'), 'console.log(2);\n');
@@ -437,7 +437,7 @@ describe('0.2.23 H4 前端构建指纹自证', () => {
   it('运行时：从 index.html 的 meta 读指纹；没有 meta 时返回空串（不猜）', () => {
     expect(getFrontendFingerprint()).toBe('');
     const meta = document.createElement('meta');
-    meta.setAttribute('name', 'fncal-build');
+    meta.setAttribute('name', 'simplecal-build');
     meta.setAttribute('content', 'deadbeef-abc12');
     document.head.append(meta);
     expect(getFrontendFingerprint()).toBe('deadbeef-abc12');

@@ -74,7 +74,7 @@ const REASONS = {
   delete_failed: '删除账号数据失败，请重试',
 };
 
-export function createAdminApi({ accounts, store, auth, audit, logger = null }) {
+export function createAdminApi({ accounts, store, cardDav = null, auth, audit, logger = null }) {
   function clientAddress(req) {
     return (req.socket && req.socket.remoteAddress) || null;
   }
@@ -217,6 +217,7 @@ export function createAdminApi({ accounts, store, auth, audit, logger = null }) 
       }
       try {
         await store.deleteUser(target.id);
+        if (cardDav) await cardDav.deleteUser(target.id);
       } catch (err) {
         if (logger) logger.event('account-delete-failed', {
           actor: actor.username, username: target.username, error: err && err.message ? err.message : String(err),

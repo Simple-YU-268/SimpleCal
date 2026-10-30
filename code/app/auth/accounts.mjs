@@ -442,8 +442,8 @@ export function createAccountStore({ file, logger = null, vault = null }) {
   }
 
   /**
-   * 0.2.9：删除账号记录（管理员在账号管理里删除）。数据目录由调用方用
-   * `store.deleteUser(id)` 一并清理；这里只负责账号记录本身。
+   * 0.2.9：删除账号记录（管理员在账号管理里删除）。日历与通讯录数据目录
+   * 由调用方一并清理；这里只负责账号记录本身。
    * @returns {{ok:true, account:object}|{ok:false, reason:'not_found'}}
    */
   async function deleteAccount(id) {

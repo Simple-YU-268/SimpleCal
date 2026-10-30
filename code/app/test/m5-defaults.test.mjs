@@ -115,7 +115,7 @@ async function propfindCalendar(calId) {
 const VCAL = [
   'BEGIN:VCALENDAR',
   'VERSION:2.0',
-  'PRODID:-//FnCal//Test//CN',
+  'PRODID:-//SimpleCal//Test//CN',
   'BEGIN:VEVENT',
   'UID:defaults-1@test',
   'DTSTAMP:20260701T000000Z',

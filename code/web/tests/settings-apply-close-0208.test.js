@@ -192,7 +192,7 @@ describe('0.2.8 设置「应用」= 应用并关闭', () => {
     // 说明文字常显
     expect(bar.textContent).toContain('勾选先暂存，点「应用」才保存；离开前会提示未应用的修改。');
     // 版本号与提示在同一行容器里
-    expect(foot.querySelector('.settings__version').textContent).toContain('FnCal');
+    expect(foot.querySelector('.settings__version').textContent).toContain('SimpleCal');
     // DOM 顺序：body → foot → actions
     expect(body.compareDocumentPosition(foot) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(foot.compareDocumentPosition(actions) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();

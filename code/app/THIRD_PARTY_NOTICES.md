@@ -34,7 +34,7 @@ curl.exe -L -o bcryptjs-2.4.3.tgz https://registry.npmjs.org/bcryptjs/-/bcryptjs
 | 上游 | https://github.com/HeyPuter/everything |
 | 来源提交 | `1781457`（`src/calendar/src/js/` 目录） |
 | 仓库内位置 | `app/vendor/ical/` |
-| 相对上游的修改 | **有（仅此两处，2026-10-23 零云审计后修改）**：① `ics.js` 的 `PRODID` 由上游常量为 `-//FnCal//FNCal//EN`；② `ics.js` 生成 UID 的默认域由上游硬编码的云服务域名后缀改为 `globalThis.__FNCAL_UID_DOMAIN__ || 'caldav.local'`（负责人决策：默认 `@caldav.local`，可由 `var/config.json:uidDomain` / `CALDAV_UID_DOMAIN` 配置）。其余文件与其余逻辑原样。 |
+| 相对上游的修改 | **有（仅此两处，2026-10-23 零云审计后修改）**：① `ics.js` 的 `PRODID` 由上游常量为 `-//SimpleCal//SimpleCal//EN`；② `ics.js` 生成 UID 的默认域由上游硬编码的云服务域名后缀改为 `globalThis.__FNCAL_UID_DOMAIN__ || 'caldav.local'`（负责人决策：默认 `@caldav.local`，可由 `var/config.json:uidDomain` / `CALDAV_UID_DOMAIN` 配置）。其余文件与其余逻辑原样。 |
 | 说明 | 纯 ESM、无浏览器全局；产品包不再依赖 `.refs` checkout；运行期不访问任何云域名。 |
 
 ## 3. 自有代码
@@ -50,8 +50,8 @@ curl.exe -L -o bcryptjs-2.4.3.tgz https://registry.npmjs.org/bcryptjs/-/bcryptjs
 
 ## 应用图标与界面图形（团队原创）
 
-FnCal 应用图标（含 fnOS 包图标、应用内图标、favicon、PWA 图标）为团队原创，作者 PaulCAI1593（https://github.com/PaulCAI1593/），不含任何第三方商标；字标为「Cal」，所有尺寸（含 16/32px favicon）统一使用该字标，16px 因尺寸限制允许笔画略糊，属有意取舍。
+SimpleCal 应用图标（含 fnOS 包图标、应用内图标、favicon、PWA 图标）为团队原创，作者 PaulCAI1593（https://github.com/PaulCAI1593/），不含任何第三方商标；字标为「Cal」，所有尺寸（含 16/32px favicon）统一使用该字标，16px 因尺寸限制允许笔画略糊，属有意取舍。
 
-应用名称：FnCal（应用名 = 应用中心显示名 = 项目名）。开发者 / 发布者：PaulCAI1593，主页 https://github.com/PaulCAI1593/ 。
+应用名称：SimpleCal（应用名 = 应用中心显示名 = 项目名）。开发者 / 发布者：Simple-YU-268，主页 https://github.com/Simple-YU-268/ 。
 
 Copyright (c) 2026 PaulCAI1593

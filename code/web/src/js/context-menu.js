@@ -1,8 +1,7 @@
 /**
  * Context menu（本地渲染）。
  *
- * 上游实现会在 Puter 桌面里调用 `puter.ui.contextMenu`，并把本地渲染当兜底。
- * FnCal 剥离云依赖后只剩本地这一条路径：一个带键盘导航、可访问的菜单，
+ * SimpleCal 使用本地渲染：一个带键盘导航、可访问的菜单，
  * 条目契约保持不变：
  *
  *   items: Array<'-' | {

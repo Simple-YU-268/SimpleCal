@@ -41,7 +41,7 @@ const VERBOSE = process.argv.includes('--verbose');
 /** 技术词：整个候选只由这些词组成时不算可见文案。 */
 const TECHNICAL_WORDS = new Set(
   `get post put patch delete head options propfind proppatch report mkcalendar mkcol move copy
-   fncal caldav puter webdav fnos ical vcalendar ics
+   simplecal fncal caldav puter webdav fnos ical vcalendar ics
    true false null undefined function return const let var class new typeof instanceof
    string number boolean object array json xml html css svg png jpg jpeg webp ico woff woff2 ttf
    utf utf8 charset content type text plain calendar event events task tasks

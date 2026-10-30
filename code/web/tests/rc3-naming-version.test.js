@@ -1,6 +1,6 @@
 /**
  * 0.2.3 命名与署名（RC3 硬要求）+ B2/B3/B4 静态断言。
- *   - 应用名/显示名/项目名一律 FnCal；「日历」「CalDAV」只作普通名词/协议名。
+ *   - 应用名/显示名/项目名一律 SimpleCal；「日历」「CalDAV」只作普通名词/协议名。
  *   - 开发者/发布者 PaulCAI1593；版权行统一。
  *   - B2 设置页签不被裁（不再用 overflow-x:auto 横滚容器）；
  *   - B3 表格行高 ≥44、窄屏卡片式、表头/数据同一套 grid；
@@ -14,45 +14,45 @@ const read = (p) => readFileSync(path.resolve(p), 'utf8');
 const codeDir = path.resolve('..');
 
 describe('0.2.3 命名与署名', () => {
-  it('manifest：display_name=FnCal、描述不提「日历」作应用名、维护者/发布者字段齐全', () => {
+  it('manifest：display_name=SimpleCal、描述不提「日历」作应用名、维护者/发布者字段齐全', () => {
     const m = read('../fnos/manifest');
-    expect(m).toMatch(/^display_name=FnCal$/m);
-    expect(m).toMatch(/^maintainer=PaulCAI1593$/m);
+    expect(m).toMatch(/^display_name=SimpleCal$/m);
+    expect(m).toMatch(/^maintainer=Simple-YU-268$/m);
     // 0.2.44（用户：应用开发者和发布者连接到该项目仓库）：两处 URL 由个人主页改为项目仓库。
-    expect(m).toMatch(/^maintainer_url=https:\/\/github\.com\/PaulCAI1593\/FnCal$/m);
-    expect(m).toMatch(/^distributor=PaulCAI1593$/m);
-    expect(m).toMatch(/^distributor_url=https:\/\/github\.com\/PaulCAI1593\/FnCal$/m);
+    expect(m).toMatch(/^maintainer_url=https:\/\/github\.com\/Simple-YU-268\/SimpleCal$/m);
+    expect(m).toMatch(/^distributor=Simple-YU-268$/m);
+    expect(m).toMatch(/^distributor_url=https:\/\/github\.com\/Simple-YU-268\/SimpleCal$/m);
     expect(m).not.toContain('display_name=日历');
-    expect(m).not.toContain('FnCal 日历');
+    expect(m).not.toContain('SimpleCal 日历');
   });
 
-  it('桌面入口标题 = FnCal（ui/config）', () => {
+  it('桌面入口标题 = SimpleCal（ui/config）', () => {
     const ui = JSON.parse(read('../fnos/app/ui/config'));
-    expect(ui['.url']['FnCal.main'].title).toBe('FnCal');
+    expect(ui['.url']['SimpleCal.main'].title).toBe('SimpleCal');
   });
 
-  it('i18n：应用名/标题 = FnCal，不再出现「FnCal 日历」', () => {
+  it('i18n：应用名/标题 = SimpleCal，不再出现「SimpleCal 日历」', () => {
     const s = read('src/i18n/zh-CN.js');
-    expect(s).toMatch(/'app\.name': 'FnCal'/);
-    expect(s).toMatch(/'app\.title': 'FnCal'/);
-    expect(s).toMatch(/'login\.title': 'FnCal'/);
-    expect(s).not.toContain('FnCal 日历');
+    expect(s).toMatch(/'app\.name': 'SimpleCal'/);
+    expect(s).toMatch(/'app\.title': 'SimpleCal'/);
+    expect(s).toMatch(/'login\.title': 'SimpleCal'/);
+    expect(s).not.toContain('SimpleCal 日历');
   });
 
-  it('index.html：标题/应用名/PWA 名称 = FnCal，描述不再宣传「提醒」', () => {
+  it('index.html：标题/应用名/PWA 名称 = SimpleCal，描述不再宣传「提醒」', () => {
     const h = read('index.html');
-    expect(h).toContain('<title>FnCal</title>');
-    expect(h).toContain('<meta name="application-name" content="FnCal" />');
-    expect(h).toContain('<meta name="apple-mobile-web-app-title" content="FnCal" />');
-    expect(h).toContain('content="FnCal"'); // og:site_name / og:title
-    expect(h).not.toContain('FnCal 日历');
+    expect(h).toContain('<title>SimpleCal</title>');
+    expect(h).toContain('<meta name="application-name" content="SimpleCal" />');
+    expect(h).toContain('<meta name="apple-mobile-web-app-title" content="SimpleCal" />');
+    expect(h).toContain('content="SimpleCal"'); // og:site_name / og:title
+    expect(h).not.toContain('SimpleCal 日历');
     expect(h).not.toContain('提醒');
   });
 
-  it('webmanifest：name = FnCal，描述不再宣传「提醒」', () => {
+  it('webmanifest：name = SimpleCal，描述不再宣传「提醒」', () => {
     const wm = JSON.parse(read('public/site.webmanifest'));
-    expect(wm.name).toBe('FnCal');
-    expect(wm.short_name).toBe('FnCal');
+    expect(wm.name).toBe('SimpleCal');
+    expect(wm.short_name).toBe('SimpleCal');
     expect(JSON.stringify(wm)).not.toContain('提醒');
   });
 
@@ -110,15 +110,15 @@ describe('B3 日历表格自适应', () => {
 describe('B4 版本可自证', () => {
   it('Service Worker 缓存名是构建期可替换的占位', () => {
     const sw = read('public/sw.js');
-    expect(sw).toMatch(/fncal-shell-v\d+/);
+    expect(sw).toMatch(/simplecal-shell-v\d+/);
   });
   it('版本号由 /api/version 取得，不在前端源码写死', () => {
     const v = read('src/js/app-version.js');
     expect(v).toContain("'/api/version'");
     expect(v).not.toMatch(/version\s*[:=]\s*['\"]0\.2\./);
   });
-  it('设置页脚显示「FnCal <version>」', () => {
+  it('设置页脚显示「SimpleCal <version>」', () => {
     const i18n = read('src/i18n/zh-CN.js');
-    expect(i18n).toContain("'settings.version': 'FnCal {version}'");
+    expect(i18n).toContain("'settings.version': 'SimpleCal {version}'");
   });
 });

@@ -244,7 +244,7 @@ function rsaPublicKeyFromSpki(spkiDer) {
 }
 
 // 生成自签证书：RSA 2048 + SHA-256，SAN 含主机名与回环地址。
-export function generateSelfSignedCertificate({ hostNames, days = 825, organization = 'FnCal', cn, now = new Date() } = {}) {
+export function generateSelfSignedCertificate({ hostNames, days = 825, organization = 'SimpleCal', cn, now = new Date() } = {}) {
   const names = hostNames || defaultHostNames();
   const commonName = cn || names.dns[0] || 'localhost';
   const { publicKey, privateKey } = crypto.generateKeyPairSync('rsa', {

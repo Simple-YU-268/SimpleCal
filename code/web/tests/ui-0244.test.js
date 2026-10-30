@@ -1,7 +1,7 @@
 /**
  * 0.2.44（用户：应用开发者和发布者连接到该项目仓库）
  *
- * 设置对话框页脚的「关于」区在版本号下面再补一行：`开发者 PaulCAI1593 · 项目仓库`，
+ * 设置对话框页脚的「关于」区在版本号下面再补一行：`开发者 Simple-YU-268 · 项目仓库`，
  * 仓库是可点的外链。fnOS 应用中心里的 maintainer / distributor 两个字段也指向同一个仓库，
  * 所以三处必须同源：`code/fnos/manifest` 两行、本测试锁定的 `REPO_URL`、i18n 文案。
  *
@@ -45,7 +45,7 @@ vi.mock('../src/js/toast.js', () => ({ toast: mocks.toast }));
 const { openAccountDialog } = await import('../src/js/account-dialog.js');
 const { DEFAULT_SETTINGS } = await import('../src/js/store.js');
 
-const REPO = 'https://github.com/PaulCAI1593/FnCal';
+const REPO = 'https://github.com/Simple-YU-268/SimpleCal';
 const readSrc = (rel) => readFileSync(new URL(rel, import.meta.url), 'utf8');
 
 function makeStore() {
@@ -87,11 +87,11 @@ describe('0.2.44 设置页脚：开发者 · 项目仓库', () => {
     return opened.dialog;
   }
 
-  it('页脚关于区有「开发者 PaulCAI1593」与「项目仓库」两个信息', () => {
+  it('页脚关于区有「开发者 Simple-YU-268」与「项目仓库」两个信息', () => {
     const dialog = open();
     const meta = dialog.querySelector('.settings__about-meta');
     expect(meta).not.toBe(null);
-    expect(meta.textContent).toContain('开发者 PaulCAI1593');
+    expect(meta.textContent).toContain('开发者 Simple-YU-268');
     expect(meta.textContent).toContain('项目仓库');
   });
 
@@ -113,7 +113,7 @@ describe('0.2.44 设置页脚：开发者 · 项目仓库', () => {
     const dialog = open();
     const version = dialog.querySelector('.settings__about .settings__version');
     expect(version).not.toBe(null);
-    expect(version.textContent.trim()).toMatch(/^FnCal/);
+    expect(version.textContent.trim()).toMatch(/^SimpleCal/);
     expect(version.textContent).not.toContain('开发者');
     expect(version.textContent).not.toContain('项目仓库');
     // 两行同属关于区，顺序是「版本号在上、开发者与仓库在下」
@@ -126,8 +126,8 @@ describe('0.2.44 设置页脚：开发者 · 项目仓库', () => {
 
   it('fnOS manifest 的开发者与发布者都指向该项目仓库', () => {
     const manifest = readSrc('../../fnos/manifest');
-    expect(manifest).toContain('maintainer=PaulCAI1593');
-    expect(manifest).toContain('distributor=PaulCAI1593');
+    expect(manifest).toContain('maintainer=Simple-YU-268');
+    expect(manifest).toContain('distributor=Simple-YU-268');
     expect(manifest).toContain(`maintainer_url=${REPO}`);
     expect(manifest).toContain(`distributor_url=${REPO}`);
   });
@@ -147,7 +147,7 @@ describe('0.2.44 设置页脚：开发者 · 项目仓库', () => {
     const i18n = readSrc('../src/i18n/zh-CN.js');
     expect(i18n).toContain("'settings.about.developer': '开发者 {name}',");
     expect(i18n).toContain("'settings.about.repository': '项目仓库',");
-    expect(i18n).toContain('FnCal 项目仓库（在新标签页打开）');
+    expect(i18n).toContain('SimpleCal 项目仓库（在新标签页打开）');
   });
 
   it('样式口径：页脚关于区两行右对齐、hover 下划线门控在精确指针', () => {

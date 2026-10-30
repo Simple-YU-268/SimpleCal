@@ -19,7 +19,7 @@
 #   A7  EXPECTED_VERSION 提供 A8  项目 manifest 版本 == EXPECTED_VERSION
 #   A9  fnpack build exit 0   A10 stdout 含 "Packing successfully"
 #   A11 .fpk 产物存在         A12 解包 cmd/* 权限 == 0755
-#   A13 包内 manifest 版本 == EXPECTED_VERSION（并落 dist/FnCal-<version>.fpk）
+#   A13 包内 manifest 版本 == EXPECTED_VERSION（并落 dist/SimpleCal-<version>.fpk）
 #   A14 lifecycle 静态审计（install_init 只读/目录缺失容错，0.1.3 安装修复）
 #   A15 lifecycle 模拟（Linux 沙箱按 fnOS 顺序跑 9 个脚本）
 set -euo pipefail
@@ -40,7 +40,7 @@ ok() { printf '  [%s] OK: %s\n' "$1" "$2"; }
 info() { printf '%s\n' "$1"; }
 manifest_value() { grep -E "^$1[[:space:]]*=" "$PROJECT_DIR/manifest" 2>/dev/null | head -n 1 | cut -d= -f2- | tr -d '[:space:]' || true; }
 
-info '== FnCal 正式包构建（Linux）=='
+info '== SimpleCal 正式包构建（Linux）=='
 
 # A1 平台
 case "$(uname -s)" in
@@ -124,8 +124,8 @@ ok A9 'fnpack build exit 0'
 grep -q 'Packing successfully' "$BUILD_LOG" || die A10 "fnpack 输出未包含 'Packing successfully'（构建未真正成功）"
 ok A10 "stdout 含 'Packing successfully'"
 
-# A11 .fpk 产物存在（优先 appname 命名的 FnCal.fpk，其次最新 .fpk）
-FPK_SRC="${PROJECT_DIR}/FnCal.fpk"
+# A11 .fpk 产物存在（优先 appname 命名的 SimpleCal.fpk，其次最新 .fpk）
+FPK_SRC="${PROJECT_DIR}/SimpleCal.fpk"
 if [ ! -f "$FPK_SRC" ]; then
   FPK_SRC="$(ls -1t "${PROJECT_DIR}"/*.fpk 2>/dev/null | head -n 1 || true)"
 fi
@@ -145,12 +145,12 @@ for script in "${PROJECT_DIR}"/cmd/*; do
 done
 ok A12 '包内 cmd/* 权限均为 0755'
 
-# A13 包内 manifest 版本 == EXPECTED_VERSION，并落到 dist/FnCal-<version>.fpk
+# A13 包内 manifest 版本 == EXPECTED_VERSION，并落到 dist/SimpleCal-<version>.fpk
 PACKED_MANIFEST="$(tar -xOf "$FPK_SRC" manifest 2>/dev/null | tr -d '\r' || true)"
 [ -n "$PACKED_MANIFEST" ] || die A13 '包内缺少 manifest'
 PACKED_VERSION="$(printf '%s\n' "$PACKED_MANIFEST" | grep -E '^version[[:space:]]*=' | head -n 1 | cut -d= -f2- | tr -d '[:space:]' || true)"
 [ "$PACKED_VERSION" = "$EXPECTED_VERSION" ] || die A13 "包内 manifest version=${PACKED_VERSION:-(空)} 与 EXPECTED_VERSION=${EXPECTED_VERSION} 不一致"
-TARGET="${DIST_DIR}/FnCal-${EXPECTED_VERSION}.fpk"
+TARGET="${DIST_DIR}/SimpleCal-${EXPECTED_VERSION}.fpk"
 rm -f "$TARGET"
 mv -f "$FPK_SRC" "$TARGET" || die A13 "移动产物到 ${TARGET} 失败"
 [ -f "$TARGET" ] || die A13 "目标产物不存在：${TARGET}"
@@ -158,4 +158,4 @@ ok A13 "包内 manifest version=${PACKED_VERSION}；产物 → ${TARGET}"
 
 info ''
 info "OK: ${TARGET}（$(du -h "$TARGET" | cut -f1)）"
-info '提示：Windows 上打出来的是 test 包（如 dist/FnCal-<version>-test.fpk），只作测试、不进发布。'
+info '提示：Windows 上打出来的是 test 包（如 dist/SimpleCal-<version>-test.fpk），只作测试、不进发布。'

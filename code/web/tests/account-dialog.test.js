@@ -350,15 +350,15 @@ describe('设置对话框', () => {
   });
 
 
-  it('页脚显示版本号「FnCal <version>」（0.2.3 B4，值来自 /api/version）', () => {
+  it('页脚显示版本号「SimpleCal <version>」（0.2.3 B4，值来自 /api/version）', () => {
     opened = openAccountDialog({
       user: { username: 'alice', role: 'user' },
       store,
       version: '0.2.3',
     });
     const footer = opened.dialog.querySelector('.settings__foot');
-    expect(footer.textContent).toContain('FnCal 0.2.3');
-    expect(opened.dialog.querySelector('.settings__version').textContent).toBe('FnCal 0.2.3');
+    expect(footer.textContent).toContain('SimpleCal 0.2.3');
+    expect(opened.dialog.querySelector('.settings__version').textContent).toBe('SimpleCal 0.2.3');
   });
 
   it('0.2.4：页脚不再有 HTTPS 提示（只保留在 CalDAV 账户页）', () => {

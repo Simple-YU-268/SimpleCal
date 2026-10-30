@@ -29,7 +29,7 @@ import {
 } from './date-utils.js';
 import { resolveTzid } from './windows-zones.js';
 
-const PRODID = '-//FnCal//FNCal//EN';
+const PRODID = '-//SimpleCal//SimpleCal//EN';
 const ICS_WEEKDAYS = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'];
 
 // RSVP participation status, app <-> RFC 5545 PARTSTAT.
@@ -108,8 +108,7 @@ export function toICS(events, { now = Date.now(), method = '', tzid = '', sequen
 }
 
 function writeEvent(lines, ev, stamp, tzid, sequence, status, alarms, recurrenceId, recurrenceRange, uidOverride) {
-  // FnCal 修改（相对上游 HeyPuter/everything）：UID 后缀改为可配置的本地域，
-  // 默认 @caldav.local（负责人决策 2026-10-23）；调用方可传 uidOverride 覆盖。
+  // SimpleCal：UID 后缀使用可配置的本地域，调用方可传 uidOverride 覆盖。
   const uidDomain = (globalThis.__FNCAL_UID_DOMAIN__ || 'caldav.local');
   const uid = uidOverride || `${ev.id}@${uidDomain}`;
   if (recurrenceId != null) {

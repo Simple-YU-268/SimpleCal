@@ -313,7 +313,7 @@ export function createSecurityService({ file, config = {}, accounts, audit = nul
     const secret = generateTotpSecret();
     await accounts.setTotpPending(account.id, secret);
     const uri = otpauthUri({ account: account.username, secret });
-    const qr = qrSvg(uri, { moduleSize: 4, title: `FnCal 2FA ${account.username}` });
+    const qr = qrSvg(uri, { moduleSize: 4, title: `SimpleCal 2FA ${account.username}` });
     if (audit) audit.write({ type: 'security', event: 'totp-begin', actor, username: account.username, id: account.id, remoteAddress });
     return { secret, otpauth: uri, qrSvg: qr.svg, username: account.username };
   }

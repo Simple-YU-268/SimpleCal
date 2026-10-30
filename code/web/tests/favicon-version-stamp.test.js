@@ -22,8 +22,8 @@ beforeEach(async () => {
   const indexHtml = await fs.readFile(path.join(webRoot, 'index.html'), 'utf8');
   const manifest = await fs.readFile(path.join(webRoot, 'public', 'site.webmanifest'), 'utf8');
   manifestPath = path.join(dir, 'manifest');
-  await fs.writeFile(manifestPath, 'appname=FnCal\nversion=9.9.9\n');
-  await fs.writeFile(path.join(dir, 'sw.js'), "const CACHE = 'fncal-shell-v1';\n");
+  await fs.writeFile(manifestPath, 'appname=SimpleCal\nversion=9.9.9\n');
+  await fs.writeFile(path.join(dir, 'sw.js'), "const CACHE = 'simplecal-shell-v1';\n");
   await fs.writeFile(path.join(dir, 'index.html'), indexHtml);
   await fs.writeFile(path.join(dir, 'site.webmanifest'), manifest);
 });
@@ -34,7 +34,7 @@ afterEach(async () => {
 });
 
 const read = (name) => fs.readFile(path.join(dir, name), 'utf8');
-const writeManifestVersion = (version) => fs.writeFile(manifestPath, `appname=FnCal\nversion=${version}\n`);
+const writeManifestVersion = (version) => fs.writeFile(manifestPath, `appname=SimpleCal\nversion=${version}\n`);
 const runStamp = () => spawnSync(process.execPath, [scriptPath, '--dist', dir, '--manifest', manifestPath], {
   stdio: 'ignore',
 });
@@ -82,8 +82,8 @@ describe('构建期 favicon/manifest 版本串', () => {
     const wm = JSON.parse(await read('site.webmanifest'));
     for (const icon of wm.icons) expect(icon.src.endsWith('?v=9.9.10')).toBe(true);
     const sw = await read('sw.js');
-    expect(sw).toContain('fncal-shell-9.9.10');
-    expect(sw).not.toMatch(/fncal-shell-v1/);
+    expect(sw).toContain('simplecal-shell-9.9.10');
+    expect(sw).not.toMatch(/simplecal-shell-v1/);
   });
 
   it('缺必需链接（apple-touch）时退出码 1，而不是悄悄出包', async () => {

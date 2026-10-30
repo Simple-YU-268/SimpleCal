@@ -1,96 +1,78 @@
-# FnCal 的 Docker 部署草稿（实验性，未验证）
+# SimpleCal Docker 部署（容器实测待完成）
 
-> **状态：草稿，没有实测过。** 写这份文件时本机没有 Docker，所以 `Dockerfile` 与
-> `docker-compose.yml` 是按源码依赖关系推导的，**没有跑过 `docker build` / `docker run`**。
-> 它们现在只适合自己试，不适合对外承诺。正式支持计划在 v1.1；到时补齐实测与文档再宣传。
->
-> 这 4 个文件（`Dockerfile`、`docker-compose.yml`、`.dockerignore`、`DOCKER.md`）随
-> **v0.2.38 源码包**一起提供，放在仓库根目录。它们只是额外的部署方式，不影响 .fpk 安装。
+Docker 使用与通用运行包相同的 Node 后端。已验证后端通用启动、登录和 DAV 重启持久化；
+镜像构建、卷权限和容器生命周期尚需在 Docker 主机实测。
 
-## 一、它和 .fpk 装法的关系
+## Compose
 
-后端是零第三方运行期依赖的 Node 服务（只用 Node 内置模块 + 应用内 vendored 的 `ical` /
-`bcryptjs`），前端是 Vite 构建出来的静态文件——这正好是 Docker 最省事的形态：不需要数据库、
-不需要编译原生模块、没有系统依赖。所以容器化本身不难，难的是**验证**（见第四节）和**边界**
-（见第三节：docker 版没有 fnOS 应用中心那套生命周期与安装向导）。
+在源码仓库根目录执行：
 
-## 二、怎么跑起来
-
-在仓库根目录（与 `code/` 同级）执行：
-
-```bash
-# 方式 A：docker run
-docker build -t fncal:dev .
-docker run -d --name fncal \
-  -p 5581:5280 \
-  -v fncal-data:/data \
-  -e CALDAV_ADMIN_PASSWORD='换成你的强密码' \
-  fncal:dev
-```
-
-```bash
-# 方式 B：compose
+```sh
 docker compose up -d --build
+docker compose logs -f
 ```
 
-起来后浏览器打开 `http://<NAS-IP>:5581/`，用 `CALDAV_USER`（默认 `caldav`）+ 上面设的密码登录。
-容器内端口固定 5280，左边那个宿主机端口随便换（≥ 1024；**不要用 5232**，那是 Radicale 的默认端口）。
+打开 `http://<服务器地址>:5581/`，默认用户名 `caldav`。默认首启生成随机密码，读取方式：
 
-**环境变量**
+```sh
+docker compose exec simplecal cat /data/admin-initial-password.txt
+```
 
-| 变量 | 默认 | 说明 |
-|---|---|---|
-| `CALDAV_ADMIN_PASSWORD` | `caldav` | **首次启动**用它初始化管理员。不设就是内置默认，只适合本机试跑 |
-| `CALDAV_USER` | `caldav` | 管理员用户名 |
-| `CALDAV_PORT` | `5280` | 容器内监听端口 |
-| `CALDAV_HOST` | `0.0.0.0` | 监听地址 |
-| `TRIM_PKGVAR` | `/data` | 数据根目录（账号、日历、日志都在里面） |
-| `CALDAV_WEB_DIR` | `/app/www` | 前端静态文件目录 |
+首次登录后必须修改密码，再删除初始密码文件。也可在 `.env` 中设置
+`CALDAV_ADMIN_PASSWORD` 后启动；该文件不要提交到版本库。修改初始化密码配置不会重置已有账号。
 
-其余变量（`CALDAV_DAV_PREFIX`、`CALDAV_FRAME_ANCESTORS`、`CALDAV_TOMBSTONE_LIMIT` 等）见
-[`code/app/README.md`](code/app/README.md)。
+## docker run 与密码文件
 
-**数据与备份**：`/data` 下就是 `accounts.json`、`calendars/`、`logs/`。备份这个卷即可；
-换机器时把卷带过去，镜像重跑容器，数据照旧。
+```sh
+docker build -t simplecal:dev .
+docker run -d --name simplecal --restart unless-stopped \
+  -p 5581:5280 -v simplecal-data:/data simplecal:dev
+```
 
-## 三、和 .fpk 装法的差异（别指望它一样）
+用密码文件初始化时，只配置 `CALDAV_ADMIN_PASSWORD_FILE`，不要同时配置
+`CALDAV_ADMIN_PASSWORD`（即使其值为空）。例如：
 
-| 项 | .fpk（飞牛OS 应用） | 这份 docker 草稿 |
-|---|---|---|
-| 安装 | 应用中心 + 安装向导 | `docker compose up`，端口与管理员用环境变量 |
-| 桌面图标 | 有 | 没有，自己存书签 |
-| 进程管理 | fnOS 生命周期脚本（`cmd/*`） | 由 Docker 负责（`restart` 策略） |
-| 升级 | 应用中心覆盖安装、数据保留 | 重新 build / 换镜像 tag、数据卷保留 |
-| 数据位置 | `/vol1/@appdata/FnCal/` | `/data` 卷 |
-| 端口 | 安装时写入 `config.json` | 环境变量 + 端口映射 |
-| HTTPS | 自己套反代 | 同样自己套反代，容器内不终止 TLS |
-| 两步验证等高级安全能力 | 后端有、界面没有 | 完全一样（同版本后端，同样没有界面） |
+```sh
+docker run -d --name simplecal --restart unless-stopped \
+  -p 5581:5280 -v simplecal-data:/data \
+  --mount type=bind,src=/absolute/path/admin-password,dst=/run/secrets/admin-password,readonly \
+  -e CALDAV_ADMIN_PASSWORD_FILE=/run/secrets/admin-password simplecal:dev
+```
 
-## 四、拿到后必须验的 6 项（验过才算能用）
+确保文件可被容器内 uid 1000 读取。使用 Compose secrets 时，移除默认 Compose 文件的
+`CALDAV_ADMIN_PASSWORD` 项，再将 secret 授予服务并设置对应的文件路径。
 
-1. **构建**：`docker build` 成功，镜像能启动，日志里没有异常堆栈；
-2. **首启初始化**：`/data` 里出现 `accounts.json`，浏览器能打开登录页（静态资源 200）；
-3. **登录**：用 `CALDAV_ADMIN_PASSWORD` 设的密码能登录；
-4. **持久化**：建一个事件 → 刷新还在 → `docker restart fncal` 后仍然在；
-5. **CalDAV**：手机/电脑客户端（DAVx5、Thunderbird 等）连 `http://<NAS-IP>:5581/`，能拉到日历并写一条事件；
-6. **非 root**：`docker exec fncal id` 显示 uid 1000（`node` 用户），并且 `/data` 可写。
+## 配置与数据
 
-任何一项不过，就说明这份草稿还差东西——把现象发到仓库 Issues（附上
-`docker compose logs` 的相关片段），不要当「大概能用」放出去。
+| 变量 | 默认值 / 作用 |
+|---|---|
+| `CALDAV_DATA_DIR` | 镜像中为 `/data` |
+| `CALDAV_USER` | `caldav`，首启管理员用户名 |
+| `CALDAV_ADMIN_PASSWORD` | 省略或为空时生成随机密码 |
+| `CALDAV_ADMIN_PASSWORD_FILE` | UTF-8 密码文件；末尾一个换行会被去除 |
+| `CALDAV_HOST` | `0.0.0.0` |
+| `CALDAV_PORT` | `5280`，运行时覆盖，需要同步修改端口映射 |
+| `CALDAV_WEB_DIR` | `/app/www` |
+| `CALDAV_PUBLIC_BASE_URL` | 可选公开地址与反向代理子路径 |
 
-## 五、已知坑
+后端无须数据库。容器以非 root 的 `node` 用户（uid 1000）运行。默认使用 named volume；
+改用 bind mount 时，先在宿主机创建目录并授权 uid 1000 写入。
 
-- **bind mount 权限**：把 `fncal-data:/data` 换成 `./data:/data` 时，宿主机目录可能属 root，
-  容器内 uid 1000 写不进去。先 `chown -R 1000:1000 ./data`（NAS / Linux）。
-- **不要用 5232 端口**：那是 Radicale 的默认端口，容易和别的日历服务撞。
-- **公网必须套 HTTPS 反代**：和 .fpk 一样，FnCal 自身不做来源 IP 白名单，
-  谁能连到端口谁就能看到登录页。
-- **没有安装向导**：端口、管理员只有在**首次启动**时生效；之后改环境变量不会改已有密码/端口。
-- **ARM 机器**：镜像按构建机架构生成；群晖/飞牛 ARM 机型请在目标机上 `docker build`，
-  或用 `docker buildx` 指定 `--platform`。
-- **体积**：基于 `node:22-alpine`，两阶段构建后约 200 MB 量级（未实测）。
+备份前停止容器，完整备份 `/data` 卷，包括账号、日历、地址簿、AI 授权、会话密钥和安全配置。
+升级保留卷，重新构建并创建容器。不要使用 `docker compose down -v`，该命令会删除数据卷。
+迁移已有数据的方法见 [SERVER.md](SERVER.md)。
 
-## 六、什么时候正式支持
+公网使用 HTTPS 反向代理，将整个根路径转发到服务，保留 DAV 方法和 Authorization。
+本部署方式不提供 fnOS 桌面图标与安装向导。账号初始化只发生一次。
 
-v1.1 的候选范围里（内部路线图已列入）：补齐上面 6 项实测、
-加 CI 里的构建检查、写进 README 与 Release 说明。在那之前，这份文件只是给愿意自己试的人。
+## Docker 主机验收
+
+1. `docker compose build` 成功，启动后健康检查通过。
+2. 登录页与静态资源可加载，随机密码能登录且要求改密。
+3. 创建事件与联系人，重建容器后数据均保留。
+4. CalDAV 与 CardDAV 客户端可读写，AI 授权和访问正常。
+5. `docker compose exec simplecal id` 为 uid 1000，数据卷可写。
+6. SIGTERM 停止后 PID 文件清理，重新启动正常。
+
+镜像基于 `node:22-alpine`。ARM 与 x86 主机分别构建本机架构镜像；
+跨架构分发需额外使用 buildx 并在目标平台实测。

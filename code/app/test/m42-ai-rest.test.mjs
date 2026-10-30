@@ -107,7 +107,7 @@ const NOW = Date.now();
 const icsStamp = (ms) => new Date(ms).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
 function icsEvent({ uid, summary = '', start, end, location = '', description = '', attendees = [] }) {
   const lines = [
-    'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//FnCal Test//EN',
+    'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//SimpleCal Test//EN',
     'BEGIN:VEVENT', `UID:${uid}`, `SUMMARY:${summary}`,
     `DTSTART:${icsStamp(start)}`, `DTEND:${icsStamp(end)}`,
   ];
@@ -198,7 +198,7 @@ try {
   eq('无 token → 401', 401, noToken.status);
   eq('无 token 返回 unauthorized', 'unauthorized', noToken.body && noToken.body.code);
 
-  const badToken = await ai('/api/ai/v1/calendars', { token: `fncal_ai_${'A'.repeat(32)}` });
+  const badToken = await ai('/api/ai/v1/calendars', { token: `simplecal_ai_${'A'.repeat(32)}` });
   eq('错 token → 401', 401, badToken.status);
 
   const cookieOnly = await raw('/api/ai/v1/calendars', { cookie: admin.cookie });
@@ -440,7 +440,7 @@ try {
   ok('审计有 ai-request 记录', aiLines.length > 0, `${aiLines.length} 条`);
   ok('审计记录带 credentialId', aiLines.some((line) => line.includes(writer.credential.id)));
   ok('审计记录带状态码', aiLines.some((line) => line.includes('"status":404')));
-  ok('审计不含明文令牌', !auditText.includes('fncal_ai_'));
+  ok('审计不含明文令牌', !auditText.includes('simplecal_ai_'));
   ok('审计不含事件正文', !auditText.includes('BEGIN:VCALENDAR') && !auditText.includes('机密议程'));
   ok('审计不含 tokenHash', !auditText.includes('tokenHash'));
 

@@ -3,7 +3,7 @@
  * make-fpk.mjs —— 从 fnOS 包工程目录生成可安装的 .fpk（纯 Node，不 spawn 外部工具）。
  *
  * 用法：
- *   node build/make-fpk.mjs --fnos ../fnos --out ../dist/FnCal.fpk
+ *   node build/make-fpk.mjs --fnos ../fnos --out ../dist/SimpleCal.fpk
  *
  * 结构（与已验证的真机包一致）：
  *   外层 tar.gz 条目：app.tgz, cmd/, config/, wizard/, ICON.PNG, ICON_256.PNG, manifest
@@ -28,7 +28,7 @@ const opt = (name, fallback) => {
 };
 
 const FNOS = path.resolve(here, opt('fnos', '../fnos'));
-const OUT = path.resolve(here, opt('out', '../dist/FnCal.fpk'));
+const OUT = path.resolve(here, opt('out', '../dist/SimpleCal.fpk'));
 
 function die(msg) {
   console.error(`ERROR: ${msg}`);

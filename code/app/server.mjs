@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 /**
- * fnOS CalDAV — application entry point (M3.2 skeleton).
+ * SimpleCal — portable calendar server entry point.
  *
  * Responsibilities:
- *   - configuration from the environment (TRIM_PKGVAR first, sane fallback)
+ *   - configuration from the environment (CALDAV_DATA_DIR, fnOS TRIM_PKGVAR fallback)
  *   - process lifecycle: PID file, graceful SIGINT/SIGTERM, optional stdin-EOF
  *     fallback (Windows/service wrappers that cannot deliver a catchable SIGTERM)
  *   - no source-IP guard: 0.1.7 removed the LAN-only network guard at the user's
@@ -26,12 +26,17 @@ import { promises as fs } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 import { createStore } from './store/file-store.mjs';
+import { assertStorageProvider } from './lib/storage-provider.mjs';
 import { createDavHandler } from './dav/handler.mjs';
+import { createCardDavHandler } from './dav/carddav.mjs';
 import { createApiHandler } from './api/index.mjs';
 import { createKvApi } from './api/kv.mjs';
+import { createEventService } from './lib/event-service.mjs';
+import { createEventsApi } from './api/events.mjs';
 import { createAdminApi } from './api/admin.mjs';
 import { createDataApi } from './api/data.mjs';
 import { createCalendarsApi } from './api/calendars.mjs';
+import { createSharesApi } from './api/shares.mjs';
 import { createAiApi } from './api/ai.mjs';
 import { createAiRest } from './api/ai-rest.mjs';
 import { createMcp } from './api/mcp.mjs';
@@ -53,6 +58,7 @@ import { createProxyResolver } from './security/proxy.mjs';
 import { createSecurityApi } from './api/security.mjs';
 import { createStaticHandler, resolveWebDir } from './lib/static.mjs';
 import { runWithContext } from './lib/request-context.mjs';
+import { normalizePublicBaseUrl } from './lib/public-url.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // 0.2.9：阻断「CalDAV 老数据读不到」（启动常驻对账自愈 + --diagnose/--repair + 设置页自检行）
@@ -116,7 +122,7 @@ export function readEntryPortTemplate(appDest = process.env.TRIM_APPDEST) {
   try {
     const raw = readFileSync(path.join(appDest, 'ui', 'config'), 'utf8');
     const parsed = JSON.parse(raw);
-    const entry = parsed && parsed['.url'] && parsed['.url']['FnCal.main'];
+    const entry = parsed && parsed['.url'] && parsed['.url']['SimpleCal.main'];
     return entry && typeof entry.port === 'string' ? entry.port : null;
   } catch {
     return null;
@@ -129,10 +135,10 @@ function normalizeDavPrefix(value) {
   return text ? `/${text}` : '';
 }
 
-/** fnOS 统一网关的公开前缀，例如 `/app/FnCal`（0.1.6）。 */
+/** fnOS 统一网关的公开前缀，例如 `/app/SimpleCal`（0.1.6）。 */
 export function normalizeGatewayPrefix(value) {
   const text = String(value || '').trim().replace(/^\/+|\/+$/g, '');
-  return text ? `/${text}` : '/app/FnCal';
+  return text ? `/${text}` : '/app/SimpleCal';
 }
 
 /**
@@ -157,18 +163,20 @@ export function parseGatewaySockets(env = process.env) {
  * whole `<prefix>/…` subtree belongs to DAV.
  */
 export function isDavPath(pathname, prefix = '') {
-  if (pathname === '/.well-known/caldav') return true;
+  if (pathname === '/.well-known/caldav' || pathname === '/.well-known/carddav') return true;
   const base = prefix || '';
   if (!base) {
     return pathname === '/principals' || pathname.startsWith('/principals/')
-      || pathname === '/calendars' || pathname.startsWith('/calendars/');
+      || pathname === '/calendars' || pathname.startsWith('/calendars/')
+      || pathname === '/addressbooks' || pathname.startsWith('/addressbooks/');
   }
   return pathname === base || pathname.startsWith(`${base}/`);
 }
 
 export function resolveConfig(env = process.env) {
-  const varDir = env.TRIM_PKGVAR && env.TRIM_PKGVAR.trim()
-    ? path.resolve(env.TRIM_PKGVAR)
+  const dataDir = env.CALDAV_DATA_DIR?.trim() || env.TRIM_PKGVAR?.trim();
+  const varDir = dataDir
+    ? path.resolve(dataDir)
     : path.resolve(__dirname, 'var');
   const fileConfig = readVarConfig(varDir);
   // UID domain priority: CALDAV_UID_DOMAIN env -> config.json:uidDomain ->
@@ -180,13 +188,24 @@ export function resolveConfig(env = process.env) {
   // M3.7: the Vite build served on the same port. CALDAV_WEB_DIR wins, then the
   // packaged `app/www`, then the dev `code/web/dist`; null keeps DAV-only mode.
   const webDir = resolveWebDir({ appDir: __dirname, env });
-  // Administrator bootstrap password, in priority order:
-  //   CALDAV_ADMIN_PASSWORD -> CALDAV_PASS -> built-in dev default "caldav".
-  // An explicitly empty value ("") means "generate one and write it to a 0600
-  // file". Real installs must set CALDAV_ADMIN_PASSWORD (README §安全).
-  const adminPassword = env.CALDAV_ADMIN_PASSWORD !== undefined
+  // Empty selects a generated password. Keep the legacy default for fnOS and
+  // existing development harnesses; generic deployments opt in via DATA_DIR.
+  if (env.CALDAV_ADMIN_PASSWORD !== undefined && env.CALDAV_ADMIN_PASSWORD_FILE) {
+    throw new Error('Set only one of CALDAV_ADMIN_PASSWORD and CALDAV_ADMIN_PASSWORD_FILE');
+  }
+  let adminPassword = env.CALDAV_ADMIN_PASSWORD !== undefined
     ? env.CALDAV_ADMIN_PASSWORD
-    : (env.CALDAV_PASS !== undefined ? env.CALDAV_PASS : 'caldav');
+    : (env.CALDAV_PASS !== undefined ? env.CALDAV_PASS : (env.CALDAV_DATA_DIR?.trim() ? '' : 'caldav'));
+  if (env.CALDAV_ADMIN_PASSWORD_FILE) {
+    // Strip a single line ending, preserving spaces and other password bytes.
+    // Do not include file contents (or the underlying error) in diagnostics.
+    try {
+      adminPassword = readFileSync(env.CALDAV_ADMIN_PASSWORD_FILE, 'utf8').replace(/\r?\n$/, '');
+    } catch {
+      throw new Error('Cannot read CALDAV_ADMIN_PASSWORD_FILE');
+    }
+    if (!adminPassword) throw new Error('CALDAV_ADMIN_PASSWORD_FILE must not be empty');
+  }
   return {
     version: VERSION,
     // 监听端口优先级：env（本机测试/覆盖）→ config.json:port（安装向导写入）→ 5280。
@@ -212,6 +231,8 @@ export function resolveConfig(env = process.env) {
     migrationRollback: envFlag(env.CALDAV_MIGRATION_ROLLBACK) || envFlag(fileConfig.migrationRollback),
     stdinExit: envFlag(env.CALDAV_STDIN_EXIT),
     davPrefix: normalizeDavPrefix(env.CALDAV_DAV_PREFIX),
+    publicBaseUrl: normalizePublicBaseUrl(env.CALDAV_PUBLIC_BASE_URL !== undefined
+      ? env.CALDAV_PUBLIC_BASE_URL : fileConfig.publicBaseUrl),
     // 0.1.6：统一网关入口（Socket listener）与公开前缀。没有 socket 环境变量时
     // 保持「纯 TCP 端口」旧行为，测试与直连不受影响。
     gatewayPrefix: normalizeGatewayPrefix(env.CALDAV_GATEWAY_PREFIX),
@@ -313,8 +334,12 @@ export async function createApp(
 
   // M3.3: per-user calendar store. The request context (lib/request-context.mjs)
   // carries the authenticated user id to the store on every request.
-  const store = createStore({ root: config.calendarsDir, logger });
+  const store = assertStorageProvider(createStore({ root: config.calendarsDir, logger }));
   await store.ensureRoot();
+  if (!readOnly && typeof store.recoverMoves === 'function') {
+    const recovery = await store.recoverMoves();
+    if (recovery.recovered) logger.event('move-recovery-done', { recovered: recovery.recovered });
+  }
 
   // 0.2.37（S4）：先把会话密钥读出来，再建账号库 —— 账号库用它经 HKDF 派生的
   // 落盘密文艺（TOTP 种子），旧明文在首次读取时自动改写为 `enc:v1:` 密文。
@@ -414,15 +439,19 @@ export async function createApp(
   const securityApi = createSecurityApi({ accounts, auth, security, audit, logger, proxy });
 
   const davHandler = createDavHandler({ store, config, logger, auth });
-  const kvApi = createKvApi({ store });
+  const cardDavHandler = createCardDavHandler({ config, logger, auth });
+  const eventService = createEventService({ store });
+  const kvApi = createKvApi({ store, events: eventService });
+  const eventsApi = createEventsApi({ events: eventService });
   const calendarsApi = createCalendarsApi({
     store,
     logger,
     config,
     version: config.version,
   });
-  const adminApi = createAdminApi({ accounts, store, auth, audit, logger });
+  const adminApi = createAdminApi({ accounts, store, cardDav: cardDavHandler, auth, audit, logger });
   const dataApi = createDataApi({ store, logger });
+  const sharesApi = createSharesApi({ store, auth, accounts, config, logger });
   // 0.3.0 P1：AI 数据层 + 用户侧 REST。凭据单独一张表（ai-credentials），
   // 与 CalDAV 专用密码表完全分离；令牌只在创建时返回明文。
   const aiStore = createAiStore({ store, accounts, varDir: config.varDir, logger });
@@ -470,6 +499,7 @@ export async function createApp(
     version: config.version,
     auth,
     kv: kvApi,
+    events: eventsApi,
     admin: adminApi,
     data: dataApi,
     calendars: calendarsApi,
@@ -502,7 +532,7 @@ export async function createApp(
       frameAncestors: config.frameAncestors,
       logger,
       version: config.version,
-      // 网关入口下页面位于 /app/FnCal/，theme-prepaint.js 必须带同名前缀。
+      // 网关入口下页面位于 /app/SimpleCal/，theme-prepaint.js 必须带同名前缀。
       basePath: config.gatewaySockets.length ? config.gatewayPrefix : '',
     })
     : null;
@@ -518,7 +548,7 @@ export async function createApp(
   /**
    * 单请求处理。TCP listener 走完整路由（DAV + API + 静态）；统一网关的 Unix
    * socket listener 只处理 API 与静态（DAV 客户端用 Basic，不能走 NAS 会话网关），
-   * 并在路由前剥掉 `/app/FnCal` 前缀（兼容网关保留前缀转发的实现）。
+   * 并在路由前剥掉 `/app/SimpleCal` 前缀（兼容网关保留前缀转发的实现）。
    */
   function handleRequest(req, res, { gateway = false } = {}) {
     const rawUrl = req.url || '/';
@@ -655,7 +685,7 @@ export async function createApp(
               'Content-Type': 'text/plain; charset=utf-8',
               'Content-Length': body.length,
               'Cache-Control': 'no-store',
-              'X-FnCal-Https-Port': String(httpsSettings.httpsPort || ''),
+              'X-SimpleCal-Https-Port': String(httpsSettings.httpsPort || ''),
             });
             res.end(body);
             return;
@@ -712,6 +742,10 @@ export async function createApp(
       );
     }
 
+    if (sharesApi.owns(pathname)) {
+      return guarded(() => sharesApi.handle(req, res), 'shares');
+    }
+
     if (pathname.startsWith('/api/')) {
       const start = Date.now();
       res.on('finish', () => {
@@ -726,6 +760,10 @@ export async function createApp(
         });
       });
       return guarded(() => runWithContext({ userId: null }, () => apiHandler(req, res)), 'api');
+    }
+
+    if (!gateway && cardDavHandler.owns(pathname)) {
+      return guarded(() => runWithContext({ userId: null }, () => cardDavHandler.handle(req, res)), 'carddav');
     }
 
     if (gateway) {

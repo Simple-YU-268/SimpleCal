@@ -132,10 +132,10 @@ describe('0.3.2 · AI 页：应用按钮 + MCP JSON 片段', () => {
     const url = mcpAddress('https://nas.example.com:5581');
     expect(url).toBe('https://nas.example.com:5581/mcp');
     const json = JSON.parse(mcpConfigJson(url));
-    expect(json.mcpServers.fncal.type).toBe('http');
-    expect(json.mcpServers.fncal.url).toBe(url);
+    expect(json.mcpServers.simplecal.type).toBe('http');
+    expect(json.mcpServers.simplecal.url).toBe(url);
     // 关键：Authorization 必须是 `Bearer ` 加占位令牌，不再是裸令牌
-    expect(json.mcpServers.fncal.headers.Authorization).toBe('Bearer <你的令牌>');
+    expect(json.mcpServers.simplecal.headers.Authorization).toBe('Bearer <你的令牌>');
     expect(mcpConfigJson(url)).toContain('"mcpServers"');
   });
 
@@ -158,7 +158,7 @@ describe('0.3.2 · AI 页：应用按钮 + MCP JSON 片段', () => {
       .map((n) => n.textContent).join('\n');
     expect(hints).toContain('令牌输入框');
     expect(hints).toContain('不要带 Bearer 前缀');
-    expect(hints).toContain('fncal_ai_');
+    expect(hints).toContain('simplecal_ai_');
     expect(hints).toContain('URL');
   });
 

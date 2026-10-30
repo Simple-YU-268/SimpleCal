@@ -37,9 +37,9 @@ import {
   solarToLunar,
 } from './lib/lunar-core.js';
 
-// FnCal 的 iCalendar 产物标识与 UID 域。UID 域与后端默认一致
+// SimpleCal 的 iCalendar 产物标识与 UID 域。UID 域与后端默认一致
 // （《M2-架构方案》§4.2：uidDomain 可配置，默认 caldav.local）。
-const PRODID = '-//FnCal//FnCal Calendar//ZH';
+const PRODID = '-//SimpleCal//SimpleCal Calendar//ZH';
 export const UID_DOMAIN = 'caldav.local';
 const ICS_WEEKDAYS = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'];
 

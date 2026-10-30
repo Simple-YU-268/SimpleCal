@@ -5,7 +5,7 @@
  * 覆盖：
  *   1. TCP 全路由仍可用：/api/health 200（version=0.1.6）、DAV PROPFIND 207；
  *   2. 网关 socket：文件存在、模式 0666、两个路径（target/应用根兼容）都能监听；
- *   3. 带 `/app/FnCal` 前缀：静态首页 200、/api/health 200、登录 200 + Cookie Path=/、
+ *   3. 带 `/app/SimpleCal` 前缀：静态首页 200、/api/health 200、登录 200 + Cookie Path=/、
  *      带 Cookie 的 session 200；
  *   4. 无前缀路径也兼容（网关若 strip 前缀时仍可用）；
  *   5. 网关 listener 不接 DAV（PROPFIND -> 404）；
@@ -99,7 +99,7 @@ async function main() {
       CALDAV_AUTH: 'on',
       CALDAV_WEB_DIR: WEB_DIR,
       ...(IS_WINDOWS ? {} : {
-        CALDAV_GATEWAY_PREFIX: '/app/FnCal',
+        CALDAV_GATEWAY_PREFIX: '/app/SimpleCal',
         CALDAV_GATEWAY_SOCKETS: `${SOCK_A},${SOCK_B}`,
       }),
     },
@@ -155,21 +155,21 @@ async function main() {
   }
 
   /* ---------------- 3. 带前缀的页面/API ---------------- */
-  const home = await socketRequest(SOCK_A, 'GET', '/app/FnCal/');
-  record('gateway GET /app/FnCal/ -> 200 text/html', '200 text/html',
+  const home = await socketRequest(SOCK_A, 'GET', '/app/SimpleCal/');
+  record('gateway GET /app/SimpleCal/ -> 200 text/html', '200 text/html',
     `${home.status} ${home.headers['content-type']}`,
     home.status === 200 && String(home.headers['content-type'] || '').includes('text/html'));
-  record('gateway 首页为 FnCal 页面', 'FnCal', home.text.includes('FnCal') ? 'found' : 'missing',
-    home.text.includes('FnCal'));
-  record('gateway 首页引用带前缀的 theme-prepaint.js', '/app/FnCal/theme-prepaint.js',
-    home.text.includes('/app/FnCal/theme-prepaint.js') ? 'found' : 'missing',
-    home.text.includes('/app/FnCal/theme-prepaint.js'));
+  record('gateway 首页为 SimpleCal 页面', 'SimpleCal', home.text.includes('SimpleCal') ? 'found' : 'missing',
+    home.text.includes('SimpleCal'));
+  record('gateway 首页引用带前缀的 theme-prepaint.js', '/app/SimpleCal/theme-prepaint.js',
+    home.text.includes('/app/SimpleCal/theme-prepaint.js') ? 'found' : 'missing',
+    home.text.includes('/app/SimpleCal/theme-prepaint.js'));
 
-  const gwHealth = await socketRequest(SOCK_A, 'GET', '/app/FnCal/api/health');
-  record('gateway /app/FnCal/api/health 200（netguard 未误拦）', '200', String(gwHealth.status), gwHealth.status === 200);
+  const gwHealth = await socketRequest(SOCK_A, 'GET', '/app/SimpleCal/api/health');
+  record('gateway /app/SimpleCal/api/health 200（netguard 未误拦）', '200', String(gwHealth.status), gwHealth.status === 200);
 
   const loginBody = JSON.stringify({ username: 'caldav', password: 'caldav' });
-  const login = await socketRequest(SOCK_A, 'POST', '/app/FnCal/api/v1/auth/login', {
+  const login = await socketRequest(SOCK_A, 'POST', '/app/SimpleCal/api/v1/auth/login', {
     headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(loginBody) },
     body: loginBody,
   });
@@ -183,7 +183,7 @@ async function main() {
     sessionCookie.includes('Path=/'));
 
   const cookieHeader = setCookie.map((cookie) => cookie.split(';')[0]).join('; ');
-  const session = await socketRequest(SOCK_A, 'GET', '/app/FnCal/api/v1/auth/session', {
+  const session = await socketRequest(SOCK_A, 'GET', '/app/SimpleCal/api/v1/auth/session', {
     headers: { Cookie: cookieHeader },
   });
   record('gateway 带 Cookie 的 session 200', '200', String(session.status), session.status === 200);
@@ -193,7 +193,7 @@ async function main() {
   record('gateway 无前缀 /api/health 也兼容（不依赖网关 strip）', '200', String(noPrefix.status), noPrefix.status === 200);
 
   /* ---------------- 5. 网关不接 DAV ---------------- */
-  const gwDav = await socketRequest(SOCK_A, 'PROPFIND', '/app/FnCal/calendars/caldav/', {
+  const gwDav = await socketRequest(SOCK_A, 'PROPFIND', '/app/SimpleCal/calendars/caldav/', {
     headers: { Authorization: basic('caldav', 'caldav'), Depth: '0' },
   });
   record('gateway 不接 DAV（PROPFIND -> 404）', '404', String(gwDav.status), gwDav.status === 404);

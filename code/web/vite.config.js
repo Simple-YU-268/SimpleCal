@@ -1,5 +1,5 @@
-// FnCal 前端：纯静态产物，由后端同端口托管（fnOS `app/www`）。
-// - 不使用任何框架插件，也不再注入 Puter 本地开发插件。
+// SimpleCal 前端：纯静态产物，由后端同端口托管（fnOS `app/www`）。
+// - 不使用框架插件。
 // - base:'./' 让产物可放在任意子路径（fnOS 桌面 iframe 取根路径）。
 // - 故意不 import `defineConfig`：配置保持纯对象，Vite 无需为加载配置解析
 //   依赖图；在禁止 spawn 的沙箱/受限环境里也能直接 `npm run build`

@@ -1,4 +1,4 @@
-// CalDAV request handler for FnCal (M3.4).
+// CalDAV request handler for SimpleCal (M3.4).
 //
 // Routing is account-parameterised (M3.4 §1):
 //   <prefix>/principals/<username>/
@@ -9,7 +9,7 @@
 //
 // Protocol surface: OPTIONS, .well-known, PROPFIND, REPORT (calendar-query,
 // calendar-multiget, sync-collection, free-busy-query), MKCALENDAR, PROPPATCH
-// (displayname/calendar-color), GET/PUT/DELETE with ETag preconditions.
+// (displayname/calendar-color), GET/PUT/DELETE/MOVE with ETag preconditions.
 // `calendar-data` honours <C:expand>. Allow/supported-report-set only advertise
 // what is actually implemented.
 
@@ -30,11 +30,14 @@ import {
 } from '../lib/ical.mjs';
 import { challengeHeaders, isMutatingMethod } from '../auth/index.mjs';
 import { currentContext } from '../lib/request-context.mjs';
+import { checkEntityConditions } from './preconditions.mjs';
+import { DAV_HEADER, ALLOW_HEADER, supportedReportSetXml } from './capabilities.mjs';
+import { mergeCalendars } from '../lib/calendar-export.mjs';
+import { etagOf } from '../store/file-store.mjs';
+import { publicHref, pathFromPublicUrl } from '../lib/public-url.mjs';
 
 const SEGMENT_RE = /^[A-Za-z0-9._-]{1,128}$/;
 const RESOURCE_RE = /^[A-Za-z0-9._-]{1,128}\.ics$/i;
-const DAV_HEADER = '1, 2, 3, calendar-access, sync-collection';
-const ALLOW_HEADER = 'OPTIONS, GET, HEAD, PUT, DELETE, PROPFIND, PROPPATCH, REPORT, MKCALENDAR';
 
 /** True when any raw path segment is `.` / `..`, including percent-encoded forms. */
 function hasDotSegments(rawUrl) {
@@ -97,7 +100,7 @@ export function resolveDavTarget(pathname, prefix = '') {
   if (segments.some((s) => s === '.' || s === '..')) return { kind: 'invalid', href: decoded };
 
   if (clean === '' || clean === '/') return { kind: 'root', href: '/' };
-  if (clean === '/.well-known/caldav') return { kind: 'wellknown', href: '/.well-known/caldav' };
+  if (clean === '/.well-known/caldav' || clean === '/.well-known/carddav') return { kind: 'wellknown', href: clean };
 
   const prefixed = base && (clean === base || clean.startsWith(`${base}/`));
   if (base && !prefixed && clean !== '/') return { kind: 'unknown', href: decoded };
@@ -146,12 +149,12 @@ export function createDavHandler({ store, config, logger, auth }) {
   const principalRoot = `${prefix}/principals/`;
   const calendarsRoot = `${prefix}/calendars/`;
 
-  const principalHref = (username) => `${prefix}/principals/${encodeURIComponent(username)}/`;
-  const homeHref = (username) => `${prefix}/calendars/${encodeURIComponent(username)}/`;
+  const principalHref = (username) => publicHref(config, `${prefix}/principals/${encodeURIComponent(username)}/`);
+  const homeHref = (username) => publicHref(config, `${prefix}/calendars/${encodeURIComponent(username)}/`);
   const calendarHref = (username, calendarId) =>
-    `${prefix}/calendars/${encodeURIComponent(username)}/${encodeURIComponent(calendarId)}/`;
+    publicHref(config, `${prefix}/calendars/${encodeURIComponent(username)}/${encodeURIComponent(calendarId)}/`);
   const objectHref = (username, calendarId, file) =>
-    `${prefix}/calendars/${encodeURIComponent(username)}/${encodeURIComponent(calendarId)}/${encodeURIComponent(file)}`;
+    publicHref(config, `${prefix}/calendars/${encodeURIComponent(username)}/${encodeURIComponent(calendarId)}/${encodeURIComponent(file)}`);
 
   function logAccess(entry) {
     logger.access(entry);
@@ -199,7 +202,7 @@ export function createDavHandler({ store, config, logger, auth }) {
     principalRoot: ['resourcetype', 'displayname', 'current-user-principal', 'principal-URL'],
     principal: [
       'resourcetype', 'displayname', 'current-user-principal', 'principal-URL',
-      'calendar-home-set', 'calendar-user-address-set', 'current-user-privilege-set',
+      'calendar-home-set', 'addressbook-home-set', 'calendar-user-address-set', 'current-user-privilege-set',
     ],
     home: [
       'resourcetype', 'displayname', 'current-user-principal', 'principal-URL',
@@ -235,16 +238,6 @@ export function createDavHandler({ store, config, logger, auth }) {
       + '</D:current-user-privilege-set>';
   }
 
-  function supportedReportSetXml() {
-    const report = (inner) => `<D:supported-report><D:report>${inner}</D:report></D:supported-report>`;
-    return '<D:supported-report-set>'
-      + report('<C:calendar-query/>')
-      + report('<C:calendar-multiget/>')
-      + report('<D:sync-collection/>')
-      + report('<C:free-busy-query/>')
-      + '</D:supported-report-set>';
-  }
-
   /**
    * 0.2.0: the component set follows the calendar `type` — an event calendar
    * advertises VEVENT only, the automatic "任务" calendar advertises VTODO only.
@@ -272,10 +265,10 @@ export function createDavHandler({ store, config, logger, auth }) {
         return resourcetypeXml(target.kind);
       case 'displayname': {
         if (target.kind === 'principal') return `<D:displayname>${escapeXml(username)}</D:displayname>`;
-        if (target.kind === 'principalRoot') return '<D:displayname>FnCal principals</D:displayname>';
-        if (target.kind === 'root') return '<D:displayname>FnCal</D:displayname>';
-        if (target.kind === 'home') return '<D:displayname>FnCal 日历</D:displayname>';
-        if (target.kind === 'calendarsRoot') return '<D:displayname>FnCal calendars</D:displayname>';
+        if (target.kind === 'principalRoot') return '<D:displayname>SimpleCal principals</D:displayname>';
+        if (target.kind === 'root') return '<D:displayname>SimpleCal</D:displayname>';
+        if (target.kind === 'home') return '<D:displayname>SimpleCal 日历</D:displayname>';
+        if (target.kind === 'calendarsRoot') return '<D:displayname>SimpleCal calendars</D:displayname>';
         if (target.kind === 'calendar') {
           return `<D:displayname>${escapeXml((meta && (meta.displayName || meta.displayname)) || target.calendar)}</D:displayname>`;
         }
@@ -284,7 +277,10 @@ export function createDavHandler({ store, config, logger, auth }) {
       }
       case 'getetag':
         if (target.kind === 'event' && event) return `<D:getetag>"${event.etag}"</D:getetag>`;
-        if (target.kind === 'calendar' && ctag) return `<D:getetag>"${ctag}"</D:getetag>`;
+        if (target.kind === 'calendar') {
+          const representation = await calendarRepresentation(target.calendar);
+          return representation ? `<D:getetag>"${representation.etag}"</D:getetag>` : null;
+        }
         return null;
       case 'getctag':
         if (target.kind === 'calendar' && ctag) return `<CS:getctag>"${ctag}"</CS:getctag>`;
@@ -310,8 +306,10 @@ export function createDavHandler({ store, config, logger, auth }) {
         return `<D:principal-URL><D:href>${principalHref(username)}</D:href></D:principal-URL>`;
       case 'calendar-home-set':
         return `<C:calendar-home-set><D:href>${homeHref(username)}</D:href></C:calendar-home-set>`;
+      case 'addressbook-home-set':
+        return `<A:addressbook-home-set><D:href>${publicHref(config, `${prefix}/addressbooks/${encodeURIComponent(username)}/`)}</D:href></A:addressbook-home-set>`;
       case 'calendar-user-address-set':
-        return `<C:calendar-user-address-set><D:href>mailto:${escapeXml(username)}@fncal.local</D:href></C:calendar-user-address-set>`;
+        return `<C:calendar-user-address-set><D:href>mailto:${escapeXml(username)}@simplecal.local</D:href></C:calendar-user-address-set>`;
       case 'supported-calendar-component-set':
         return target.kind === 'calendar' ? supportedComponentSetXml(meta) : null;
       case 'supported-report-set':
@@ -358,6 +356,7 @@ export function createDavHandler({ store, config, logger, auth }) {
   function multistatus(inner) {
     return '<?xml version="1.0" encoding="utf-8"?>\n'
       + '<D:multistatus xmlns:D="DAV:" xmlns:C="urn:ietf:params:xml:ns:caldav"'
+      + ' xmlns:A="urn:ietf:params:xml:ns:carddav"'
       + ' xmlns:CS="http://calendarserver.org/ns/" xmlns:IC="http://apple.com/ns/ical/">'
       + inner
       + '</D:multistatus>';
@@ -382,7 +381,7 @@ export function createDavHandler({ store, config, logger, auth }) {
       else missing.push(name);
     }
     let body = '<D:response>'
-      + `<D:href>${escapeXml(target.href)}</D:href>`
+      + `<D:href>${escapeXml(publicHref(config, target.href))}</D:href>`
       + `<D:propstat><D:prop>${ok.join('')}</D:prop><D:status>HTTP/1.1 200 OK</D:status></D:propstat>`;
     if (missing.length) {
       body += `<D:propstat><D:prop>${missing.map((n) => `<D:${n}/>`).join('')}</D:prop>`
@@ -599,7 +598,8 @@ export function createDavHandler({ store, config, logger, auth }) {
     // calendar-multiget
     const hrefs = findAll(doc, 'href').map((n) => (n.text || '').trim()).filter(Boolean);
     for (const href of hrefs) {
-      const resolved = resolveTarget(href.startsWith('/') ? href : new URL(href, 'http://localhost').pathname);
+      const hrefPath = pathFromPublicUrl(config, new URL(href, 'http://localhost'));
+      const resolved = hrefPath ? resolveTarget(hrefPath) : { kind: 'unknown' };
       if (resolved.kind !== 'event') {
         responses.push(`<D:response><D:href>${escapeXml(href)}</D:href><D:status>HTTP/1.1 404 Not Found</D:status></D:response>`);
         continue;
@@ -642,7 +642,7 @@ export function createDavHandler({ store, config, logger, auth }) {
       if (last && from <= last[1]) last[1] = Math.max(last[1], to);
       else merged.push([from, to]);
     }
-    const body = buildFreeBusyBody(merged, { start, end, uid: principalOf(target) || 'fncal' });
+    const body = buildFreeBusyBody(merged, { start, end, uid: principalOf(target) || 'simplecal' });
     send(res, 200, { 'Content-Type': 'text/calendar; charset=utf-8' }, body);
   }
 
@@ -702,7 +702,7 @@ export function createDavHandler({ store, config, logger, auth }) {
       if (descriptionNode) description = descriptionNode.text.trim();
     }
     await store.createCalendar(target.calendar, { displayName, description, type: 'vevent' });
-    send(res, 201, { 'Content-Type': 'text/plain; charset=utf-8', Location: target.href }, 'created\n');
+    send(res, 201, { 'Content-Type': 'text/plain; charset=utf-8', Location: publicHref(config, target.href) }, 'created\n');
   }
 
   async function handleProppatch(req, res, target, bodyText) {
@@ -752,7 +752,7 @@ export function createDavHandler({ store, config, logger, auth }) {
       ? '<IC:calendar-color/>'
       : name === 'displayName' ? '<D:displayname/>' : `<D:${name}/>`)).join('');
     let response = '<D:response>'
-      + `<D:href>${escapeXml(target.href)}</D:href>`;
+      + `<D:href>${escapeXml(publicHref(config, target.href))}</D:href>`;
     if (okXml) response += `<D:propstat><D:prop>${okXml}</D:prop><D:status>HTTP/1.1 200 OK</D:status></D:propstat>`;
     if (badXml) {
       response += `<D:propstat><D:prop>${badXml}</D:prop>`
@@ -819,18 +819,25 @@ export function createDavHandler({ store, config, logger, auth }) {
       return send(res, 403, { 'Content-Type': 'application/xml; charset=utf-8' },
         '<?xml version="1.0" encoding="utf-8"?><D:error xmlns:D="DAV:" xmlns:C="urn:ietf:params:xml:ns:caldav"><C:supported-calendar-component/></D:error>');
     }
-    const existing = await store.getEvent(target.calendar, target.file);
-    const failure = checkPreconditions(req, existing);
-    if (failure) {
-      logAccess({ event: 'precondition-failed', file: target.file, status: failure.status, reason: failure.reason });
-      return send(res, failure.status, { 'Content-Type': 'text/plain; charset=utf-8' }, `${failure.reason}\n`);
-    }
-    const { etag } = await store.putEvent(target.calendar, target.file, bodyText);
+    const result = await store.mutateEvent(target.calendar, target.file, async (existing) => {
+      await assertWritable(target.calendar);
+      assertConditions(req, existing);
+      return { content: bodyText };
+    });
+    if (result.missingCalendar) return send(res, 409, {}, 'parent calendar does not exist\n');
+    const { etag } = result;
     const uid = uidOf(bodyText);
     const nameUid = target.file.replace(/\.ics$/i, '');
     if (uid && nameUid && uid !== nameUid) logAccess({ event: 'uid-name-mismatch', file: target.file, uid });
-    if (existing) return send(res, 204, { ETag: `"${etag}"` });
-    return send(res, 201, { ETag: `"${etag}"`, Location: target.href });
+    if (!result.created) return send(res, 204, { ETag: `"${etag}"` });
+    return send(res, 201, { ETag: `"${etag}"`, Location: publicHref(config, target.href) });
+  }
+
+  async function calendarRepresentation(calendarId) {
+    const objects = await store.snapshotEvents(calendarId);
+    if (objects === null) return null;
+    const content = mergeCalendars(objects.sort((a, b) => a.file.localeCompare(b.file)));
+    return { content, etag: etagOf(content) };
   }
 
   async function handleGet(req, res, target) {
@@ -847,16 +854,21 @@ export function createDavHandler({ store, config, logger, auth }) {
     }
     if (live.kind === 'root') {
       return send(res, 200, { 'Content-Type': 'text/plain; charset=utf-8' },
-        'FnCal CalDAV server: OPTIONS, PROPFIND, REPORT, MKCALENDAR, PROPPATCH, PUT, GET, DELETE\n');
+        'SimpleCal CalDAV server: OPTIONS, PROPFIND, REPORT, MKCALENDAR, PROPPATCH, PUT, GET, DELETE, MOVE\n');
     }
-    if (live.kind === 'wellknown') return send(res, 302, { Location: principalRoot });
+    if (live.kind === 'wellknown') return send(res, 302, { Location: publicHref(config, principalRoot) });
     if (live.kind === 'principalRoot') {
       return send(res, 200, { 'Content-Type': 'text/plain; charset=utf-8' }, `${principalRoot}\n`);
     }
     if (live.kind === 'calendar') {
-      const objects = await store.listEvents(live.calendar);
-      return send(res, 200, { 'Content-Type': 'text/plain; charset=utf-8' },
-        `${live.calendar}: ${objects.length} object(s)\n${objects.map((o) => `${o.file}\t${o.etag}`).join('\n')}\n`);
+      const representation = await calendarRepresentation(live.calendar);
+      if (representation === null) return send(res, 404, {}, 'not found\n');
+      const { content, etag: digest } = representation;
+      const headers = { 'Content-Type': 'text/calendar; charset=utf-8', ETag: `"${digest}"`,
+        'Content-Disposition': `attachment; filename="${live.calendar}.ics"` };
+      const failure = checkEntityConditions(req.headers, { etag: digest }, { read: true });
+      if (failure) return send(res, failure.status, headers, failure.status === 304 ? '' : `${failure.reason}\n`);
+      return send(res, 200, headers, content);
     }
     if (live.kind === 'home') {
       if (typeof store.ensureDefaultCalendars === 'function') {
@@ -868,7 +880,7 @@ export function createDavHandler({ store, config, logger, auth }) {
     if (live.kind === 'principal') {
       return send(res, 200, { 'Content-Type': 'text/plain; charset=utf-8' }, `${live.username}\n`);
     }
-    return send(res, 200, { 'Content-Type': 'text/plain; charset=utf-8' }, 'FnCal\n');
+    return send(res, 200, { 'Content-Type': 'text/plain; charset=utf-8' }, 'SimpleCal\n');
   }
 
   async function handleDelete(req, res, target) {
@@ -881,34 +893,83 @@ export function createDavHandler({ store, config, logger, auth }) {
       logAccess({ event: 'read-only-calendar', calendar: target.calendar, method: 'DELETE' });
       return send(res, 403, { 'Content-Type': 'text/plain; charset=utf-8' }, '日历为只读（CalDAV 权限：只读）\n');
     }
-    const existing = await store.getEvent(target.calendar, target.file);
-    const failure = checkPreconditions(req, existing);
-    if (failure) return send(res, failure.status, { 'Content-Type': 'text/plain; charset=utf-8' }, `${failure.reason}\n`);
-    if (!existing) return send(res, 404, { 'Content-Type': 'text/plain; charset=utf-8' }, 'not found\n');
-    await store.deleteEvent(target.calendar, target.file);
+    const result = await store.mutateEvent(target.calendar, target.file, async (existing) => {
+      await assertWritable(target.calendar);
+      assertConditions(req, existing);
+      if (!existing) throw Object.assign(new Error('not found'), { status: 404, davFailure: true });
+      return { delete: true };
+    });
+    if (result.missingCalendar) return send(res, 404, {}, 'not found\n');
     send(res, 204, {});
   }
 
-  function normalizeTag(tag) {
-    return String(tag || '').trim().replace(/^W\//i, '').replace(/^"|"$/g, '');
+  async function handleMove(req, res, target) {
+    if (target.kind !== 'event') return send(res, 405, { Allow: ALLOW_HEADER }, 'MOVE target must be an event resource\n');
+    const rawDestination = String(req.headers.destination || '').trim();
+    if (!rawDestination) return send(res, 400, { 'Content-Type': 'text/plain; charset=utf-8' }, 'Destination required\n');
+    const overwrite = String(req.headers.overwrite || 'T').toUpperCase();
+    if (!['T', 'F'].includes(overwrite)) return send(res, 400, { 'Content-Type': 'text/plain; charset=utf-8' }, 'invalid Overwrite\n');
+    let destination;
+    try {
+      const protocol = req.socket && req.socket.encrypted ? 'https' : 'http';
+      const local = new URL(`${protocol}://${req.headers.host || 'localhost'}`);
+      const url = new URL(rawDestination, local);
+      const publicOrigin = config.publicBaseUrl ? new URL(config.publicBaseUrl).origin : null;
+      if (![local.origin, publicOrigin].includes(url.origin) || url.username || url.password || url.search || url.hash
+        || hasDotSegments(url.pathname)) {
+        throw Object.assign(new Error('Destination must identify a resource on this server'), { status: 403, davFailure: true });
+      }
+      const destinationPath = pathFromPublicUrl(config, url);
+      if (!destinationPath) throw Object.assign(new Error('Destination is outside the public base'), { status: 403, davFailure: true });
+      destination = resolveTarget(destinationPath);
+    } catch (err) {
+      if (err.davFailure) throw err;
+      return send(res, 400, { 'Content-Type': 'text/plain; charset=utf-8' }, 'invalid Destination\n');
+    }
+    if (destination.kind !== 'event') return send(res, 400, { 'Content-Type': 'text/plain; charset=utf-8' }, 'Destination must be an event resource\n');
+    if (destination.username !== target.username) {
+      return send(res, 403, { 'Content-Type': 'text/plain; charset=utf-8' }, 'Destination principal mismatch\n');
+    }
+    const result = await store.moveEvent(target.calendar, target.file, destination.calendar, destination.file,
+      async (current, existingTarget) => {
+        await assertWritable(target.calendar);
+        await assertWritable(destination.calendar);
+        if (!current) throw Object.assign(new Error('not found'), { status: 404, davFailure: true });
+        assertConditions(req, current);
+        if (target.calendar === destination.calendar && target.file === destination.file) {
+          throw Object.assign(new Error('source and destination are identical'), { status: 403, davFailure: true });
+        }
+        if (existingTarget && overwrite === 'F') {
+          throw Object.assign(new Error('destination exists'), { status: 412, davFailure: true });
+        }
+        const metadata = await store.readCalendarMeta(destination.calendar);
+        const targetType = metadata?.type === 'vtodo' ? 'VTODO' : 'VEVENT';
+        if ((componentOf(current.content) || 'VEVENT') !== targetType) {
+          throw Object.assign(new Error('destination calendar does not support this component'), { status: 403, davFailure: true });
+        }
+      });
+    if (result.missingSource) return send(res, 404, { 'Content-Type': 'text/plain; charset=utf-8' }, 'not found\n');
+    if (result.missingTarget) return send(res, 409, { 'Content-Type': 'text/plain; charset=utf-8' }, 'destination calendar does not exist\n');
+    return send(res, result.created ? 201 : 204, {
+      ETag: `"${result.etag}"`,
+      ...(result.created ? { Location: publicHref(config, destination.href) } : {}),
+    });
   }
 
-  function checkPreconditions(req, existing) {
-    const ifMatch = req.headers['if-match'];
-    const ifNoneMatch = req.headers['if-none-match'];
-    if (ifNoneMatch != null) {
-      const tags = String(ifNoneMatch).split(',').map(normalizeTag);
-      if (tags.includes('*') && existing) return { status: 412, reason: 'If-None-Match: * but resource exists' };
-      if (existing && tags.includes(normalizeTag(existing.etag))) return { status: 412, reason: 'If-None-Match matched' };
+  async function assertWritable(calendarId) {
+    const access = await davAccessOf(calendarId);
+    if (access === 'hidden' || access === 'ro') {
+      throw Object.assign(new Error(access === 'hidden' ? 'not found' : '日历为只读'),
+        { status: access === 'hidden' ? 404 : 403, davFailure: true });
     }
-    if (ifMatch != null) {
-      const tags = String(ifMatch).split(',').map(normalizeTag);
-      if (!existing) return { status: 412, reason: 'If-Match on missing resource' };
-      if (!tags.includes('*') && !tags.includes(normalizeTag(existing.etag))) {
-        return { status: 412, reason: `If-Match mismatch (have ${existing.etag})` };
-      }
+  }
+
+  function assertConditions(req, existing) {
+    const failure = checkEntityConditions(req.headers, existing);
+    if (failure) {
+      logAccess({ event: 'precondition-failed', status: failure.status, reason: failure.reason });
+      throw Object.assign(new Error(failure.reason), { status: failure.status, davFailure: true });
     }
-    return null;
   }
 
   /* -------------------------------------------------------------- server */
@@ -933,7 +994,7 @@ export function createDavHandler({ store, config, logger, auth }) {
 
       if (target.kind === 'wellknown') {
         status = 302;
-        return send(res, 302, { Location: principalRoot, 'Content-Type': 'text/plain; charset=utf-8' }, 'redirect\n');
+        return send(res, 302, { Location: publicHref(config, principalRoot), 'Content-Type': 'text/plain; charset=utf-8' }, 'redirect\n');
       }
       if (target.kind === 'invalid') {
         status = 400;
@@ -1038,11 +1099,16 @@ export function createDavHandler({ store, config, logger, auth }) {
           return await handleGet(req, res, target);
         case 'DELETE':
           return await handleDelete(req, res, target);
+        case 'MOVE':
+          return await handleMove(req, res, target);
         default:
           status = 405;
           return send(res, 405, { Allow: ALLOW_HEADER }, 'method not allowed\n');
       }
     } catch (err) {
+      if (!res.headersSent && err?.davFailure) {
+        return send(res, err.status, { 'Content-Type': 'text/plain; charset=utf-8' }, `${err.message}\n`);
+      }
       if (!res.headersSent && err && err.code === 'INVALID_ID') {
         status = 400;
         return send(res, 400, { 'Content-Type': 'text/plain; charset=utf-8' }, 'invalid identifier or path\n');

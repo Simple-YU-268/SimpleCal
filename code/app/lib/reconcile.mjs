@@ -462,7 +462,7 @@ export function createReconciler({
   /** 前缀对照表：同一条「广播 href」在空前缀与子路径前缀下分别能否被解析。 */
   function prefixMatrix(account) {
     const rows = [];
-    for (const prefix of ['', '/app/FnCal']) {
+    for (const prefix of ['', '/app/SimpleCal']) {
       const home = `${prefix}/calendars/${encodeURIComponent(account.username)}/`;
       const object = (calendarId) => davObjectHref(prefix, account.username, calendarId, 'probe.ics');
       const probes = [
@@ -483,9 +483,9 @@ export function createReconciler({
         });
       }
     }
-    // 反向：广播带 /app/FnCal、服务端前缀为空时应当解析失败（unknown），用于解释
+    // 反向：广播带 /app/SimpleCal、服务端前缀为空时应当解析失败（unknown），用于解释
     // 「客户端地址里带了网关前缀、服务端没配 -> 全 404」这类现场。
-    const mismatch = '/app/FnCal/calendars/%s/default/probe.ics'.replace('%s', encodeURIComponent(account.username));
+    const mismatch = '/app/SimpleCal/calendars/%s/default/probe.ics'.replace('%s', encodeURIComponent(account.username));
     const parsedMismatch = resolveDavTarget(mismatch, '');
     rows.push({
       configPrefix: '(空)',
@@ -495,7 +495,7 @@ export function createReconciler({
       parsedKind: parsedMismatch.kind,
       parsedCalendar: parsedMismatch.calendar || null,
       ok: parsedMismatch.kind === 'unknown',
-      note: '预期 unknown（服务端未配前缀时不会误把 /app/FnCal 当成用户名）',
+      note: '预期 unknown（服务端未配前缀时不会误把 /app/SimpleCal 当成用户名）',
     });
     return { at: new Date().toISOString(), envRaw: prefixLabel(envPrefixRaw), envNormalized: effectivePrefix || '(空)', rows };
   }
@@ -934,7 +934,7 @@ export function createReconciler({
     const orphanTotal = orphans.attributed.length + orphans.unattributed.length;
     const legacyDirs = [...new Set(legacyIcs.map((item) => path.dirname(item.file)))];
     const report = [];
-    report.push('FnCal CalDAV 对账诊断（只读，不写盘）');
+    report.push('SimpleCal CalDAV 对账诊断（只读，不写盘）');
     report.push(`账号：${index.list.length} 个`);
     for (const [userId, item] of Object.entries(users)) {
       if (item.error) {

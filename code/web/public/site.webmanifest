@@ -1,7 +1,7 @@
 {
-  "name": "FnCal",
-  "short_name": "FnCal",
-  "description": "FnCal：本地优先的日程管理应用，自带 CalDAV 服务。数据只保存在本机。",
+  "name": "SimpleCal",
+  "short_name": "SimpleCal",
+  "description": "SimpleCal：本地优先的日程管理应用，自带 CalDAV 服务。数据只保存在本机。",
   "id": "/",
   "start_url": "/",
   "scope": "/",

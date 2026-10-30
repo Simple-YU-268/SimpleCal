@@ -33,6 +33,8 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 
 import { currentContext } from '../lib/request-context.mjs';
+import { commitMove, recoverMoves as recoverMoveIntents } from './move-journal.mjs';
+import { createStorageChangeHub } from '../lib/storage-provider.mjs';
 
 export const MAX_OBJECT_BYTES = 1024 * 1024; // 1 MB per object (M3.3 limit)
 export const TOMBSTONE_LIMIT = Math.max(1, Number(process.env.CALDAV_TOMBSTONE_LIMIT || 5000));
@@ -140,6 +142,8 @@ function assertUid(value) {
 }
 
 export function createStore({ root, logger = null }) {
+  const changes = createStorageChangeHub();
+  let writeFailure = false;
   const rootDir = path.resolve(root);
 
   function logEvent(event, detail = {}) {
@@ -602,7 +606,11 @@ export function createStore({ root, logger = null }) {
   const queues = new Map();
   function enqueue(key, task) {
     const previous = queues.get(key) || Promise.resolve();
-    const next = previous.then(task, task);
+    const guarded = () => {
+      if (writeFailure) throw Object.assign(new Error('存储有待恢复的移动事务，请重启服务'), { status: 503, code: 'storage_recovery_required' });
+      return task();
+    };
+    const next = previous.then(guarded, guarded);
     queues.set(key, next.catch(() => {}));
     return next;
   }
@@ -629,21 +637,25 @@ export function createStore({ root, logger = null }) {
     }
     if (!(await calendarExists(userId, cal))) return { missingCalendar: true };
 
-    return enqueue(`${userId}/${cal}`, async () => {
-      const meta = await readMeta(userId, cal);
-      const state = await readState(userId, cal);
-      const full = path.join(objectsDir(userId, cal), `${name}.ics`);
-      await fs.mkdir(path.dirname(full), { recursive: true });
-      await assertInsideRoot(full);
-      const existed = state.ctags[name] !== undefined;
-      await writeAtomic(full, text);
-      const nextCtag = Number(meta.ctag || 0) + 1;
-      meta.ctag = nextCtag;
-      state.ctags[name] = nextCtag;
-      await saveState(userId, cal, state);
-      await saveMeta(userId, cal, meta);
-      return { created: !existed, etag: etagOf(text), ctag: nextCtag };
-    });
+    return enqueue(`${userId}/${cal}`, () => writeObject(userId, cal, name, text));
+  }
+
+  // Called only while holding this calendar's queue.
+  async function writeObject(userId, cal, name, text) {
+    const meta = await readMeta(userId, cal);
+    const state = await readState(userId, cal);
+    const full = path.join(objectsDir(userId, cal), `${name}.ics`);
+    await fs.mkdir(path.dirname(full), { recursive: true });
+    await assertInsideRoot(full);
+    const existed = state.ctags[name] !== undefined;
+    await writeAtomic(full, text);
+    const nextCtag = Number(meta.ctag || 0) + 1;
+    meta.ctag = nextCtag;
+    state.ctags[name] = nextCtag;
+    await saveState(userId, cal, state);
+    await saveMeta(userId, cal, meta);
+    changes.emit({ action: existed ? 'update' : 'create', userId, calendarId: cal, id: name, etag: etagOf(text), ctag: nextCtag });
+    return { created: !existed, etag: etagOf(text), ctag: nextCtag };
   }
 
   async function deleteObject(userIdExplicit, calendarArg, uidArg) {
@@ -655,34 +667,125 @@ export function createStore({ root, logger = null }) {
     const name = assertUid(uid);
     if (!(await calendarExists(userId, cal))) return { missingCalendar: true };
 
+    return enqueue(`${userId}/${cal}`, () => removeObject(userId, cal, name));
+  }
+
+  async function removeObject(userId, cal, name) {
+    const meta = await readMeta(userId, cal);
+    const state = await readState(userId, cal);
+    const full = path.join(objectsDir(userId, cal), `${name}.ics`);
+    // A file can exist on disk without a `.state.json` entry (hand-copied data,
+    // a restored backup, the 0.2.0 migration moving old objects). Deleting by
+    // request must still remove it instead of reporting "nothing to do".
+    let fileExists = false;
+    try {
+      fileExists = (await fs.stat(full)).isFile();
+    } catch {
+      fileExists = false;
+    }
+    if (state.ctags[name] === undefined && !fileExists) return { deleted: false };
+    await assertInsideRoot(full);
+    await fs.unlink(full).catch(() => {});
+    delete state.ctags[name];
+    const nextCtag = Number(meta.ctag || 0) + 1;
+    meta.ctag = nextCtag;
+    meta.tombstones = Array.isArray(meta.tombstones) ? meta.tombstones : [];
+    meta.tombstones.push({ uid: name, ctag: nextCtag, deletedAt: new Date().toISOString() });
+    while (meta.tombstones.length > TOMBSTONE_LIMIT) {
+      const dropped = meta.tombstones.shift();
+      state.tombstoneFloor = Math.max(state.tombstoneFloor, Number(dropped.ctag) || 0);
+    }
+    await saveState(userId, cal, state);
+    await saveMeta(userId, cal, meta);
+    changes.emit({ action: 'delete', userId, calendarId: cal, id: name, ctag: nextCtag });
+    return { deleted: true, ctag: nextCtag };
+  }
+
+  /** Conditional read/transform/write shares the queue used by DAV writes. */
+  async function mutateEvent(calendarId, file, transform) {
+    const userId = contextUserId(null);
+    const cal = assertId('calendarId', calendarId);
+    const name = assertUid(file);
     return enqueue(`${userId}/${cal}`, async () => {
-      const meta = await readMeta(userId, cal);
-      const state = await readState(userId, cal);
-      const full = path.join(objectsDir(userId, cal), `${name}.ics`);
-      // A file can exist on disk without a `.state.json` entry (hand-copied data,
-      // a restored backup, the 0.2.0 migration moving old objects). Deleting by
-      // request must still remove it instead of reporting "nothing to do".
-      let fileExists = false;
+      if (!(await calendarExists(userId, cal))) return { missingCalendar: true };
+      const current = await getObject(userId, cal, name);
+      const change = await transform(current);
+      if (change.delete) return removeObject(userId, cal, name);
+      const text = String(change.content);
+      if (Buffer.byteLength(text, 'utf8') > MAX_OBJECT_BYTES) {
+        throw Object.assign(new Error('事件内容超过 1 MB'), { status: 413, code: 'too_large' });
+      }
+      return { ...await writeObject(userId, cal, name, text), created: !current, content: text };
+    });
+  }
+
+  /** A consistent collection export relative to this process's object writes. */
+  async function snapshotEvents(calendarId) {
+    const userId = contextUserId(null);
+    const cal = assertId('calendarId', calendarId);
+    return enqueue(`${userId}/${cal}`, async () => {
+      if (!(await calendarExists(userId, cal))) return null;
+      return listObjects(userId, cal);
+    });
+  }
+
+  // Acquire both collection queues in a stable order; a MOVE never nests a
+  // second lock in an order chosen by the client.
+  async function moveEvent(sourceCalendar, sourceFile, targetCalendar, targetFile, validate) {
+    const userId = contextUserId(null);
+    const from = assertId('calendarId', sourceCalendar);
+    const to = assertId('calendarId', targetCalendar);
+    const sourceId = assertUid(sourceFile);
+    const targetId = assertUid(targetFile);
+    const keys = [...new Set([from, to])].sort();
+    const locked = (index, task) => index === keys.length ? task()
+      : enqueue(`${userId}/${keys[index]}`, () => locked(index + 1, task));
+    return locked(0, async () => {
+      if (!(await calendarExists(userId, from))) return { missingSource: true };
+      if (!(await calendarExists(userId, to))) return { missingTarget: true };
+      const current = await getObject(userId, from, sourceId);
+      if (from === to && (sourceId === targetId
+        || (process.platform === 'win32' && sourceId.toLowerCase() === targetId.toLowerCase()))) {
+        throw Object.assign(new Error('源和目标相同'), { status: 403, davFailure: true });
+      }
+      const target = await getObject(userId, to, targetId);
+      await validate(current, target);
+      if (!current) return { missingSource: true };
+      const records = new Map();
+      for (const cal of keys) records.set(cal, { meta: await readMeta(userId, cal), state: await readState(userId, cal) });
+      const origin = records.get(from);
+      const destination = records.get(to);
+      for (const record of records.values()) record.meta.ctag = Number(record.meta.ctag || 0) + 1;
+      delete origin.state.ctags[sourceId];
+      origin.meta.tombstones = Array.isArray(origin.meta.tombstones) ? origin.meta.tombstones : [];
+      origin.meta.tombstones.push({ uid: sourceId, ctag: origin.meta.ctag, deletedAt: new Date().toISOString() });
+      while (origin.meta.tombstones.length > TOMBSTONE_LIMIT) {
+        const dropped = origin.meta.tombstones.shift();
+        origin.state.tombstoneFloor = Math.max(origin.state.tombstoneFloor, Number(dropped.ctag) || 0);
+      }
+      destination.state.ctags[targetId] = destination.meta.ctag;
+      const sourcePath = path.join(objectsDir(userId, from), `${sourceId}.ics`);
+      const targetPath = path.join(objectsDir(userId, to), `${targetId}.ics`);
+      await assertInsideRoot(sourcePath);
+      await assertInsideRoot(targetPath);
+      const relative = (file) => path.relative(rootDir, file).split(path.sep).join('/');
+      const writes = [];
+      for (const [cal, record] of records) {
+        writes.push({ path: relative(path.join(calendarDir(userId, cal), 'meta.json')), text: JSON.stringify(record.meta) + '\n' });
+        writes.push({ path: relative(path.join(objectsDir(userId, cal), '.state.json')), text: JSON.stringify(record.state) + '\n' });
+      }
       try {
-        fileExists = (await fs.stat(full)).isFile();
-      } catch {
-        fileExists = false;
+        await commitMove(rootDir, { source: relative(sourcePath), target: relative(targetPath),
+          backup: relative(`${targetPath}.move-${randomUUID()}.bak`), sourceHash: current.etag,
+          targetHash: target?.etag || null, writes });
+      } catch (err) {
+        // Once durable intent exists, later writes must not overtake recovery.
+        writeFailure = true;
+        throw err;
       }
-      if (state.ctags[name] === undefined && !fileExists) return { deleted: false };
-      await assertInsideRoot(full);
-      await fs.unlink(full).catch(() => {});
-      delete state.ctags[name];
-      const nextCtag = Number(meta.ctag || 0) + 1;
-      meta.ctag = nextCtag;
-      meta.tombstones = Array.isArray(meta.tombstones) ? meta.tombstones : [];
-      meta.tombstones.push({ uid: name, ctag: nextCtag, deletedAt: new Date().toISOString() });
-      while (meta.tombstones.length > TOMBSTONE_LIMIT) {
-        const dropped = meta.tombstones.shift();
-        state.tombstoneFloor = Math.max(state.tombstoneFloor, Number(dropped.ctag) || 0);
-      }
-      await saveState(userId, cal, state);
-      await saveMeta(userId, cal, meta);
-      return { deleted: true, ctag: nextCtag };
+      changes.emit({ action: 'move', userId, calendarId: from, id: sourceId,
+        destinationCalendarId: to, destinationId: targetId, etag: current.etag, ctag: origin.meta.ctag });
+      return { created: !target, etag: current.etag };
     });
   }
 
@@ -876,6 +979,11 @@ export function createStore({ root, logger = null }) {
     getEvent,
     putEvent,
     deleteEvent,
+    mutateEvent,
+    snapshotEvents,
+    moveEvent,
+    recoverMoves: async () => { const result = await recoverMoveIntents(rootDir); writeFailure = false; return result; },
+    subscribeChanges: changes.subscribe,
     ctag,
     syncToken,
     changesSince,

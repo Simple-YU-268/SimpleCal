@@ -127,8 +127,8 @@ async function main() {
   record('静态首页 200 + text/html', '200 text/html',
     `${index.status} ${index.headers.get('content-type')}`,
     index.status === 200 && String(index.headers.get('content-type') || '').includes('text/html'));
-  record('首页内容为 FnCal', 'FnCal', indexText.includes('FnCal') ? 'found' : 'missing',
-    indexText.includes('FnCal'));
+  record('首页内容为 SimpleCal', 'SimpleCal', indexText.includes('SimpleCal') ? 'found' : 'missing',
+    indexText.includes('SimpleCal'));
 
   const propfind = await fetch(`${base}/calendars/caldav/`, {
     method: 'PROPFIND',

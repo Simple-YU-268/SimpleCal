@@ -4,7 +4,7 @@
  * for the frame-ancestors override).
  *
  * Covers:
- *   - `GET /` -> index.html (text/html, contains 「FnCal」) with CSP /
+ *   - `GET /` -> index.html (text/html, contains 「SimpleCal」) with CSP /
  *     nosniff / no-referrer and no-cache;
  *   - `/assets/*` -> correct MIME + `public, max-age=31536000, immutable`;
  *   - SPA fallback for unknown non-API / non-DAV routes;
@@ -128,8 +128,8 @@ async function main() {
     record('GET / -> 200 text/html', '200 text/html',
       `${index.status} ${indexHeaders.get('content-type')}`,
       index.status === 200 && /^text\/html/.test(indexHeaders.get('content-type') || ''));
-    record('GET / 含「FnCal」', 'title/名称存在', /FnCal/.test(indexText),
-      /FnCal/.test(indexText));
+    record('GET / 含「SimpleCal」', 'title/名称存在', /SimpleCal/.test(indexText),
+      /SimpleCal/.test(indexText));
     record('index.html Cache-Control: no-cache', 'no-cache', indexHeaders.get('cache-control'),
       indexHeaders.get('cache-control') === 'no-cache');
     record('CSP 含 default-src/script-src/style-src/connect-src',
@@ -222,15 +222,15 @@ async function main() {
     /* ---------- SPA fallback + HEAD ---------- */
     const spa = await fetch(`${BASE}/month/2026/11`);
     const spaText = await spa.text();
-    record('未知 SPA 路由 -> index.html', '200 text/html + FnCal',
-      `${spa.status} ${/FnCal/.test(spaText) ? 'title' : 'missing'}`,
-      spa.status === 200 && /^text\/html/.test(spa.headers.get('content-type') || '') && /FnCal/.test(spaText));
+    record('未知 SPA 路由 -> index.html', '200 text/html + SimpleCal',
+      `${spa.status} ${/SimpleCal/.test(spaText) ? 'title' : 'missing'}`,
+      spa.status === 200 && /^text\/html/.test(spa.headers.get('content-type') || '') && /SimpleCal/.test(spaText));
     const missingAsset = await fetch(`${BASE}/assets/does-not-exist.js`);
     const missingText = await missingAsset.text();
     record('缺失 assets 文件 -> SPA index（不 404）', '200 html',
       `${missingAsset.status} ${/^text\/html/.test(missingAsset.headers.get('content-type') || '') ? 'html' : 'other'}`,
       missingAsset.status === 200 && /^text\/html/.test(missingAsset.headers.get('content-type') || '')
-        && /FnCal/.test(missingText));
+        && /SimpleCal/.test(missingText));
 
     const head = await fetch(`${BASE}/`, { method: 'HEAD' });
     const headBody = await head.text();

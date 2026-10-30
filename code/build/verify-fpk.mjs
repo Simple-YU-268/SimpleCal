@@ -136,16 +136,16 @@ if (appTgz) {
   // 0.2.3 B4：Service Worker 缓存名带版本（升级后不会继续用旧外壳）。
   const sw = inner.find((e) => e.name === 'www/sw.js');
   const swText = sw ? sw.body.toString('utf8') : '';
-  check(`包内 www/sw.js 缓存名带版本 fncal-shell-${VERSION}`,
-    swText.includes(`fncal-shell-${VERSION}`) && !/fncal-shell-v\d/.test(swText));
+  check(`包内 www/sw.js 缓存名带版本 simplecal-shell-${VERSION}`,
+    swText.includes(`simplecal-shell-${VERSION}`) && !/simplecal-shell-v\d/.test(swText));
   // 0.2.23（H4）：前端构建指纹自证——index.html 的 meta 与 sw.js 缓存名必须是同一枚指纹
   // （浏览器跑的是哪份前端资源能一眼看出；G5 那次绕圈就卡在这一点）。
   {
     const htmlForFp = (inner.find((e) => e.name === 'www/index.html') || {}).body;
     const htmlFp = htmlForFp ? htmlForFp.toString('utf8') : '';
-    const fp = (htmlFp.match(/<meta name="fncal-build" content="([^"]+)">/) || [])[1] || '';
+    const fp = (htmlFp.match(/<meta name="simplecal-build" content="([^"]+)">/) || [])[1] || '';
     check('包内前端构建指纹 index.html meta 与 sw.js 缓存名一致',
-      /^[0-9a-f]{8}-[0-9a-z]{5}$/.test(fp) && swText.includes(`fncal-shell-${VERSION}-${fp}`),
+      /^[0-9a-f]{8}-[0-9a-z]{5}$/.test(fp) && swText.includes(`simplecal-shell-${VERSION}-${fp}`),
       `meta=${fp || '缺失'}`);
   }
   // 0.2.4 ⑭：首屏主题色 prepaint 脚本随版本化，离线外壳也可命中。

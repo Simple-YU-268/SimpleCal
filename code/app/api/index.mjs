@@ -67,7 +67,7 @@ function readJsonBody(req) {
   });
 }
 
-export function createApiHandler({ version, auth, kv, admin, data, calendars, ai = null, aiRest = null, health = null, reconcileStatus = null, reconcileDiagnostics = null, reconcileFixDavAccess = null, audit = null, securityApi = null, httpsStatus = null }) {
+export function createApiHandler({ version, auth, kv, admin, data, calendars, events = null, ai = null, aiRest = null, health = null, reconcileStatus = null, reconcileDiagnostics = null, reconcileFixDavAccess = null, audit = null, securityApi = null, httpsStatus = null }) {
   async function handleAuth(req, res, pathnameIn) {
     const remoteAddress = (req.socket && req.socket.remoteAddress) || null;
     // M2 §6.2 paths are `/api/v1/auth/*`; the M3.2 implementation used
@@ -422,6 +422,9 @@ export function createApiHandler({ version, auth, kv, admin, data, calendars, ai
     if (pathname === '/api/v1/kv' || pathname.startsWith('/api/v1/kv/')) {
       return handleKv(req, res, url);
     }
+    if (/^\/api\/v1\/calendars\/[^/]+\/events(?:\/|$)/.test(pathname)) {
+      return handleCalendars(req, res, url, events);
+    }
     if (pathname === '/api/v1/calendars' || pathname.startsWith('/api/v1/calendars/')
 ) {
       return handleCalendars(req, res, url);
@@ -563,8 +566,8 @@ export function createApiHandler({ version, auth, kv, admin, data, calendars, ai
   }
 
   /** Calendar collection REST (0.2.0): session for reads, session+CSRF for writes. */
-  async function handleCalendars(req, res, url) {
-    if (!calendars) return sendJson(res, 501, { ok: false, code: 'not_implemented' });
+  async function handleCalendars(req, res, url, handler = calendars) {
+    if (!handler) return sendJson(res, 501, { ok: false, code: 'not_implemented' });
     const identity = await auth.authenticate(req);
     if (!identity.ok) return sendJson(res, 401, { ok: false, code: 'unauthorized', message: '请先登录' });
     const isWrite = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method);
@@ -572,7 +575,11 @@ export function createApiHandler({ version, auth, kv, admin, data, calendars, ai
       return sendJson(res, 401, { ok: false, code: 'session_required', message: '写操作需要登录会话' });
     }
     const context = currentContext();
-    if (context) context.userId = identity.account ? identity.account.id : null;
+    if (context) {
+      context.userId = identity.account ? identity.account.id : null;
+      context.username = identity.account?.username || '';
+      context.displayName = identity.account?.displayName || context.username;
+    }
     const csrfOk = identity.via === 'session' && identity.account
       ? auth.validateCsrf(req, identity.account)
       : false;
@@ -580,6 +587,6 @@ export function createApiHandler({ version, auth, kv, admin, data, calendars, ai
       return sendJson(res, 403, { ok: false, code: 'csrf', message: 'CSRF 校验失败，请刷新后重试' });
     }
     req.__caldavUsername = identity.account ? identity.account.username : '';
-    return calendars.handle(req, res, url, { authenticated: true, csrfOk, ...identity });
+    return handler.handle(req, res, url, { authenticated: true, csrfOk, ...identity });
   }
 }

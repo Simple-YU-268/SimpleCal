@@ -219,7 +219,7 @@ try {
   const davPropfind = await call('/calendars/admin/', { method: 'PROPFIND' });
   eq('HTTPS 生效后 HTTP 上的 PROPFIND → 403', 403, davPropfind.status);
   ok('403 文案为中文并给出 https 地址', davPropfind.text.includes('请把 CalDAV 客户端地址改为 https://') && davPropfind.text.includes(`:${free}/`), davPropfind.text.trim());
-  eq('403 带 X-FnCal-Https-Port', String(free), davPropfind.headers.get('x-fncal-https-port'));
+  eq('403 带 X-SimpleCal-Https-Port', String(free), davPropfind.headers.get('x-fncal-https-port'));
   const davPut = await call('/calendars/admin/x.ics', { method: 'PUT', body: 'BEGIN:VCALENDAR' });
   eq('HTTPS 生效后 HTTP 上的 PUT → 403', 403, davPut.status);
   const wellKnown = await call('/.well-known/caldav');

@@ -1,0 +1,6 @@
+code/web/node_modules/
+code/web/dist/
+code/app/.var-*
+code/app/var/
+dist/
+.env

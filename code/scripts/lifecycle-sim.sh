@@ -104,7 +104,7 @@ fi
 # 统一的模拟环境（等价于应用中心注入的 TRIM_* 变量）
 export TRIM_APPDEST="$BASE/app"
 export TRIM_TEMP_LOGFILE="$BASE/install.log"
-export TRIM_APPNAME=FnCal
+export TRIM_APPNAME=SimpleCal
 export TRIM_APPVER=0.1.3
 export TRIM_USERNAME="$(id -un 2>/dev/null || echo caldav)"
 export TRIM_GROUPNAME="$(id -gn 2>/dev/null || id -un 2>/dev/null || echo caldav)"
@@ -116,7 +116,7 @@ unset wizard_port wizard_admin_password wizard_admin_password_confirm CALDAV_ADM
 say ''
 say '== a) 全新安装：VAR 不存在、父目录可写 =='
 mkdir -p "$BASE/vol1/@appdata"
-export TRIM_PKGVAR="$BASE/vol1/@appdata/FnCal"
+export TRIM_PKGVAR="$BASE/vol1/@appdata/SimpleCal"
 
 run_script install_init
 check_status 'a1 install_init 在 VAR 缺失时退出 0' 0 "$RUN_STATUS"
@@ -144,7 +144,7 @@ check_status 'a8 main stop（未运行）应为 0' 0 "$RUN_STATUS"
 say ''
 say '== b) VAR 不存在且父路径是普通文件 =='
 : >"$BASE/blocked"
-export TRIM_PKGVAR="$BASE/blocked/FnCal"
+export TRIM_PKGVAR="$BASE/blocked/SimpleCal"
 
 run_script install_init
 check_status 'b1 install_init 仍退出 0（关键回归项）' 0 "$RUN_STATUS"
@@ -161,7 +161,7 @@ check_contains 'b5 失败原因中文可读' '无法创建应用数据目录' "$
 # ------------------------------------------------ c) 已有数据：幂等、不覆盖
 say ''
 say '== c) 已有 VAR（config.json/secret.key）→ 幂等 =='
-export TRIM_PKGVAR="$BASE/vol1/@appdata/FnCal"
+export TRIM_PKGVAR="$BASE/vol1/@appdata/SimpleCal"
 CONFIG_BEFORE=$(file_hash "$TRIM_PKGVAR/config.json")
 SECRET_BEFORE=$(file_hash "$TRIM_PKGVAR/secret.key")
 
@@ -185,7 +185,7 @@ fi
 # ------------------------------------- d) 只读阶段：目录缺失一律 exit 0
 say ''
 say '== d) 目录缺失时的只读/卸载阶段 =='
-export TRIM_PKGVAR="$BASE/vol1/@appdata/Missing/FnCal"
+export TRIM_PKGVAR="$BASE/vol1/@appdata/Missing/SimpleCal"
 for pair in 'upgrade_init:d1' 'config_init:d2' 'uninstall_init:d3' 'uninstall_callback:d4'; do
   script=${pair%%:*}
   label=${pair##*:}
@@ -197,7 +197,7 @@ done
 say ''
 say '== f) TRIM_APPDEST 未注入 =='
 unset TRIM_APPDEST
-export TRIM_PKGVAR="$BASE/vol1/@appdata/NoAppdest/FnCal"
+export TRIM_PKGVAR="$BASE/vol1/@appdata/NoAppdest/SimpleCal"
 run_script install_init
 check_status 'f1 APPDEST 未注入时 install_init 退出 0' 0 "$RUN_STATUS"
 check_contains 'f2 输出「TRIM_APPDEST 未注入」' 'TRIM_APPDEST 未注入' "$RUN_OUT"
@@ -207,13 +207,13 @@ export TRIM_APPDEST="$BASE/app"
 say ''
 if [ "$(id -u)" -ne 0 ]; then
   say '== e) 非 root：VAR 存在但不可写 =='
-  mkdir -p "$BASE/readonly/FnCal"
-  chmod 555 "$BASE/readonly/FnCal"
-  export TRIM_PKGVAR="$BASE/readonly/FnCal"
+  mkdir -p "$BASE/readonly/SimpleCal"
+  chmod 555 "$BASE/readonly/SimpleCal"
+  export TRIM_PKGVAR="$BASE/readonly/SimpleCal"
   run_script install_init
   check_status 'e1 不可写时 install_init 仍退出 0' 0 "$RUN_STATUS"
   check_contains 'e2 输出只读警告' '不可写' "$RUN_OUT"
-  chmod 755 "$BASE/readonly/FnCal" 2>/dev/null || true
+  chmod 755 "$BASE/readonly/SimpleCal" 2>/dev/null || true
 else
   say '== e) 跳过：root 下权限位不生效（静态审计 audit-lifecycle.mjs 覆盖该路径）=='
 fi
@@ -224,7 +224,7 @@ say '== g) 安装向导 wizard_port =='
 for spec in '5290:g1' '80:g2' 'abc:g3'; do
   val=${spec%%:*}
   label=${spec##*:}
-  export TRIM_PKGVAR="$BASE/port-${label}/FnCal"
+  export TRIM_PKGVAR="$BASE/port-${label}/SimpleCal"
   rm -rf "$BASE/port-${label}" 2>/dev/null || true
   export wizard_port="$val"
   run_script install_callback
@@ -246,7 +246,7 @@ unset wizard_port 2>/dev/null || true
 # --------------- h) 安装后改端口：未变化不重启 / 非法则失败且配置不变
 say ''
 say '== h) config_callback 改端口语义（0.1.4）=='
-export TRIM_PKGVAR="$BASE/vol1/@appdata/FnCal"
+export TRIM_PKGVAR="$BASE/vol1/@appdata/SimpleCal"
 unset wizard_log_level 2>/dev/null || true
 main_status_before=0
 run_script main status || true
@@ -294,7 +294,7 @@ unset wizard_port 2>/dev/null || true
 say ''
 say '== i) 安装向导管理员密码 =='
 # i1 两次一致 → 写 admin-password.init 0600
-export TRIM_PKGVAR="$BASE/pwd-ok/FnCal"
+export TRIM_PKGVAR="$BASE/pwd-ok/SimpleCal"
 rm -rf "$BASE/pwd-ok" 2>/dev/null || true
 export wizard_admin_password='Passw0rd-123'
 export wizard_admin_password_confirm='Passw0rd-123'
@@ -318,7 +318,7 @@ else
 fi
 
 # i2 两次不一致 → 中文报错且中止
-export TRIM_PKGVAR="$BASE/pwd-bad/FnCal"
+export TRIM_PKGVAR="$BASE/pwd-bad/SimpleCal"
 rm -rf "$BASE/pwd-bad" 2>/dev/null || true
 export wizard_admin_password_confirm='Different-123'
 run_script install_callback
@@ -330,7 +330,7 @@ fi
 check_contains 'i6 两次不一致 → 中文报错' '两次输入的管理员密码不一致' "$RUN_OUT"
 
 # i3 密码过短 → 中文报错且中止
-export TRIM_PKGVAR="$BASE/pwd-short/FnCal"
+export TRIM_PKGVAR="$BASE/pwd-short/SimpleCal"
 rm -rf "$BASE/pwd-short" 2>/dev/null || true
 export wizard_admin_password='short'
 export wizard_admin_password_confirm='short'
@@ -343,7 +343,7 @@ fi
 check_contains 'i8 密码过短 → 中文报错' '至少 8 位' "$RUN_OUT"
 
 # i4 空密码 → 随机兜底，不写一次性文件
-export TRIM_PKGVAR="$BASE/pwd-empty/FnCal"
+export TRIM_PKGVAR="$BASE/pwd-empty/SimpleCal"
 rm -rf "$BASE/pwd-empty" 2>/dev/null || true
 unset wizard_admin_password wizard_admin_password_confirm 2>/dev/null || true
 run_script install_callback
@@ -357,7 +357,7 @@ fi
 # --------------- j) 0.2.7 覆盖升级：旧版本进程仍在运行（真机 5581 端口占用回归项）
 say ''
 say '== j) 覆盖升级：旧版本 server.mjs 仍在运行（pid 文件已丢失）=='
-export TRIM_PKGVAR="$BASE/vol1/@appdata/FnCal"
+export TRIM_PKGVAR="$BASE/vol1/@appdata/SimpleCal"
 export TRIM_APPDEST="$BASE/app"
 export TRIM_APPVER=0.2.7
 mkdir -p "$BASE/fake" "$TRIM_PKGVAR/run" 2>/dev/null || true

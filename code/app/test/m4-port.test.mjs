@@ -62,8 +62,8 @@ async function main() {
     record('app/ui/config 可解析', false, err.message);
   }
   if (ui) {
-    const entry = (ui['.url'] || {})['FnCal.main'] || {};
-    record('入口仍为主入口 FnCal.main', Boolean((ui['.url'] || {})['FnCal.main']));
+    const entry = (ui['.url'] || {})['SimpleCal.main'] || {};
+    record('入口仍为主入口 SimpleCal.main', Boolean((ui['.url'] || {})['SimpleCal.main']));
     record('入口 port = ${wizard_port}（安装时端口）', entry.port === '${wizard_port}', `port=${entry.port}`);
     record('入口 protocol=http', entry.protocol === 'http', String(entry.protocol));
     record('入口 url 为 /', entry.url === '/', String(entry.url));

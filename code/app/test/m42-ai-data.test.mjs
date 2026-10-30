@@ -3,7 +3,7 @@
  * 0.3.0 P1：AI 数据层 / 权限判定 / 迁移幂等（无 HTTP，纯模块）。
  *
  * 覆盖（最低覆盖集合）：
- *   ① 令牌：格式 fncal_ai_<32 base64url>、库里只存哈希、验得过、明文不落盘；
+ *   ① 令牌：格式 simplecal_ai_<32 base64url>、库里只存哈希、验得过、明文不落盘；
  *   ② 吊销立即失效（revokedAt 一写，令牌立刻验不过）；
  *   ③ grants 三档（hidden 默认 / read / write）+ 未知日历降级 hidden；
  *   ④ 不可见 404 响应体常量（与「uid 不存在」同一份字节）；
@@ -61,8 +61,10 @@ function readJson(file) {
 const created = await ai.createCredential('u1', { label: '测试凭据' });
 const token = created.token;
 const cred = created.credential;
-ok('令牌格式 fncal_ai_ + 32 base64url', aiStoreMod.isAiToken(token), token.slice(0, 14) + '…');
-eq('令牌总长 = 9 + 32', 41, token.length);
+ok('legacy token format', aiStoreMod.isAiToken('fncal_ai_' + 'A'.repeat(32)));
+eq('legacy token hint', 'ABCD', aiStoreMod.tokenHintOf('fncal_ai_ABCD' + 'A'.repeat(28)));
+ok('令牌格式 simplecal_ai_ + 32 base64url', aiStoreMod.isAiToken(token), token.slice(0, 14) + '…');
+eq('令牌总长 = 9 + 32', aiStoreMod.AI_TOKEN_PREFIX.length + 32, token.length);
 ok('返回的凭据不含明文 token 字段', !Object.prototype.hasOwnProperty.call(cred, 'token'));
 ok('库里 tokenHash 与明文不同', cred.tokenHash !== token, cred.tokenHash.slice(0, 18) + '…');
 const rawCredFile = fs.readFileSync(userDataPath('u1', aiStoreMod.AI_CREDENTIALS_NAME), 'utf8');
@@ -71,8 +73,8 @@ ok('凭据文件里没有明文令牌片段（后 16 位）', rawCredFile.indexO
 const found = await ai.findCredentialByToken(token);
 ok('令牌验得过（作用域 u1）', found && found.userId === 'u1' && found.credential.id === cred.id);
 eq('错误令牌验不过', null, await ai.findCredentialByToken(`${aiStoreMod.AI_TOKEN_PREFIX}${'A'.repeat(32)}`));
-eq('长度不对的令牌直接拒绝', null, await ai.findCredentialByToken('fncal_ai_short'));
-eq('非 AI 前缀不认', null, await ai.findCredentialByToken(token.replace('fncal_ai_', 'fncal_x_')));
+eq('长度不对的令牌直接拒绝', null, await ai.findCredentialByToken('simplecal_ai_short'));
+eq('非 AI 前缀不认', null, await ai.findCredentialByToken(token.replace('simplecal_ai_', 'fncal_x_')));
 
 // 未列出的日历默认 hidden，且创建时显式补齐。
 eq('grants 未列出 → hidden', 'hidden', grantsMod.grantLevel(cred, 'default'));

@@ -10,15 +10,15 @@
  */
 export const zhCN = {
   /* ---- 应用外壳 ---- */
-  'app.name': 'FnCal',
-  'app.title': 'FnCal',
+  'app.name': 'SimpleCal',
+  'app.title': 'SimpleCal',
   'app.loading': '正在加载日历……',
   'app.bootError': '日历加载失败。原因未知。请刷新页面后重试。',
   'app.reload': '重新加载',
-  'app.version': 'FnCal',
+  'app.version': 'SimpleCal',
 
   /* ---- 登录 ---- */
-  'login.title': 'FnCal',
+  'login.title': 'SimpleCal',
   'login.subtitle': '数据存放于这台 NAS，家人共用；不经第三方云。',
   'login.username': '用户名',
   'login.password': '密码',
@@ -608,11 +608,11 @@ export const zhCN = {
 
   /* ---- 设置三页（0.2.0 B3） ---- */
   'settings.title': '设置',
-  'settings.version': 'FnCal {version}',
+  'settings.version': 'SimpleCal {version}',
   // 0.2.44：页脚「开发者 · 项目仓库」；仓库地址与 fnOS manifest 的 maintainer_url / distributor_url 同源。
   'settings.about.developer': '开发者 {name}',
   'settings.about.repository': '项目仓库',
-  'settings.about.repositoryAria': 'FnCal 项目仓库（在新标签页打开）',
+  'settings.about.repositoryAria': 'SimpleCal 项目仓库（在新标签页打开）',
   // 0.2.24（I3）：页脚版本号显示**前端内嵌版本**；与后端版本不一致时在后面补这四个字。
   // 原 `settings.build`（前端指纹行）按用户 m00780「不要这行」撤掉，不留孤儿键。
   'settings.needReload': ' · 需刷新',
@@ -638,7 +638,7 @@ export const zhCN = {
   'settings.ai.copyJsonAria': '复制 MCP 配置片段',
   'settings.ai.mcpJsonHint': '把 <你的地址>、<你的令牌> 换成实际值。配置只留在本机，不要提交仓库或发给别人。',
   // 0.3.3（用户）：「Bearer Token 输入框只需填写 Token，不要包含 Bearer 前缀」
-  'settings.ai.mcpTokenHint': '客户端有单独的令牌输入框时，只填 fncal_ai_ 开头那串，不要带 Bearer 前缀；地址填到 URL 字段。',
+  'settings.ai.mcpTokenHint': '客户端有单独的令牌输入框时，只填 simplecal_ai_ 开头那串，不要带 Bearer 前缀；地址填到 URL 字段。',
   'settings.ai.loading': '加载中…',
   'settings.ai.loadFailed': '加载失败，请重试',
   'settings.ai.retry': '重试',
@@ -1030,9 +1030,9 @@ export const zhCN = {
   'security.proxy.enabledHint': '默认关闭。开启后，只有来自「可信代理」的请求才采信 X-Forwarded-For / X-Real-IP；登录锁定、审计与白名单都记真实客户端 IP。直连时行为与以前完全一致。',
   'security.proxy.trusted': '可信代理地址（IP 或 CIDR，每行一条）',
   'security.proxy.trustedPlaceholder': '例如：127.0.0.1\n172.17.0.0/16',
-  'security.proxy.trustedHint': '本机回环地址始终可信；反向代理与 FnCal 跑在同一台机器上时无需再填。',
+  'security.proxy.trustedHint': '本机回环地址始终可信；反向代理与 SimpleCal 跑在同一台机器上时无需再填。',
   'security.proxy.behindProxy': '通过反向代理提供 HTTPS',
-  'security.proxy.behindProxyHint': '默认关闭。开启后，来自可信代理且带 X-Forwarded-Proto: https 的请求按 HTTPS 处理：Cookie 加 Secure、发送 HSTS、外部用 HTTP 访问会自动 301。证书由反向代理负责，FnCal 不再监听 HTTPS 端口。',
+  'security.proxy.behindProxyHint': '默认关闭。开启后，来自可信代理且带 X-Forwarded-Proto: https 的请求按 HTTPS 处理：Cookie 加 Secure、发送 HSTS、外部用 HTTP 访问会自动 301。证书由反向代理负责，SimpleCal 不再监听 HTTPS 端口。',
   'security.action.saveProxy': '保存代理',
   'security.status.proxy': '真实来源解析',
   'security.status.proxyValue': '{count} 个可信代理',

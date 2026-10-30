@@ -1,5 +1,5 @@
 /**
- * FnCal 静态外壳 Service Worker。
+ * SimpleCal 静态外壳 Service Worker。
  *
  * 只缓存同源静态资源（Vite 产物、图标、manifest）；绝不拦截或缓存 `/api/*`
  * —— 日历数据必须始终走网络，离线写入由应用层（offline.js）的写闸门拒绝，
@@ -13,7 +13,7 @@
  * 注意：skipWaiting()+clients.claim() 之所以安全，是因为应用没有动态 import()，
  * 在线会话中不会中途请求新的哈希分块。
  */
-const CACHE = 'fncal-shell-v1';
+const CACHE = 'simplecal-shell-v1';
 
 // 最小外壳：保证可安装、可离线打开。带哈希的 JS/CSS 在首次抓取时懒缓存。
 const SHELL = [

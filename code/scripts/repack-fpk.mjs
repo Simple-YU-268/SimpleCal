@@ -2,7 +2,7 @@
 /**
  * repack-fpk.mjs —— 修正 .fpk 内文件权限后重新打包（Windows 上 fnpack 产物 cmd/* 是 0666）。
  *
- * 用法：node repack-fpk.mjs [--in ../fnos/dist/FnCal.fpk] [--out ../fnos/dist/FnCal-0.1.0-test.fpk]
+ * 用法：node repack-fpk.mjs [--in ../fnos/dist/SimpleCal.fpk] [--out ../fnos/dist/SimpleCal-0.1.0-test.fpk]
  *
  * 规则：
  *   cmd/*            → 0755（生命周期脚本必须可执行）
@@ -20,8 +20,8 @@ import { fileURLToPath } from 'node:url';
 const here = path.dirname(fileURLToPath(import.meta.url));
 const args = process.argv.slice(2);
 const opt = (n, d) => { const i = args.indexOf(`--${n}`); return i >= 0 ? args[i + 1] : d; };
-const IN = path.resolve(here, opt('in', '../fnos/dist/FnCal.fpk'));
-const OUT = path.resolve(here, opt('out', '../fnos/dist/FnCal-0.1.0-test.fpk'));
+const IN = path.resolve(here, opt('in', '../fnos/dist/SimpleCal.fpk'));
+const OUT = path.resolve(here, opt('out', '../fnos/dist/SimpleCal-0.1.0-test.fpk'));
 
 /* ---------- tar 读取 ---------- */
 function octal(buf) {

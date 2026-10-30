@@ -141,7 +141,7 @@ async function proppatch(calendarId, propsXml) {
 
 const VEVENT_BODY = 'BEGIN:VCALENDAR\r\n'
   + 'VERSION:2.0\r\n'
-  + 'PRODID:-//FnCal//m7 0210 test//EN\r\n'
+  + 'PRODID:-//SimpleCal//m7 0210 test//EN\r\n'
   + 'BEGIN:VEVENT\r\n'
   + 'UID:probe-0210\r\n'
   + 'DTSTAMP:20261024T000000Z\r\n'

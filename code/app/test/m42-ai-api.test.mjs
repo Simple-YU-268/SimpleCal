@@ -174,7 +174,7 @@ try {
   eq('创建凭据 → 201', 201, createdCred.status);
   const token = createdCred.body.token;
   const credential = createdCred.body.credential;
-  ok('创建返回明文令牌（fncal_ai_ + 32）', /^fncal_ai_[A-Za-z0-9_-]{32}$/.test(token || ''));
+  ok('创建返回明文令牌（simplecal_ai_ + 32）', /^simplecal_ai_[A-Za-z0-9_-]{32}$/.test(token || ''));
   ok('创建响应不含 tokenHash', !JSON.stringify(createdCred.body.credential).includes('tokenHash'));
   eq('创建响应带 grant 摘要(read=1)', 1, credential.grantSummary.read);
   eq('创建响应带 write 档', 'read', credential.grants.default);

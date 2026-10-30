@@ -68,7 +68,7 @@ describe('out-of-office stylesheet builds the away look from that color', () => 
   const css = readFileSync(
     path.join(path.dirname(fileURLToPath(import.meta.url)), '../src/styles/views.css'),
     'utf8',
-  );
+  ).replace(/\r\n/g, '\n');
   // The shared rule that paints the hatched "away" fill, up to its closing brace.
   const rule = css.slice(
     css.indexOf('.chip.is-ooo,\n.allday-chip.is-ooo,\n.tevent.is-ooo {'),

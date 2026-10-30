@@ -1,9 +1,9 @@
 {
-  "name": "fncal-web",
+  "name": "simplecal-web",
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "FnCal 日历前端（自建 REST + Cookie 会话，零云依赖）。源自 HeyPuter/everything 的 src/calendar（MIT）。",
+  "description": "SimpleCal 日历前端（自建 REST + Cookie 会话，零云依赖）。",
   "license": "MIT",
   "scripts": {
     "dev": "vite",
@@ -16,8 +16,9 @@
   },
   "keywords": [
     "calendar",
-    "fncal",
+    "simplecal",
     "caldav",
+    "carddav",
     "vanilla-js"
   ],
   "devDependencies": {

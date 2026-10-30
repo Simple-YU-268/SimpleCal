@@ -64,11 +64,11 @@ try {
   record('DAV 头广告 calendar-access + sync-collection', 'calendar-access,sync-collection', dav,
     /calendar-access/.test(dav) && /sync-collection/.test(dav));
   const allow = bare.headers.get('allow') || '';
-  const need = ['OPTIONS', 'PROPFIND', 'PROPPATCH', 'REPORT', 'MKCALENDAR', 'PUT', 'DELETE'];
+  const need = ['OPTIONS', 'PROPFIND', 'PROPPATCH', 'REPORT', 'MKCALENDAR', 'PUT', 'DELETE', 'MOVE'];
   record('Allow 广告已实现的方法', need.join(','), allow,
     need.every((m) => allow.split(/\s*,\s*/).includes(m)));
-  record('Allow 不广告未实现的方法（MKCOL/MOVE/COPY）', 'absent',
-    /MKCOL|MOVE|COPY/.test(allow) ? 'present' : 'absent', !/MKCOL|MOVE|COPY/.test(allow));
+  record('Allow 不广告未实现的方法（MKCOL/COPY）', 'absent',
+    /MKCOL|COPY/.test(allow) ? 'present' : 'absent', !/MKCOL|COPY/.test(allow));
   eq('MS-Author-Via: DAV', 'DAV', bare.headers.get('ms-author-via'));
   eq('未认证 OPTIONS 不带 WWW-Authenticate', null, bare.headers.get('www-authenticate'));
   record('OPTIONS 响应体非空', 'truthy', bare.text.length > 0 ? `${bare.text.length} chars` : 'empty', bare.text.length > 0);

@@ -9,7 +9,7 @@
  *   - I2：事件延续到相邻月份卡片时（10/31→11/1），段要顶到卡片边沿、方角收口，
  *     一格宽的段也不会缩成圆点；真单日事件仍是圆点。
  *   - H6：浮层限高可滚、容器可交互（持续区 = 按钮 ∪ 浮层）、事件行与任务行都可点。
- *   - I3：页脚只一行，版本号来自前端内嵌 meta（`fncal-version`），指纹行撤掉。
+ *   - I3：页脚只一行，版本号来自前端内嵌 meta（`simplecal-version`），指纹行撤掉。
  */
 import { describe, it, expect, afterEach } from 'vitest';
 import { readFileSync, promises as fsp } from 'node:fs';
@@ -25,7 +25,7 @@ import { DEFAULT_SETTINGS as SETTINGS } from '../src/js/store.js';
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const WEB_ROOT = path.join(HERE, '..');
 const strip = (css) => css.replace(/\/\*[\s\S]*?\*\//g, '');
-const READ = (rel) => strip(readFileSync(path.join(WEB_ROOT, rel), 'utf8'));
+const READ = (rel) => strip(readFileSync(path.join(WEB_ROOT, rel), 'utf8').replace(/\r\n/g, '\n'));
 const viewsCss = READ('src/styles/views.css');
 const calendarCss = READ('src/styles/calendar.css');
 const monthJs = READ('src/js/views/month.js');
@@ -306,16 +306,16 @@ describe('0.2.24 H6 浮层：限高可滚、持续区 = 按钮 ∪ 浮层、事�
 /* ------------------------------------------------ I3 页脚只留前端版本号 */
 
 describe('0.2.24 I3 版本自证改为一行（前端内嵌版本，指纹行撤掉）', () => {
-  it('运行时：读 meta[name="fncal-version"]，没有就空串（不猜）', () => {
+  it('运行时：读 meta[name="simplecal-version"]，没有就空串（不猜）', () => {
     expect(getFrontendVersion()).toBe('');
     const meta = document.createElement('meta');
-    meta.setAttribute('name', 'fncal-version');
+    meta.setAttribute('name', 'simplecal-version');
     meta.setAttribute('content', '0.2.24');
     document.head.append(meta);
     expect(getFrontendVersion()).toBe('0.2.24');
   });
 
-  it('构建期：版本写进 index.html 的 fncal-version，且重复跑不叠加', async () => {
+  it('构建期：版本写进 index.html 的 simplecal-version，且重复跑不叠加', async () => {
     const dir = await fsp.mkdtemp(path.join(os.tmpdir(), 'fncal-ver-'));
     try {
       await fsp.mkdir(path.join(dir, 'assets'));
@@ -324,15 +324,15 @@ describe('0.2.24 I3 版本自证改为一行（前端内嵌版本，指纹行撤
       await fsp.writeFile(path.join(dir, 'sw.js'), readFileSync(path.join(WEB_ROOT, 'public/sw.js'), 'utf8'));
       await fsp.writeFile(path.join(dir, 'site.webmanifest'), readFileSync(path.join(WEB_ROOT, 'public/site.webmanifest'), 'utf8'));
       const manifestPath = path.join(dir, 'manifest');
-      await fsp.writeFile(manifestPath, 'appname=FnCal\nversion=0.2.24\n');
+      await fsp.writeFile(manifestPath, 'appname=SimpleCal\nversion=0.2.24\n');
 
       const { fingerprint } = stampDist({ distDir: dir, manifestPath });
       const html = await fsp.readFile(path.join(dir, 'index.html'), 'utf8');
-      expect(html).toContain('<meta name="fncal-version" content="0.2.24">');
-      expect(html).toContain(`<meta name="fncal-build" content="${fingerprint}">`);
+      expect(html).toContain('<meta name="simplecal-version" content="0.2.24">');
+      expect(html).toContain(`<meta name="simplecal-build" content="${fingerprint}">`);
       stampDist({ distDir: dir, manifestPath });
       const again = await fsp.readFile(path.join(dir, 'index.html'), 'utf8');
-      expect((again.match(/name="fncal-version"/g) || [])).toHaveLength(1);
+      expect((again.match(/name="simplecal-version"/g) || [])).toHaveLength(1);
     } finally {
       await fsp.rm(dir, { recursive: true, force: true });
     }

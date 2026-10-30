@@ -86,10 +86,10 @@ async function main() {
     /* A. full chain over loopback, with the outbound probe installed */
     const root = await fetch(`${BASE}/`);
     const rootText = await root.text();
-    record('GET / 静态页（200 + 标题 FnCal）', '200 html',
+    record('GET / 静态页（200 + 标题 SimpleCal）', '200 html',
       `${root.status} ${root.headers.get('content-type')}`,
       root.status === 200 && /^text\/html/.test(root.headers.get('content-type') || '')
-        && /<title>FnCal<\/title>/.test(rootText));
+        && /<title>SimpleCal<\/title>/.test(rootText));
 
     const login = await fetch(`${BASE}/api/v1/auth/login`, {
       method: 'POST',

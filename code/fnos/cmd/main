@@ -1,5 +1,5 @@
 #!/bin/bash
-# FnCal 生命周期脚本：start / stop / status
+# SimpleCal 生命周期脚本：start / stop / status
 #
 # 约定：
 #   - 只使用 fnOS 注入的 TRIM_* 环境变量，不硬编码安装卷路径。
@@ -24,7 +24,7 @@ ADMIN_PWD_INIT="${VAR_DIR}/admin-password.init"
 # 两个都尝试监听，避免赌错一边导致桌面卡片 502/404）。
 GATEWAY_SOCKET=""
 GATEWAY_SOCKET_ALT=""
-GATEWAY_PREFIX="/app/FnCal"
+GATEWAY_PREFIX="/app/SimpleCal"
 if [ -n "${TRIM_APPDEST:-}" ]; then
   GATEWAY_SOCKET="${TRIM_APPDEST}/app.sock"
   GATEWAY_SOCKET_ALT="${TRIM_APPDEST}/../app.sock"

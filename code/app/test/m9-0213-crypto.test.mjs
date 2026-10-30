@@ -91,9 +91,9 @@ eq('verifyTotp 位数不足拒绝', 'format', verifyTotp(secret, '123', { now: n
 eq('verifyTotp 空白容忍', true, verifyTotp(secret, ` ${currentCode.slice(0, 3)} ${currentCode.slice(3)} `, { now: nowMs }).ok);
 
 const uri = otpauthUri({ account: 'admin', secret });
-eq('otpauth URI 前缀', true, uri.startsWith('otpauth://totp/FnCal:admin?'));
+eq('otpauth URI 前缀', true, uri.startsWith('otpauth://totp/SimpleCal:admin?'));
 eq('otpauth URI 含 secret', true, uri.includes(`secret=${secret}`));
-eq('otpauth URI 含 issuer', true, uri.includes('issuer=FnCal'));
+eq('otpauth URI 含 issuer', true, uri.includes('issuer=SimpleCal'));
 eq('otpauth URI 含 6 位/30 秒参数', true, uri.includes('digits=6') && uri.includes('period=30'));
 
 // ---------------------------------------------------------------- C. 令牌

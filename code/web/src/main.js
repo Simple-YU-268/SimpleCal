@@ -1,5 +1,5 @@
 /**
- * 应用引导（FnCal 前端）。
+ * 应用引导（SimpleCal 前端）。
  *
  * 启动顺序（全部同源，零外部 SDK）：
  *   1. 注册 Service Worker（仅生产构建，失败不影响启动）；
@@ -39,7 +39,7 @@ const root = document.getElementById('app');
  * 只有 listener 真起来了才算 HTTPS 生效；失败时后端继续提供 HTTP 且关掉跳转，
  * 这里在任何页面（含登录页）明确告诉用户「现在走的是 HTTP、不是 HTTPS」。
  */
-const HTTPS_BANNER_DISMISSED_KEY = 'fncal.https-fallback-dismissed';
+const HTTPS_BANNER_DISMISSED_KEY = 'simplecal.https-fallback-dismissed';
 
 async function checkHttpsFallbackBanner() {
   if (typeof fetch !== 'function') return;

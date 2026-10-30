@@ -5,7 +5,7 @@
 set -u
 umask 027
 
-APP_NAME="FnCal"
+APP_NAME="SimpleCal"
 VAR_DIR="${TRIM_PKGVAR:-}"
 RUN_DIR="${VAR_DIR}/run"
 PID_FILE="${RUN_DIR}/service.pid"
@@ -55,7 +55,7 @@ case "$VAR_DIR" in
     ;;
 esac
 case "$VAR_DIR" in
-  */FnCal|*/FnCal/*) : ;;
+  */SimpleCal|*/SimpleCal/*) : ;;
   *)
     fail "数据目录 ${VAR_DIR} 与应用名 ${APP_NAME} 不匹配，拒绝删除；请人工确认后处理。"
     ;;

@@ -2,7 +2,7 @@
 //
 // 与用户侧 `/api/v1/ai/*`（cookie 会话 + CSRF，见 api/ai.mjs）是**两套**：
 //   - 基路径 `/api/ai/v1/*`；
-//   - 只认 `Authorization: Bearer fncal_ai_<32 字符>`，**绝不回落到 cookie 会话**；
+//   - 只认 `Authorization: Bearer simplecal_ai_<32 字符>`，**绝不回落到 cookie 会话**；
 //   - 权限判定一律调 `lib/ai-grants.mjs`（三档比较只许在那边出现）；
 //   - 「不可见 / 不存在 / 窗外 / 别人日历」四种情况返回**逐字节相同**的 404
 //     （`NOT_FOUND_BODY`），不向外证明存在性；

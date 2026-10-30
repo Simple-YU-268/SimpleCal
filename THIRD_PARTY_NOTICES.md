@@ -1,6 +1,6 @@
 # 第三方声明（THIRD_PARTY_NOTICES）
 
-FnCal 由自有代码与下列第三方代码组成。运行期**没有 npm 依赖**；第三方代码以源码形式
+SimpleCal 由自有代码与下列第三方代码组成。运行期**没有 npm 依赖**；第三方代码以源码形式
 vendored 进仓库，审计时不需要联网、不需要安装步骤、没有安装期脚本。
 
 ## 1. 后端 vendored 代码
@@ -28,7 +28,7 @@ vendored 进仓库，审计时不需要联网、不需要安装步骤、没有�
 | 上游 | <https://github.com/HeyPuter/everything> |
 | 来源提交 | `1781457`（`src/calendar/src/js/` 目录） |
 | 仓库内位置 | `app/vendor/ical/` |
-| 相对上游的修改 | **有（仅此两处）**：① `ics.js` 的 `PRODID` 改为 `-//FnCal//FNCal//EN`；② `ics.js` 生成 UID 的默认域由上游硬编码的云服务域名后缀改为 `globalThis.__FNCAL_UID_DOMAIN__ || 'caldav.local'`（默认 `@caldav.local`，可由 `var/config.json:uidDomain` / `CALDAV_UID_DOMAIN` 配置）。其余文件与其余逻辑原样。 |
+| 相对上游的修改 | **有（仅此两处）**：① `ics.js` 的 `PRODID` 改为 `-//SimpleCal//SimpleCal//EN`；② `ics.js` 生成 UID 的默认域由上游硬编码的云服务域名后缀改为 `globalThis.__FNCAL_UID_DOMAIN__ || 'caldav.local'`（默认 `@caldav.local`，可由 `var/config.json:uidDomain` / `CALDAV_UID_DOMAIN` 配置）。其余文件与其余逻辑原样。 |
 | 说明 | 纯 ESM、无浏览器全局；运行期不访问任何云域名。 |
 
 ## 2. 前端：源自 HeyPuter/everything 的 src/calendar（MIT）
@@ -41,7 +41,7 @@ vendored 进仓库，审计时不需要联网、不需要安装步骤、没有�
 - 许可证：MIT，版权归 Puter Technologies Inc.（2026）
 - 许可全文：仓库根 [`LICENSE`](./LICENSE)（已并入上游版权声明）
 
-我方（FnCal）对其做过的修改：
+我方（SimpleCal）对其做过的修改：
 
 1. 删除全部 Puter 云耦合模块：`src/js/api/*`、`contacts.js`、`meetings.js`、`invites.js`、
    `mail-*.js`、`mailbox.js`、`booking*.js`、`rsvp-links.js`、`analytics.js`、`src/workers/*`、
@@ -51,7 +51,7 @@ vendored 进仓库，审计时不需要联网、不需要安装步骤、没有�
    仅替换注入的后端；
 4. 头像改为本地首字母色块（`profile.js`），不再请求任何远程图片；
 5. 新增简体中文 i18n 层（`src/i18n/`）与中文登录页；
-6. 构建配置、`index.html`、Service Worker 去掉全部第三方 CDN / 统计脚本，并改用 FnCal 主题色；
+6. 构建配置、`index.html`、Service Worker 去掉全部第三方 CDN / 统计脚本，并改用 SimpleCal 主题色；
 7. 新增六个视图的本地化改造、多日历、任务日历、中国法定节日、移动端适配等本项目功能。
 
 除上述改动外，文件头部原始版权/许可注释均已保留。
@@ -69,16 +69,16 @@ vendored 进仓库，审计时不需要联网、不需要安装步骤、没有�
 
 ## 4. 自有代码
 
-其余全部为 FnCal 项目自有代码（`app/` 下的 server/lib/auth/store/dav/api/security，
+其余全部为 SimpleCal 项目自有代码（`app/` 下的 server/lib/auth/store/dav/api/security，
 `web/src` 下的视图与逻辑改造）。
 
 ## 5. 应用图标与界面图形（原创设计）
 
-FnCal 应用图标（含 fnOS 包图标、应用内图标、favicon、PWA 图标）为原创设计，作者
+SimpleCal 应用图标（含 fnOS 包图标、应用内图标、favicon、PWA 图标）为原创设计，作者
 PaulCAI1593（<https://github.com/PaulCAI1593/>），不含任何第三方商标；字标为「Cal」，
 所有尺寸（含 16/32px favicon）统一使用该字标，16px 因尺寸限制允许笔画略糊，属有意取舍。
 
-应用名称：FnCal（应用名 = 应用中心显示名 = 项目名）。开发者 / 发布者：PaulCAI1593。
+应用名称：SimpleCal（应用名 = 应用中心显示名 = 项目名）。开发者 / 发布者：Simple-YU-268。
 
 ## 维护规则
 

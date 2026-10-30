@@ -1,5 +1,5 @@
 /**
- * FnCal 主题色（accent）派生变量 —— 首屏 prepaint 与运行时共用的经典脚本。
+ * SimpleCal 主题色（accent）派生变量 —— 首屏 prepaint 与运行时共用的经典脚本。
  *
  * 约束：
  *   - 只计算 accent 语义族（--accent / hover / active / soft / contrast /
@@ -21,7 +21,7 @@
   var LIGHT_SOFT_BASE = '#ffffff';
   var INK_DARK = '#101216';
   var INK_LIGHT = '#ffffff';
-  var STYLE_ID = 'fncal-accent-theme';
+  var STYLE_ID = 'simplecal-accent-theme';
 
   function normalize(value) {
     var v = String(value == null ? '' : value).trim().toLowerCase();
@@ -167,7 +167,7 @@
     if (!style) {
       style = document.createElement('style');
       style.id = STYLE_ID;
-      style.setAttribute('data-fncal', 'accent');
+      style.setAttribute('data-simplecal', 'accent');
       document.head.appendChild(style);
     }
     style.textContent = cssFor(raw);

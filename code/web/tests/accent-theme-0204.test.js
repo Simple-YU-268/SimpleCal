@@ -34,7 +34,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  document.getElementById('fncal-accent-theme')?.remove();
+  document.getElementById('simplecal-accent-theme')?.remove();
 });
 
 describe('accent 派生变量', () => {
@@ -75,20 +75,20 @@ describe('accent 派生变量', () => {
   it('apply：注入 :root + 暗色两套；默认色/非法值移除注入', () => {
     const api = installAccentScript();
     api.apply('#1f9e8f');
-    const style = document.getElementById('fncal-accent-theme');
+    const style = document.getElementById('simplecal-accent-theme');
     expect(style).toBeTruthy();
     expect(style.textContent).toContain(":root{--accent:#1f9e8f");
     expect(style.textContent).toContain(":root[data-theme='dark']{");
     expect(style.textContent).toContain('@media (prefers-color-scheme: dark)');
     // 幂等
     api.apply('#1f9e8f');
-    expect(document.querySelectorAll('#fncal-accent-theme').length).toBe(1);
+    expect(document.querySelectorAll('#simplecal-accent-theme').length).toBe(1);
     // 默认色 → 回到 tokens.css 默认（移除注入）
     api.apply('#2f5e9e');
-    expect(document.getElementById('fncal-accent-theme')).toBeNull();
+    expect(document.getElementById('simplecal-accent-theme')).toBeNull();
     // 非法值 → 回退默认（不注入）
     api.apply('#zzzzzz');
-    expect(document.getElementById('fncal-accent-theme')).toBeNull();
+    expect(document.getElementById('simplecal-accent-theme')).toBeNull();
   });
 });
 
@@ -104,7 +104,7 @@ describe('首屏 prepaint（读 localStorage 快照）', () => {
     localStorage.setItem('cal:snapshot', snapshot({ theme: 'dark', accentColor: '#6b4fa8' }));
     // eslint-disable-next-line no-new-func
     new Function(inlineThemeScript())();
-    const style = document.getElementById('fncal-accent-theme');
+    const style = document.getElementById('simplecal-accent-theme');
     expect(style).toBeTruthy();
     expect(style.textContent).toContain('--accent:#6b4fa8');
     expect(document.documentElement.dataset.theme).toBe('dark');
@@ -115,18 +115,18 @@ describe('首屏 prepaint（读 localStorage 快照）', () => {
     localStorage.setItem('cal:snapshot', snapshot({ accentColor: '#2f5e9e' }));
     // eslint-disable-next-line no-new-func
     new Function(inlineThemeScript())();
-    expect(document.getElementById('fncal-accent-theme')).toBeNull();
+    expect(document.getElementById('simplecal-accent-theme')).toBeNull();
 
     localStorage.setItem('cal:snapshot', snapshot({ accentColor: '#nothex' }));
     // eslint-disable-next-line no-new-func
     new Function(inlineThemeScript())();
-    expect(document.getElementById('fncal-accent-theme')).toBeNull();
+    expect(document.getElementById('simplecal-accent-theme')).toBeNull();
   });
 
   it('没有快照/存储异常时静默沿用默认', () => {
     installAccentScript();
     // eslint-disable-next-line no-new-func
     new Function(inlineThemeScript())();
-    expect(document.getElementById('fncal-accent-theme')).toBeNull();
+    expect(document.getElementById('simplecal-accent-theme')).toBeNull();
   });
 });

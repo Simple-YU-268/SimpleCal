@@ -1,7 +1,7 @@
 {
   ".url": {
-    "FnCal.main": {
-      "title": "FnCal",
+    "SimpleCal.main": {
+      "title": "SimpleCal",
       "icon": "images/icon_{0}.png",
       "type": "url",
       "protocol": "http",

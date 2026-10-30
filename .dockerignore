@@ -8,3 +8,7 @@ code/app/.var-*
 **/*.log
 **/*.pid
 **/.DS_Store
+.env
+**/.env
+code/app/build-tmp
+code/app/test

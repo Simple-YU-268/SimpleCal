@@ -285,7 +285,7 @@ export function openSecuritySettingsDialog({ user } = {}) {
     const hstsSwitch = switchInput(https.hsts);
     const allowHttpSwitch = switchInput(https.allowHttp);
     const davAllowHttpSwitch = switchInput(https.davAllowHttp);
-    // 0.2.37（S2）：反代提供 HTTPS 时，FnCal 自己不监听 HTTPS 端口。
+    // 0.2.37（S2）：反代提供 HTTPS 时，SimpleCal 自己不监听 HTTPS 端口。
     const behindProxySwitch = switchInput(https.behindProxy);
     // 0.2.14（P0-3）：HTTP 端口由安装向导/应用设置决定，页面只只读展示，
     // 不再给「可改」的错觉（改了也不会生效，真正监听的是 fnOS 配置的端口）。

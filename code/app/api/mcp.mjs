@@ -20,7 +20,7 @@ const PREFIX = '/mcp';
 /** 2025-06-18 是当前最新 Streamable HTTP 规范；旧版本也认，协商时回客户端给的那个。 */
 const LATEST_PROTOCOL = '2025-06-18';
 const SUPPORTED_PROTOCOLS = Object.freeze(['2025-06-18', '2025-03-26', '2024-11-05']);
-const SERVER_NAME = 'fncal';
+const SERVER_NAME = 'simplecal';
 /** 找空闲时段时默认看未来 7 天、默认最短 30 分钟。 */
 const FREE_SLOT_DAYS = 7;
 const FREE_SLOT_MIN_MINUTES = 30;
@@ -420,7 +420,7 @@ export function createMcp({
           protocolVersion,
           capabilities: { tools: { listChanged: false } },
           serverInfo: { name: SERVER_NAME, version: serverVersion },
-          instructions: 'FnCal 本地日历（零云）。时间窗口之外、或未授权给你的日历与事件，表现为不存在。'
+          instructions: 'SimpleCal 本地日历（零云）。时间窗口之外、或未授权给你的日历与事件，表现为不存在。'
             + '删除只会生成待确认提案。',
         };
       }

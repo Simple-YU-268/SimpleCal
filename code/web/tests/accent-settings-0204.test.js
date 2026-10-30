@@ -65,7 +65,7 @@ describe('设置 → 一般：主题色', () => {
     if (opened) opened.close();
     opened = null;
     document.body.replaceChildren();
-    document.getElementById('fncal-accent-theme')?.remove();
+    document.getElementById('simplecal-accent-theme')?.remove();
   });
 
   it('位置紧跟主题分段；6 个预设 + 自定义圆；默认深蓝选中', async () => {
@@ -133,11 +133,11 @@ describe('设置 → 一般：主题色', () => {
     new Function(accentScript)();
     expect(window.FncalAccent).toBeTruthy();
     applyAccentColor('#6b4fa8');
-    const style = document.getElementById('fncal-accent-theme');
+    const style = document.getElementById('simplecal-accent-theme');
     expect(style).toBeTruthy();
     expect(style.textContent).toContain('--accent:#6b4fa8');
     applyAccentColor(DEFAULT_ACCENT);
-    expect(document.getElementById('fncal-accent-theme')).toBeNull();
+    expect(document.getElementById('simplecal-accent-theme')).toBeNull();
     // 预设清单与负责人口径一致
     expect(ACCENT_PRESETS.map((p) => p.hex)).toEqual([
       '#2f5e9e', '#1f9e8f', '#6b4fa8', '#c26a1f', '#b3392f', '#4b5162',

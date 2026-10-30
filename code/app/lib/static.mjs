@@ -205,7 +205,7 @@ export function createStaticHandler({ webDir, frameAncestors = "'self'", logger 
       'Cache-Control': cache,
       ...securityHeaders(),
     };
-    if (version) headers['X-FnCal-Version'] = version;
+    if (version) headers['X-SimpleCal-Version'] = version;
     res.writeHead(status, headers);
     if (req.method === 'HEAD') res.end();
     else res.end(payload);
@@ -227,7 +227,7 @@ export function createStaticHandler({ webDir, frameAncestors = "'self'", logger 
       'Cache-Control': cache || cacheControlFor(path.relative(root, file)),
       ...securityHeaders(),
     };
-    if (version) headers['X-FnCal-Version'] = version;
+    if (version) headers['X-SimpleCal-Version'] = version;
     res.writeHead(status, headers);
     if (req.method === 'HEAD') res.end();
     else res.end(body);

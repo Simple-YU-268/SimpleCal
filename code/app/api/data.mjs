@@ -21,6 +21,8 @@
 // roundtrip comparator consumes.
 
 import { componentOf, looksLikeCalendar, matchesTimeRange, refreshLunarRdates, uidOf } from '../lib/ical.mjs';
+import { mergeCalendars } from '../lib/calendar-export.mjs';
+export { mergeCalendars } from '../lib/calendar-export.mjs';
 
 const DEFAULT_CALENDAR = 'default';
 const TASKS_CALENDAR = 'tasks';
@@ -102,40 +104,6 @@ export function parseExportRange(url) {
   if (start > toStart) return { ok: false };
   // 结束日是「含首尾」的：时间窗口右端取结束日的下一天 0 点（不含）。
   return { ok: true, range: { start, end: toStart + DAY_MS } };
-}
-
-/** Merge stored objects into one VCALENDAR (VTIMEZONE deduped by TZID). */
-export function mergeCalendars(objects) {
-  const timezones = new Map();
-  const blocks = [];
-  for (const object of objects) {
-    const content = refreshLunarRdates(String(object.content || ''));
-    for (const match of content.match(/BEGIN:VTIMEZONE[\s\S]*?END:VTIMEZONE/g) || []) {
-      const tzid = (/^TZID:(.*)$/m.exec(match) || [])[1];
-      if (tzid && !timezones.has(tzid.trim())) timezones.set(tzid.trim(), match.replace(/\s+$/, ''));
-    }
-    const inner = content
-      .replace(/BEGIN:VTIMEZONE[\s\S]*?END:VTIMEZONE\r?\n?/g, '')
-      .split(/\r?\n/)
-      .filter((line) => !/^BEGIN:VCALENDAR\s*$/i.test(line)
-        && !/^END:VCALENDAR\s*$/i.test(line)
-        && !/^VERSION:/i.test(line)
-        && !/^PRODID:/i.test(line)
-        && !/^CALSCALE:/i.test(line))
-      .join('\r\n')
-      .trim();
-    if (inner) blocks.push(inner);
-  }
-  return [
-    'BEGIN:VCALENDAR',
-    'VERSION:2.0',
-    'PRODID:-//FnCal//EXPORT//EN',
-    'CALSCALE:GREGORIAN',
-    ...timezones.values(),
-    ...blocks,
-    'END:VCALENDAR',
-    '',
-  ].join('\r\n');
 }
 
 export function createDataApi({ store, logger = null }) {
@@ -248,7 +216,7 @@ export function createDataApi({ store, logger = null }) {
       return json(res, 404, { ok: false, code: 'no_events', message: '该范围内没有可导出的事件' });
     }
     const merged = mergeCalendars(objects);
-    const filename = requestedCalendar ? `fncal-${requestedCalendar}.ics` : 'fncal-export.ics';
+    const filename = requestedCalendar ? `simplecal-${requestedCalendar}.ics` : 'simplecal-export.ics';
     if (logger) logger.event('export', {
       objects: objects.length,
       calendars,

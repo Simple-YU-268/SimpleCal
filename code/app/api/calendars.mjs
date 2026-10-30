@@ -21,6 +21,7 @@
 // Writes require a cookie session + X-CSRF-Token (enforced in api/index.mjs).
 
 import { randomUUID } from 'node:crypto';
+import { publicHref } from '../lib/public-url.mjs';
 
 const MAX_BODY_BYTES = 64 * 1024;
 const ID_RE = /^[A-Za-z0-9._-]{1,128}$/;
@@ -162,19 +163,19 @@ export function createCalendarsApi({ store, logger = null, config = {}, version 
     return { value: patch };
   }
 
-  /** CalDAV base address for settings; derived from the request, not from a constant. */
+  /** CalDAV base address for settings; an explicit public base overrides the request host. */
   function serverInfo(req) {
-    const host = String(req.headers.host || 'localhost');
+    const requestHost = String(req.headers.host || 'localhost');
     const secure = Boolean(req.socket && req.socket.encrypted);
     const proto = secure ? 'https' : 'http';
     const davPrefix = String(config.davPrefix || '');
     const username = encodeURIComponent((req.__caldavUsername || '').toString());
-    const davBase = `${proto}://${host}${davPrefix}/calendars/${username}/`;
+    const davBase = publicHref(config, `${davPrefix}/calendars/${username}/`);
     return {
       davBase,
       davPrefix: davPrefix || '',
-      webBase: `${proto}://${host}/`,
-      host,
+      webBase: config.publicBaseUrl ? `${config.publicBaseUrl}/` : `${proto}://${requestHost}/`,
+      host: config.publicBaseUrl ? new URL(config.publicBaseUrl).host : requestHost,
       port: Number(config.port) || 5280,
       username: req.__caldavUsername || '',
       version,

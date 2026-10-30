@@ -6,7 +6,7 @@ const BASE32_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
 
 export const TOTP_STEP_SECONDS = 30;
 export const TOTP_DIGITS = 6;
-export const TOTP_ISSUER = 'FnCal';
+export const TOTP_ISSUER = 'SimpleCal';
 
 export function base32Encode(buffer) {
   let bits = 0;

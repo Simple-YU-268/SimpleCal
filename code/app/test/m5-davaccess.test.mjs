@@ -92,7 +92,7 @@ async function rest(session, method, pathname, { body } = {}) {
 const VCAL = [
   'BEGIN:VCALENDAR',
   'VERSION:2.0',
-  'PRODID:-//FnCal//Test//CN',
+  'PRODID:-//SimpleCal//Test//CN',
   'BEGIN:VEVENT',
   'UID:davaccess-1@test',
   'DTSTAMP:20260701T000000Z',

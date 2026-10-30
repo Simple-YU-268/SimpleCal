@@ -27,7 +27,8 @@
 
 import { createHash } from 'node:crypto';
 
-import { eventFromIcs, eventToIcs, taskFromIcs, taskToIcs } from '../lib/ical.mjs';
+import { eventFromIcs, taskFromIcs, taskToIcs } from '../lib/ical.mjs';
+import { createEventService } from '../lib/event-service.mjs';
 import { normalizeSettings } from '../lib/settings.mjs';
 import { currentContext } from '../lib/request-context.mjs';
 
@@ -88,7 +89,7 @@ function readBody(req, limit = 1024 * 1024) {
 
 const typeOfMeta = (meta) => (meta && meta.type === 'vtodo' ? 'vtodo' : 'vevent');
 
-export function createKvApi({ store }) {
+export function createKvApi({ store, events = createEventService({ store }) }) {
   /**
    * Resolve any accepted key shape to `{calendarId, kind, id, legacy}`.
    * kind: 'evt' | 'task'. Returns null for keys this module does not own.
@@ -163,50 +164,6 @@ export function createKvApi({ store }) {
     return { value: legacyValue({ ...(await eventFromIcs(object.content)), id: target.id }, calendarId), etag: object.etag };
   }
 
-  /**
-   * Fields the web model does not carry but the .ics must keep. The frontend
-   * (`store.js` normalizeEvent) rebuilds a fixed field set on every save, so a
-   * plain read->edit->write would silently downgrade a TZID event to UTC (G2
-   * "时区不丢") or drop CATEGORIES/STATUS/TRANSP. Inherit those from the object
-   * that is already stored when the incoming value has no opinion on them.
-   */
-  async function inheritedExtras(calendarId, id, value) {
-    const current = await store.getEvent(calendarId, `${id}.ics`);
-    if (!current) return {};
-    let previous;
-    try {
-      previous = await eventFromIcs(current.content);
-    } catch {
-      return {};
-    }
-    const out = {};
-    // The zone never changes through the web UI (it has no such field).
-    if (value.timezone === undefined && previous.timezone !== undefined) {
-      out.timezone = previous.timezone;
-      if (previous.endTimezone !== undefined) out.endTimezone = previous.endTimezone;
-      if (previous.startWall !== undefined) out.startWall = previous.startWall;
-      if (previous.endWall !== undefined) out.endWall = previous.endWall;
-    }
-    // These have no UI counterpart either; keep what the .ics says.
-    for (const field of ['status', 'transp']) {
-      if (value[field] === undefined && previous[field] !== undefined) out[field] = previous[field];
-    }
-    if (value.categories === undefined && Array.isArray(previous.categories) && previous.categories.length) {
-      out.categories = previous.categories;
-    }
-    // 0.2.0 预留（0.2.1 共享日历显示创建者）：创建者一旦写入就不再被编辑覆盖。
-    if (value.createdBy === undefined && previous.createdBy) {
-      out.createdBy = previous.createdBy;
-    }
-    // 0.2.12 农历标记：前端有开关，但老客户端/别处改的事件不能因此丢掉农历规则。
-    if (value.lunar !== false) {
-      for (const field of ['lunar', 'lunarMonth', 'lunarDay', 'lunarLeap', 'lunarRule']) {
-        if (value[field] === undefined && previous[field] !== undefined) out[field] = previous[field];
-      }
-    }
-    return out;
-  }
-
   async function writeOne(key, value) {
     if (!value || typeof value !== 'object' || Array.isArray(value)) {
       const err = new Error('value must be a JSON object');
@@ -234,22 +191,7 @@ export function createKvApi({ store }) {
       throw err;
     }
     if (target.kind === 'evt') {
-      if (!Number.isFinite(Number(value.start)) || !Number.isFinite(Number(value.end))) {
-        const err = new Error('event requires numeric start/end');
-        err.status = 400;
-        throw err;
-      }
-      const extras = await inheritedExtras(target.calendarId, target.id, value);
-      const ctx = currentContext();
-      // 0.2.0 预留：新建时写入创建者快照（uid + 用户名 + 显示名）；编辑时沿用原值。
-      const createdBy = extras.createdBy
-        || (value.createdBy && typeof value.createdBy === 'object' && value.createdBy.uid ? value.createdBy : null)
-        || (ctx && ctx.userId
-          ? { uid: ctx.userId, username: ctx.username || '', displayName: ctx.displayName || ctx.username || '' }
-          : null);
-      const ics = eventToIcs({ ...extras, ...value, calendarId: undefined, createdBy, id: target.id, uid: undefined });
-      const result = await store.putEvent(target.calendarId, `${target.id}.ics`, ics);
-      return { etag: result.etag, created: result.created, calendarId: target.calendarId };
+      return events.putLegacy(target.calendarId, target.id, value);
     }
     if (typeof value.title !== 'string' || !value.title.trim()) {
       const err = new Error('task requires a title');

@@ -118,7 +118,7 @@ describe('0.3.3 · AI 页：删除凭据 + 时间窗「不限制」', () => {
     }));
     mocks.listAiCredentials.mockResolvedValue({ ok: true, credentials: [] });
     mocks.listAiProposals.mockResolvedValue({ ok: true, proposals: [] });
-    mocks.createAiCredential.mockResolvedValue({ ok: true, credential: credential(), token: 'fncal_ai_test' });
+    mocks.createAiCredential.mockResolvedValue({ ok: true, credential: credential(), token: 'simplecal_ai_test' });
     mocks.updateAiCredential.mockResolvedValue({ ok: true, credential: credential() });
     mocks.deleteAiCredential.mockResolvedValue({ ok: true, deleted: true });
     Object.defineProperty(navigator, 'clipboard', {

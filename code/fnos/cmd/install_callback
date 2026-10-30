@@ -9,7 +9,7 @@
 set -u
 umask 027
 
-APP_NAME="FnCal"
+APP_NAME="SimpleCal"
 VAR_DIR="${TRIM_PKGVAR:-}"
 ETC_DIR="${TRIM_PKGETC:-${VAR_DIR}/etc}"
 HOME_DIR="${TRIM_PKGHOME:-${VAR_DIR}/home}"

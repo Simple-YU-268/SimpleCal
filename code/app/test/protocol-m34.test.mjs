@@ -227,10 +227,10 @@ async function main() {
         ok ? 'all present' : 'missing', pf.status === 207 && ok);
       const options = await call(BASE, 'OPTIONS', dav);
       const allow = options.headers.get('allow') || '';
-      const allowed = ['OPTIONS', 'GET', 'PUT', 'DELETE', 'PROPFIND', 'PROPPATCH', 'REPORT', 'MKCALENDAR'];
+      const allowed = ['OPTIONS', 'GET', 'PUT', 'DELETE', 'MOVE', 'PROPFIND', 'PROPPATCH', 'REPORT', 'MKCALENDAR'];
       const okAllow = allowed.every((m) => allow.split(/\s*,\s*/).includes(m));
       record('Allow advertises implemented methods', allowed.join(','), allow,
-        okAllow && !/MKCOL|MOVE|COPY/.test(allow));
+        okAllow && !/MKCOL|COPY/.test(allow));
       record('DAV header advertises calendar-access + sync-collection', 'both',
         options.headers.get('dav') || '', /calendar-access/.test(options.headers.get('dav') || '')
           && /sync-collection/.test(options.headers.get('dav') || ''));

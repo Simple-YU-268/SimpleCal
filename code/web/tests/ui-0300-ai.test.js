@@ -87,7 +87,7 @@ const { hasKey, missingKeys } = await import('../src/i18n/index.js');
 
 const readSrc = (rel) => readFileSync(new URL(rel, import.meta.url), 'utf8');
 
-const TOKEN = 'fncal_ai_abcdefghijklmnopqrstuvwxyz012345';
+const TOKEN = 'simplecal_ai_abcdefghijklmnopqrstuvwxyz012345';
 
 function makeStore() {
   const state = { ...DEFAULT_SETTINGS };

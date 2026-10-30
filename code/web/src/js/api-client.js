@@ -15,8 +15,8 @@
 import { t } from '../i18n/index.js';
 
 /**
- * 0.1.6：fnOS 统一网关下页面位于 `/app/FnCal/`，API 也必须落在同一前缀下
- * （`/app/FnCal/api/v1/...`）。直连端口/本地测试的 pathname 是 `/`，前缀为空，
+ * 0.1.6：fnOS 统一网关下页面位于 `/app/SimpleCal/`，API 也必须落在同一前缀下
+ * （`/app/SimpleCal/api/v1/...`）。直连端口/本地测试的 pathname 是 `/`，前缀为空，
  * 行为与旧版完全一致。前缀只从当前页面路径推导，不读取任何外部配置。
  */
 function detectAppBase() {

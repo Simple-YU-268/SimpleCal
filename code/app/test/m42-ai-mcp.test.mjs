@@ -135,7 +135,7 @@ const NOW = Date.now();
 const icsStamp = (ms) => new Date(ms).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
 function icsEvent({ uid, summary = '', start, end, location = '', description = '' }) {
   const lines = [
-    'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//FnCal Test//EN',
+    'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//SimpleCal Test//EN',
     'BEGIN:VEVENT', `UID:${uid}`, `SUMMARY:${summary}`,
     `DTSTART:${icsStamp(start)}`, `DTEND:${icsStamp(end)}`,
   ];
@@ -216,7 +216,7 @@ try {
   eq('无 token → 401', 401, noToken.status);
   eq('无 token 返回 unauthorized', 'unauthorized', noToken.body && noToken.body.code);
 
-  const badToken = await mcp(rpc(1, 'initialize', {}), { token: `fncal_ai_${'A'.repeat(32)}` });
+  const badToken = await mcp(rpc(1, 'initialize', {}), { token: `simplecal_ai_${'A'.repeat(32)}` });
   eq('错 token → 401', 401, badToken.status);
 
   const cookieOnly = await mcp(rpc(1, 'initialize', {}), { cookie: admin.cookie });
@@ -235,7 +235,7 @@ try {
   const init = await mcp(rpc('i-1', 'initialize', { protocolVersion: '2025-03-26' }), { token: tokenRead });
   eq('initialize → 200', 200, init.status);
   eq('协议版本在支持列表内 → 回客户端给的那个', '2025-03-26', init.body.result.protocolVersion);
-  eq('serverInfo.name = fncal', 'fncal', init.body.result.serverInfo.name);
+  eq('serverInfo.name = fncal', 'simplecal', init.body.result.serverInfo.name);
   eq('serverInfo.version 读自 VERSION（不写死）', VERSION, init.body.result.serverInfo.version);
   eq('capabilities.tools.listChanged = false', false, init.body.result.capabilities.tools.listChanged);
 
@@ -430,7 +430,7 @@ try {
   const mcpLines = auditText.split('\n').filter((line) => line.includes('"path":"/mcp"'));
   ok('审计有 /mcp 记录', mcpLines.length >= 1, `lines=${mcpLines.length}`);
   ok('审计 action 记工具名', auditText.includes('"action":"list_events"') && auditText.includes('"action":"create_event"'));
-  ok('审计不含明文令牌', !auditText.includes('fncal_ai_'));
+  ok('审计不含明文令牌', !auditText.includes('simplecal_ai_'));
   ok('审计不含事件正文', !auditText.includes('BEGIN:VCALENDAR') && !auditText.includes('MCP 提案新建'));
   ok('审计不含 tokenHash', !auditText.includes('tokenHash'));
 

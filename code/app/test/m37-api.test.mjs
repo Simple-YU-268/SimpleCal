@@ -194,10 +194,10 @@ async function main() {
     /* ---------------- SPA fallback ------------------------------------ */
     const spa = await fetch(`${BASE}/不存在`);
     const spaText = await spa.text();
-    record('GET /不存在 -> index.html', '200 text/html + FnCal',
+    record('GET /不存在 -> index.html', '200 text/html + SimpleCal',
       `${spa.status} ${spa.headers.get('content-type')}`,
       spa.status === 200 && /^text\/html/.test(spa.headers.get('content-type') || '')
-        && /FnCal/.test(spaText));
+        && /SimpleCal/.test(spaText));
 
     /* ---------------- kv-rest.js contract ----------------------------- */
     const batch = await fetch(`${BASE}/api/v1/kv`, {

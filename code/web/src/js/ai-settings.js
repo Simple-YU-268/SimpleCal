@@ -67,7 +67,7 @@ export function mcpAddress(origin) {
 export function mcpConfigJson(url) {
   return JSON.stringify({
     mcpServers: {
-      fncal: {
+      simplecal: {
         type: 'http',
         url,
         headers: { Authorization: 'Bearer <你的令牌>' },

@@ -467,7 +467,7 @@ export function uidFor(record = {}) {
 
 /* -------------------------------------------------------------- VTIMEZONE */
 
-const PRODID = '-//FnCal//FnCal//EN';
+const PRODID = '-//SimpleCal//SimpleCal//EN';
 const WEEKDAY_TOKENS = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'];
 
 /** Emit one VTIMEZONE per referenced IANA zone; UTC/floating need none. */
@@ -1157,7 +1157,7 @@ export function buildFreeBusyBody(intervals, { start, end, uid = 'free-busy' }) 
   const lines = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'PRODID:-//FnCal//FREEBUSY//EN',
+    'PRODID:-//SimpleCal//FREEBUSY//EN',
     'BEGIN:VFREEBUSY',
     icsLine('UID', `${uid}-${Date.now()}@caldav`),
     icsLine('DTSTAMP', formatUtc(Date.now())),
@@ -1177,7 +1177,7 @@ export function buildFreeBusyBody(intervals, { start, end, uid = 'free-busy' }) 
 export async function expandToIcs(text, { start, end }) {
   const events = await eventsOf(text);
   const uid = uidOf(text);
-  const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//FnCal//EXPAND//EN'];
+  const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//SimpleCal//EXPAND//EN'];
   let emitted = 0;
   const expander = expandOccurrences;
   for (const ev of events) {

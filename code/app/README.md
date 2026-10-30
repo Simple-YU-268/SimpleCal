@@ -1,4 +1,4 @@
-# FnCal 后端（M3.6 多账号隔离 + M3.7 静态前端服务 + M3.9 iCal）
+# SimpleCal 后端（M3.6 多账号隔离 + M3.7 静态前端服务 + M3.9 iCal）
 
 从 spike v2 迁移而来的**产品结构**。M3.1 骨架（进程生命周期、配置、日志、PID、健康检查、
 CalDAV 协议基线 49 断言）+ M3.2（账号、HMAC 会话、CSRF、登录限流、审计、
@@ -32,13 +32,16 @@ fnOS 安装向导 `wizard_port` 决定并写入 `<varDir>/config.json` 的 `port
 | `CALDAV_PORT` | **5280** | 监听端口（覆盖 `<varDir>/config.json:port`；正式安装默认取向导值） |
 | `CALDAV_HOST` | `0.0.0.0` | 监听地址 |
 | `CALDAV_USER` | `caldav` | 管理员账号名 |
-| `CALDAV_ADMIN_PASSWORD` | 见下 | 新建管理员时的密码；未设时用 `CALDAV_PASS`，再缺省 `caldav`（**仅开发默认，正式安装必须显式设置**）；显式设为空字符串则随机生成并写入 `<varDir>/admin-initial-password.txt`（0600） |
+| `CALDAV_ADMIN_PASSWORD` | 见下 | 首启管理员密码；未设时先取 `CALDAV_PASS`，使用 `CALDAV_DATA_DIR` 时再缺省为随机密码，旧部署缺省为开发密码 `caldav`；显式为空也随机生成并写入 `<varDir>/admin-initial-password.txt`（0600） |
+| `CALDAV_ADMIN_PASSWORD_FILE` | 无 | UTF-8 密码文件，与 `CALDAV_ADMIN_PASSWORD` 互斥 |
 | `CALDAV_PASS` | `caldav` | 兼容旧配置/DAV Basic 默认密码 |
 | `CALDAV_AUTH` | `on` | `off` 关闭认证（仅测试） |
 | `CALDAV_DAV_PREFIX` | 空（根） | DAV 路径前缀，例如 `dav` → `/dav/principals/<user>/`；默认根路径兼容现有客户端 |
+| `CALDAV_PUBLIC_BASE_URL` | 无 | 公开 HTTP(S) origin 与可选反代子路径；统一 DAV href/Location、分享 URL 与前端连接信息 |
 | `CALDAV_SECURE_COOKIES` | `false` | 强制给 Cookie 加 `Secure`（HTTPS 反代后建议开；识别到 `X-Forwarded-Proto: https` 也会自动加） |
 | `CALDAV_STDIN_EXIT` | `false` | Windows/服务包装器兜底：stdin 关闭视为优雅退出请求 |
-| `TRIM_PKGVAR` | `<app>/var` | fnOS 持久目录；未设时回落 app 下 `var/` |
+| `CALDAV_DATA_DIR` | 无 | 通用数据目录，优先于 `TRIM_PKGVAR` |
+| `TRIM_PKGVAR` | `<app>/var` | fnOS 持久目录；两种数据目录变量均未设时回落 app 下 `var/` |
 | `CALDAV_UID_DOMAIN` | 见 `config.json` | 生成 UID 的域名覆盖；默认读 `<varDir>/config.json:uidDomain`，再缺省 `caldav.local`（客户端/DAV 写入的 UID 永不改写） |
 | `CALDAV_WEB_DIR` | 自动探测 | 前端构建目录：优先本变量（相对进程 cwd），否则 `<app>/../www`（打包 `app/www`），再否则 `<app>/../web/dist`（开发态）；都没有则不启用静态服务 |
 | `CALDAV_FRAME_ANCESTORS` | `'self'` | 静态页 CSP 的 `frame-ancestors`，M3 真机走查前保持可配置 |
@@ -92,14 +95,16 @@ app/
 - `GET /`、未知非 `/api`、非 DAV 路径 → `<webDir>/index.html`（SPA fallback）
 - `GET /assets/*`：MIME 正确 + `Cache-Control: public, max-age=31536000, immutable`；`index.html` → `no-cache`
 - 安全头：CSP（`default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors <CALDAV_FRAME_ANCESTORS|'self'>`）、`X-Content-Type-Options: nosniff`、`Referrer-Policy: no-referrer`
-- `/api/*` 与 `/principals/|/calendars/|/.well-known` 不被静态接管；非 GET/HEAD 一律走 DAV
+- `/api/*` 与 `/principals/|/calendars/|/addressbooks/|/.well-known` 不被静态接管；非 GET/HEAD 一律走 DAV
 
-**CalDAV（按账号参数化，Basic 认证；`CALDAV_DAV_PREFIX` 可加前缀）**
-- `/.well-known/caldav` → 302 `<prefix>/principals/`
+**CalDAV / CardDAV（按账号参数化，Basic 认证；`CALDAV_DAV_PREFIX` 可加前缀）**
+- `/.well-known/caldav` 与 `/.well-known/carddav` → 302 `<prefix>/principals/`
 - `<prefix>/principals/<username>/`、`<prefix>/calendars/<username>/`
 - `<prefix>/calendars/<username>/<calendarId>/`、`…/<uid>.ics`
-- 方法：`OPTIONS`、`GET/HEAD`、`PUT`、`DELETE`、`PROPFIND`、`PROPPATCH`（displayname/calendar-color）、
+- 方法：`OPTIONS`、`GET/HEAD`、`PUT`、`DELETE`、`MOVE`、`PROPFIND`、`PROPPATCH`（displayname/calendar-color）、
   `REPORT`（calendar-query、calendar-multiget、sync-collection、**free-busy-query**）、`MKCALENDAR`
+- `<prefix>/addressbooks/<username>/<bookId>/<uid>.vcf` 提供独立 CardDAV 存储、扩展 MKCOL、
+  addressbook-query/multiget 与 sync-collection；principal 同时发布 addressbook-home-set
 - `calendar-data` 支持 `<C:expand start end/>`（按 RRULE 展开为带 RECURRENCE-ID 的实例）
 - `Allow` 与 `supported-report-set` 只声明实际实现的能力
 
@@ -292,7 +297,16 @@ VALARM 展开再补。VTODO 暂不生成 `VTIMEZONE`（导出 `DUE` 为 UTC）�
 
 ## 版权与署名
 
-- 应用名 / 显示名 / 项目名：**FnCal**
-- 开发者 / 发布者：**PaulCAI1593**｜<https://github.com/PaulCAI1593/>
+- 应用名 / 显示名 / 项目名：**SimpleCal**
+- 开发者 / 发布者：**Simple-YU-268**｜<https://github.com/Simple-YU-268/>
 - 版权：Copyright (c) 2026 PaulCAI1593
 - 图标：团队原创，不含任何第三方商标（见 `THIRD_PARTY_NOTICES.md`）
+
+## 通用服务器配置
+
+设置 `CALDAV_DATA_DIR` 可在任意服务器指定数据根目录，优先于 fnOS 的 `TRIM_PKGVAR`。
+使用该配置且未指定密码时，首次启动生成随机管理员密码，写入数据目录的
+`admin-initial-password.txt`，首次登录须改密；改密后请删除该文件。
+可用 `CALDAV_ADMIN_PASSWORD_FILE` 指定 UTF-8 密码文件（去除末尾一个换行），
+不能同时设置 `CALDAV_ADMIN_PASSWORD`。该文件每次启动均须可读；已有账号不会被重置。
+构建通用运行包及 systemd 示例见仓库根目录 `SERVER.md`。

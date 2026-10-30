@@ -1,5 +1,5 @@
 /**
- * FnCal 农历核心（0.2.12 C11-5）——**单一数据源**。
+ * SimpleCal 农历核心（0.2.12 C11-5）——**单一数据源**。
  *
  * 这个文件是农历年表与换算算法的唯一来源：
  *   - 后端 `code/app/lib/lunar-core.mjs`（由 `code/scripts/sync-lunar.mjs` 生成）
