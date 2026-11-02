@@ -182,6 +182,13 @@ else
   fail "修改密码成功" "POST /api/v1/auth/password -> $change_code"
 fi
 
+  # 初始密码文件只保存那份已经失效的初始密码，改密成功后必须由服务端删掉。
+  if docker exec "$CONTAINER" sh -c 'test -e /data/admin-initial-password.txt' >/dev/null 2>&1; then
+    fail "改密后初始密码文件已删除" "/data/admin-initial-password.txt 仍存在"
+  else
+    pass "改密后初始密码文件已删除" "/data/admin-initial-password.txt 不存在"
+  fi
+
 old_code="$(login "$INITIAL_PASSWORD")"
 if [ "$old_code" = "401" ]; then
   pass "旧密码立即失效" "旧密码登录 -> 401"
