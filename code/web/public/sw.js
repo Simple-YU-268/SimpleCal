@@ -52,9 +52,12 @@ self.addEventListener('install', (event) => {
       .open(CACHE)
       .then((cache) =>
         Promise.allSettled(SHELL.map((url) => cache.add(url))).then(() => precacheShellAssets(cache)),
-      )
-      .then(() => self.skipWaiting()),
+      ),
   );
+});
+
+self.addEventListener('message', (event) => {
+  if (event.data?.type === 'SKIP_WAITING') self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {

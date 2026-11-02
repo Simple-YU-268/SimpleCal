@@ -824,11 +824,24 @@ export function openAccountDialog({
     tabbar.append(btn);
     return btn;
   });
+  let selectedTabIndex = -1;
   function selectTab(id) {
     const index = tabs.findIndex((tabDef) => tabDef.id === id);
+    if (index < 0) return;
+    const previousIndex = selectedTabIndex;
+    selectedTabIndex = index;
     tabs.forEach((tabDef, i) => {
       const active = i === index;
       tabDef.page.hidden = !active;
+      if (!active) tabDef.page.getAnimations?.().forEach((animation) => animation.cancel());
+      if (active && previousIndex >= 0 && previousIndex !== index
+        && window.matchMedia && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        tabDef.page.animate?.(
+          [{ opacity: 0.45, transform: `translateX(${index > previousIndex ? 12 : -12}px)` },
+            { opacity: 1, transform: 'translateX(0)' }],
+          { duration: 240, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' },
+        );
+      }
       tabDef.page.id = `settings-page-${tabDef.id}`;
       tabButtons[i].setAttribute('aria-selected', String(active));
       tabButtons[i].tabIndex = active ? 0 : -1;

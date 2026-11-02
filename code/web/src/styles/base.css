@@ -348,13 +348,19 @@ a {
   inset: 0;
   margin: 0;
   cursor: pointer;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
 }
 /* 0.2.4（真机 P0-2）：轨道/滑块在 DOM 里排在 input 之后，会盖住那个
    opacity:0 的 checkbox；没有 pointer-events:none 时点击落在 span 上，
    开关看起来「点不动」。让装饰层对指针透明，命中区始终是 input 本身。 */
 .switch__track {
   position: absolute;
-  inset: 0;
+  inset: auto 0;
+  top: 50%;
+  height: 24px;
+  transform: translateY(-50%);
   pointer-events: none;
   border-radius: var(--r-full);
   /* A UI component needs 3:1 against its ground; --gray-300 sat at 1.8:1 in
@@ -364,7 +370,7 @@ a {
 }
 .switch__thumb {
   position: absolute;
-  top: 3px;
+  top: calc(50% - 9px);
   left: 3px;
   width: 18px;
   height: 18px;

@@ -24,6 +24,7 @@ import './styles/renewal.css';
 import { el, clear } from './js/dom.js';
 import { icon } from './js/icons.js';
 import { toast } from './js/toast.js';
+import { watchForUpdates } from './js/live-update.js';
 import { signIn, signOut, getUser } from './js/auth.js';
 import { getSession, setUnauthorizedHandler, clearSessionCache, verifyTotpStep } from './js/api-client.js';
 import { needsPasswordChange, renderForcePasswordScreen } from './js/force-password.js';
@@ -445,7 +446,7 @@ function registerServiceWorker() {
   if (!('serviceWorker' in navigator)) return;
   if (import.meta.env.PROD) {
     const register = () =>
-      navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' }).catch(() => {});
+      navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' }).then(watchForUpdates).catch(() => {});
     if (document.readyState === 'complete') register();
     else window.addEventListener('load', register, { once: true });
   } else if (import.meta.env.DEV) {

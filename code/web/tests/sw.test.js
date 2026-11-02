@@ -172,14 +172,16 @@ describe('service worker install', () => {
     delete routes['/'];
     const { listeners, self } = loadSw({ fetchImpl: networkOf(routes) });
     await fire(listeners.install);
-    expect(self.skipWaiting).toHaveBeenCalled();
+    expect(self.skipWaiting).not.toHaveBeenCalled();
+    listeners.message({ data: { type: 'SKIP_WAITING' } });
+    expect(self.skipWaiting).toHaveBeenCalledOnce();
   });
 
   it('a missing asset never fails install (allSettled semantics)', async () => {
     delete routes['/assets/index-CSSHASH1.css'];
     const { listeners, caches, self } = loadSw({ fetchImpl: networkOf(routes) });
     await fire(listeners.install);
-    expect(self.skipWaiting).toHaveBeenCalled();
+    expect(self.skipWaiting).not.toHaveBeenCalled();
     const store = [...caches.stores.values()][0];
     expect([...store.keys()]).toContain(`${ORIGIN}/assets/index-JSHASH99.js`);
   });

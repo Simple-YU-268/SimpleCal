@@ -14,6 +14,9 @@ COPY code/web/package.json code/web/package-lock.json ./
 RUN npm ci --no-audit --no-fund
 COPY code/web/ ./
 RUN node node_modules/vite/bin/vite.js build
+COPY code/scripts/stamp-version.mjs /build/stamp-version.mjs
+COPY code/fnos/manifest /build/manifest
+RUN node /build/stamp-version.mjs --dist /src/dist --manifest /build/manifest
 
 # ---------- 阶段 2：运行 ----------
 FROM node:22-alpine
