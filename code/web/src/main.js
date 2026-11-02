@@ -25,6 +25,7 @@ import { el, clear } from './js/dom.js';
 import { icon } from './js/icons.js';
 import { toast } from './js/toast.js';
 import { watchForUpdates } from './js/live-update.js';
+import { Workbox } from 'workbox-window';
 import { signIn, signOut, getUser } from './js/auth.js';
 import { getSession, setUnauthorizedHandler, clearSessionCache, verifyTotpStep } from './js/api-client.js';
 import { needsPasswordChange, renderForcePasswordScreen } from './js/force-password.js';
@@ -442,11 +443,18 @@ function mountEmbedNotice() {
  * 仅生产构建注册；开发态反注册历史 SW，避免旧产物干扰。
  * 与云无关：sw.js 只缓存同源静态资源。
  */
+let serviceWorkerStarted = false;
 function registerServiceWorker() {
+  if (serviceWorkerStarted) return;
+  serviceWorkerStarted = true;
   if (!('serviceWorker' in navigator)) return;
   if (import.meta.env.PROD) {
-    const register = () =>
-      navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' }).then(watchForUpdates).catch(() => {});
+    const register = () => {
+      const worker = new Workbox('./sw.js', { updateViaCache: 'none' });
+      worker.register().then((registration) => {
+        if (registration) watchForUpdates(registration, () => worker.messageSkipWaiting());
+      }).catch(() => {});
+    };
     if (document.readyState === 'complete') register();
     else window.addEventListener('load', register, { once: true });
   } else if (import.meta.env.DEV) {
@@ -475,6 +483,7 @@ async function boot() {
 }
 
 async function bootInner() {
+  registerServiceWorker();
   showLoading();
   void checkHttpsFallbackBanner();
 

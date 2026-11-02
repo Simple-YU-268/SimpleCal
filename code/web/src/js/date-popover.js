@@ -12,6 +12,7 @@
  * 存储、校验、.ics / CalDAV 全部沿用原来的管线。
  */
 import { el } from './dom.js';
+import { computePosition, flip, shift, offset, autoUpdate } from '@floating-ui/dom';
 import { t } from '../i18n/index.js';
 import {
   WEEKDAYS_LONG,
@@ -163,9 +164,11 @@ export function openDatePopover({
   const selectedISO = value || toDateInputValue(initial);
 
   let closed = false;
+  let stopPositioning = () => {};
   function close({ restoreFocus = true } = {}) {
     if (closed) return;
     closed = true;
+    stopPositioning();
     if (currentPopover === api) currentPopover = null;
     document.removeEventListener('pointerdown', onOutside, true);
     document.removeEventListener('keydown', onKey, true);
@@ -396,15 +399,17 @@ export function openDatePopover({
   document.body.append(box);
   const rect = anchor && anchor.getBoundingClientRect ? anchor.getBoundingClientRect() : null;
   if (rect) {
-    const width = 288;
-    const height = box.getBoundingClientRect ? box.getBoundingClientRect().height || 320 : 320;
-    const left = Math.max(8, Math.min(rect.left, window.innerWidth - width - 8));
-    const below = rect.bottom + 6;
-    const top = below + height > window.innerHeight - 8 ? Math.max(8, rect.top - height - 6) : below;
     box.style.position = 'fixed';
-    box.style.left = `${left}px`;
-    box.style.top = `${top}px`;
-    box.style.width = `${width}px`;
+    box.style.width = 'min(288px, calc(100vw - 16px))';
+    const updatePosition = () => {
+      computePosition(anchor, box, {
+        strategy: 'fixed', placement: 'bottom-start',
+        middleware: [offset(6), flip(), shift({ padding: 8 })],
+      }).then(({ x, y }) => {
+        if (!closed) Object.assign(box.style, { left: `${x}px`, top: `${y}px` });
+      }).catch(() => {});
+    };
+    stopPositioning = autoUpdate(anchor, box, updatePosition);
   }
   document.addEventListener('pointerdown', onOutside, true);
   document.addEventListener('keydown', onKey, true);

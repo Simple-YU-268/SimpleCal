@@ -7,6 +7,8 @@ code/build-tmp/
 code/fnos/app/server/
 code/fnos/app/www/
 dist/
+code/web/test-results/
+code/web/playwright-report/
 .env
 /node_modules/.vite/
 .agents/

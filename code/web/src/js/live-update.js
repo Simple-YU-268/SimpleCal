@@ -5,12 +5,23 @@ export function hasOpenEditor(root = document) {
     .some((node) => !node.hidden && node.getAttribute('aria-hidden') !== 'true');
 }
 
-export function watchForUpdates(registration) {
+export function watchForUpdates(registration, activate = () => registration.waiting?.postMessage({ type: 'SKIP_WAITING' })) {
   let banner = null;
   let requested = false;
   let reloaded = false;
+  let externallyActivated = false;
   navigator.serviceWorker.addEventListener('controllerchange', () => {
-    if (!requested || reloaded) return;
+    if (!requested) {
+      externallyActivated = true;
+      if (banner) {
+        banner.querySelector('span').textContent = '其他页面已更新，请保存当前内容后刷新';
+        const button = banner.querySelector('button');
+        button.disabled = false;
+        button.textContent = '刷新页面';
+      }
+      return;
+    }
+    if (reloaded) return;
     reloaded = true;
     window.location.reload();
   });
@@ -24,11 +35,12 @@ export function watchForUpdates(registration) {
         message.textContent = '请先保存或关闭当前窗口，再更新';
         return;
       }
+      if (externallyActivated) { window.location.reload(); return; }
       if (!registration.waiting) { banner.remove(); banner = null; return; }
       requested = true;
       button.disabled = true;
       button.textContent = '正在更新';
-      registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+      activate();
     });
     document.body.append(banner);
   }

@@ -40,9 +40,9 @@ async function precacheShellAssets(cache) {
     const html = await shell.clone().text();
     const urls = new Set();
     for (const m of html.matchAll(ASSET_URL_RE)) urls.add(m[1]);
-    await Promise.allSettled([...urls].map((url) => cache.add(url)));
+    await Promise.all([...urls].map((url) => cache.add(url)));
   } catch {
-    /* 资源发现失败不应让安装失败 */
+    throw new Error('Application assets could not be cached');
   }
 }
 
@@ -51,7 +51,7 @@ self.addEventListener('install', (event) => {
     caches
       .open(CACHE)
       .then((cache) =>
-        Promise.allSettled(SHELL.map((url) => cache.add(url))).then(() => precacheShellAssets(cache)),
+        Promise.all(SHELL.map((url) => cache.add(url))).then(() => precacheShellAssets(cache)),
       ),
   );
 });

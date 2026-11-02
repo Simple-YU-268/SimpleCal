@@ -152,6 +152,7 @@ describe('service worker install', () => {
       '/icon-192.png': resp('i'),
       '/icon-512.png': resp('i'),
       '/apple-touch-icon.png': resp('i'),
+      '/accent-prepaint.js': resp('js'),
       '/assets/index-CSSHASH1.css': resp('css'),
       '/assets/index-JSHASH99.js': resp('js'),
     };
@@ -167,20 +168,20 @@ describe('service worker install', () => {
     expect(cached).toContain(`${ORIGIN}/index.html`);
   });
 
-  it('still installs when index.html is unfetchable (no assets to discover)', async () => {
+  it('rejects an incomplete shell instead of activating a broken update', async () => {
     delete routes['/index.html'];
     delete routes['/'];
     const { listeners, self } = loadSw({ fetchImpl: networkOf(routes) });
-    await fire(listeners.install);
+    await expect(fire(listeners.install)).rejects.toThrow();
     expect(self.skipWaiting).not.toHaveBeenCalled();
     listeners.message({ data: { type: 'SKIP_WAITING' } });
     expect(self.skipWaiting).toHaveBeenCalledOnce();
   });
 
-  it('a missing asset never fails install (allSettled semantics)', async () => {
+  it('rejects installation when a required bundle is missing', async () => {
     delete routes['/assets/index-CSSHASH1.css'];
     const { listeners, caches, self } = loadSw({ fetchImpl: networkOf(routes) });
-    await fire(listeners.install);
+    await expect(fire(listeners.install)).rejects.toThrow();
     expect(self.skipWaiting).not.toHaveBeenCalled();
     const store = [...caches.stores.values()][0];
     expect([...store.keys()]).toContain(`${ORIGIN}/assets/index-JSHASH99.js`);
