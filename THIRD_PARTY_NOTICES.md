@@ -56,23 +56,38 @@ vendored 进仓库，审计时不需要联网、不需要安装步骤、没有�
 
 除上述改动外，文件头部原始版权/许可注释均已保留。
 
-## 3. 构建期依赖（devDependencies，不进入运行期产物）
+## 3. 前端运行期依赖（会被打包进浏览器产物）
+
+以下两个包会被打进前端 bundle，许可全文随运行包一起分发（`www/licenses/`）。
+没有 CDN、没有远程脚本，全部本地打包。
+
+| 包 | 版本 | 许可证 | 用途 | 许可全文 |
+|---|---|---|---|---|
+| @floating-ui/dom | 1.8.0 | MIT | 日期浮层定位、视口避让 | `www/licenses/floating-ui-dom.txt` |
+| @floating-ui/core | 1.8.0 | MIT | Floating UI 核心定位逻辑 | `www/licenses/floating-ui-core.txt` |
+| @floating-ui/utils | 0.2.12 | MIT | Floating UI 工具函数 | `www/licenses/floating-ui-utils.txt` |
+| workbox-window | 7.4.1 | MIT | Service Worker 注册与激活确认 | `www/licenses/workbox-window.txt` |
+| workbox-core | 7.4.1 | MIT | Workbox 运行时核心 | `www/licenses/workbox-core.txt` |
+
+许可全文取自各自 npm 包内的 LICENSE 文件，随前端产物一起复制到 `code/web/public/licenses/`，
+由构建流程复制进 `www/licenses/`。
+
+## 4. 构建期依赖（devDependencies，不进入运行期产物）
 
 | 包 | 版本 | 许可证 | 用途 |
 |---|---|---|---|
-| vite | ^8.1.4 | MIT | 构建 |
-| vitest | ^4.1.10 | MIT | 单元测试 |
+| vite | ^8.3.5 | MIT | 构建 |
+| vitest | ^4.1.12 | MIT | 单元测试 |
 | jsdom | ^29.1.1 | MIT | 测试 DOM 环境 |
-| @vitest/coverage-v8 | ^4.1.10 | MIT | 覆盖率（可选） |
+| @vitest/coverage-v8 | ^4.1.12 | MIT | 覆盖率（可选） |
+| @playwright/test | ^1.64.1 | Apache-2.0 | 端到端测试（不进入产物） |
 
-运行期前端没有任何 npm 依赖、没有 CDN、没有第三方脚本。
-
-## 4. 自有代码
+## 5. 自有代码
 
 其余全部为 SimpleCal 项目自有代码（`app/` 下的 server/lib/auth/store/dav/api/security，
 `web/src` 下的视图与逻辑改造）。
 
-## 5. 应用图标与界面图形（原创设计）
+## 6. 应用图标与界面图形（原创设计）
 
 SimpleCal 应用图标（含 fnOS 包图标、应用内图标、favicon、PWA 图标）为原创设计，作者
 PaulCAI1593（<https://github.com/PaulCAI1593/>），不含任何第三方商标；字标为「Cal」，
