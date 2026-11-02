@@ -275,7 +275,9 @@ head2 "6. CardDAV 读写"
 
 book_propfind="$(curl -sS -u "$DAV_AUTH" -X PROPFIND -H 'Depth: 1' --max-time 20 "$BASE_URL/addressbooks/$DAV_USER/" 2>/dev/null)"
 book_code="$(http_code -u "$DAV_AUTH" -X PROPFIND -H 'Depth: 1' "$BASE_URL/addressbooks/$DAV_USER/")"
-BOOK_ID="$(printf '%s' "$book_propfind" | grep -o "$BASE_URL/addressbooks/$DAV_USER/[A-Za-z0-9_-]*/" | head -1 | sed "s|.*/$DAV_USER/||; s|/$||")"
+# href 用的是 CALDAV_PUBLIC_BASE_URL（公网地址），不一定等于 BASE_URL，
+# 所以这里按路径片段取 book id，不依赖地址前缀。
+BOOK_ID="$(printf '%s' "$book_propfind" | grep -o "/addressbooks/$DAV_USER/[A-Za-z0-9_-]*/" | head -1 | sed "s|.*/$DAV_USER/||; s|/$||")"
 if [ "$book_code" = "207" ]; then
   pass "CardDAV PROPFIND 地址簿主页" "-> 207"
 else
