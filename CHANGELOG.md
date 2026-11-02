@@ -25,6 +25,10 @@
   服务器运行包 `SimpleCal-server-<版本>.tar.gz`。fnOS 的装配与打包工具链仍保留在
   仓库里，需要自建的人可以照 `BUILD.md` 走。
 
+**发布包**：`SimpleCal-server-0.4.1.tar.gz`（通用服务器运行包），522,637 字节，
+SHA-256 `1FBE92D5B0DED079F3E5E158FDB31EED5E68533E7FEAFF19D03AE8AEE4A21984`
+（另附 `SHA256SUMS.txt`）。
+
 ### 修复
 
 - **Docker 镜像未剔除 source map**：通用运行包与 fnOS 包都会去掉 `.map` 文件，只有
