@@ -1,7 +1,8 @@
-# SimpleCal Docker 部署（容器实测待完成）
+# SimpleCal Docker 部署（已在 Ubuntu 22.04 / x86_64 实机验证）
 
-Docker 使用与通用运行包相同的 Node 后端。已验证后端通用启动、登录和 DAV 重启持久化；
-镜像构建、卷权限和容器生命周期尚需在 Docker 主机实测。
+Docker 使用与通用运行包相同的 Node 后端。镜像构建、卷权限、容器生命周期与
+CalDAV / CardDAV 读写均已在 Ubuntu 22.04 / x86_64 实机跑通，
+可用 `deploy/docker-acceptance.sh` 一键复验。
 
 ## Compose
 
@@ -18,7 +19,7 @@ docker compose logs -f
 docker compose exec simplecal cat /data/admin-initial-password.txt
 ```
 
-首次登录后必须修改密码，再删除初始密码文件。也可在 `.env` 中设置
+首次登录后必须修改密码；改密成功后服务端自动删除初始密码文件。也可在 `.env` 中设置
 `CALDAV_ADMIN_PASSWORD` 后启动；该文件不要提交到版本库。修改初始化密码配置不会重置已有账号。
 
 ## docker run 与密码文件
@@ -63,9 +64,21 @@ docker run -d --name simplecal --restart unless-stopped \
 迁移已有数据的方法见 [SERVER.md](SERVER.md)。
 
 公网使用 HTTPS 反向代理，将整个根路径转发到服务，保留 DAV 方法和 Authorization。
+走反向代理时把 `ports` 绑到 `127.0.0.1:<端口>`（如 `"127.0.0.1:5581:5280"`），
+由代理负责对外暴露；需要 DAV 的 href / Location 与公开地址一致时，
+同时把 `CALDAV_PUBLIC_BASE_URL` 设成对外地址。
 本部署方式不提供 fnOS 桌面图标与安装向导。账号初始化只发生一次。
 
 ## Docker 主机验收
+
+仓库自带验收脚本，把下面六条变成可重复执行的断言（在 `docker-compose.yml` 所在目录跑）：
+
+```sh
+bash deploy/docker-acceptance.sh
+```
+
+脚本默认查 `http://127.0.0.1:5581`；对着反向代理后的公网地址跑用
+`BASE_URL=https://你的域名`。已改过密码的实例再跑时，用 `ADMIN_PASSWORD` 提供当前密码。
 
 1. `docker compose build` 成功，启动后健康检查通过。
 2. 登录页与静态资源可加载，随机密码能登录且要求改密。
