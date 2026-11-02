@@ -57,12 +57,15 @@ if run_image "$NEW_IMAGE" && healthy; then
   save_override
   printf '%s\n' "$OLD_IMAGE" > "$STATE_DIR/previous-image"
   echo "Upgrade healthy: $VERSION"
+  echo "Restart from now on with:"
+  echo "  docker compose -f $COMPOSE_FILE -f $STATE_DIR/current.yml up -d --no-build"
+  echo "Note: $COMPOSE_FILE still names an older image; a plain 'docker compose up -d' would revert to it."
 else
   echo 'Upgrade failed; restoring previous image' >&2
   run_image "$OLD_IMAGE"
   if healthy; then
     save_override
-    echo 'Rollback healthy' >&2
+    echo "Rollback healthy; $COMPOSE_FILE still names the previous release." >&2
   else echo 'ROLLBACK FAILED: operator intervention required' >&2; fi
   exit 1
 fi

@@ -8,6 +8,7 @@ export CONTAINER="$COMPOSE_PROJECT_NAME"
 export HEALTH_ATTEMPTS=20 HEALTH_INTERVAL=1
 cleanup() {
   (cd "$ROOT/production" && docker compose down -v --remove-orphans) || true
+  docker image rm -f simplecal:upgrade-test-base simplecal:99.0.1 simplecal:99.0.2 || true
   rm -rf "$ROOT"
 }
 trap cleanup EXIT

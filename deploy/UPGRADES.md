@@ -23,9 +23,22 @@ After a successful upgrade, use the saved image override for manual restarts:
 docker compose -f docker-compose.yml -f .simplecal-deploy/current.yml up -d --no-build
 ```
 
+The Compose file keeps its original `image:` line, so a plain
+`docker compose up -d` would start the older image again. Always pass the
+override file, or update the Compose file yourself; the upgrade script never
+rewrites it.
+
 Back up the complete data volume first. Image rollback does not undo data
 migrations; incompatible future migrations need a separate restore procedure.
 Keep the previous image until acceptance is complete; do not prune it early.
+
+To roll back by hand, point the override at the recorded image ID:
+
+```sh
+printf 'services:\n  simplecal:\n    image: "%s"\n' "$(cat .simplecal-deploy/previous-image)" \
+  > .simplecal-deploy/rollback.yml
+docker compose -f docker-compose.yml -f .simplecal-deploy/rollback.yml up -d --no-build
+```
 
 ## Verification
 
