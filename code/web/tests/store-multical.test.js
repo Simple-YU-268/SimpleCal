@@ -261,7 +261,7 @@ describe('多日历可见性', () => {
         'cal:settings': { hiddenColors: ['green'] },
       },
       [
-        { id: 'default', displayName: '我的日历', type: 'vevent', order: 0, color: '#088657' },
+        { id: 'default', displayName: '我的日历', type: 'vevent', order: 0, color: '#BEEFEA' },
         { id: 'tasks', displayName: '任务', type: 'vtodo', order: 1 },
       ],
     );

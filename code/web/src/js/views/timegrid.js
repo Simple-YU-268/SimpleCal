@@ -290,12 +290,15 @@ export function renderTimeGrid(days, ctx) {
   // ---- Scrollable body ----
   const axis = el('div', { class: 'timegrid__axis' });
   for (let h = 0; h < 24; h++) {
-    const labels = [];
-    if (h !== 0) {
-
-      labels.push(el('span', { class: 'timegrid__hour-label', text: formatHourLabel(h, { hour12 }) }));
-    }
-    axis.append(el('div', { class: 'timegrid__hour' }, labels));
+    // Every hour gets a label, midnight included: the axis starts at 12 AM
+    // (macOS Calendar / TimeTree both do). The 0-hour label rides the top edge
+    // of the scroll area instead of the hour line, because it has no line
+    // above it to sit on — see `.timegrid__hour:first-child` in views.css.
+    const label = el('span', {
+      class: 'timegrid__hour-label',
+      text: formatHourLabel(h, { hour12 }),
+    });
+    axis.append(el('div', { class: 'timegrid__hour' }, [label]));
   }
 
   const cols = el('div', { class: 'timegrid__cols' });
@@ -348,14 +351,22 @@ export function renderTimeGrid(days, ctx) {
       );
     });
 
-    // Now indicator.
-    if (isToday(day, now)) {
-      const top = (minutesSinceMidnight(now) / 60) * HOUR_H;
-      col.append(el('div', { class: 'now-line', style: { top: `${top}px` } }));
-    }
-
     cols.append(col);
   });
+
+  // Now indicator: ONE rule across the whole day range, not one per column.
+  // macOS Calendar and TimeTree draw the current time as a single line that
+  // crosses every day column, with a dot at its left end. Anchoring it to the
+  // "today" column made it stop dead after that column, so a week view only
+  // showed the line over the first day or two.
+  //
+  // It lives on `.timegrid__cols` (the positioned ancestor of all the day
+  // columns) rather than inside one of them. It is absolutely positioned, so
+  // it is out of flow and never becomes a grid track of its own.
+  if (perDay.some(({ day }) => isToday(day, now))) {
+    const top = (minutesSinceMidnight(now) / 60) * HOUR_H;
+    cols.append(el('div', { class: 'now-line', style: { top: `${top}px` } }));
+  }
 
   const scroll = el('div', { class: 'timegrid__scroll' }, [
     el('div', { class: 'timegrid__body' }, [axis, cols]),

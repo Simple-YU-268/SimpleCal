@@ -38,12 +38,12 @@ afterEach(() => {
 });
 
 describe('accent 派生变量', () => {
-  it('非法/缺失值回退默认 #2f5e9e；合法值大小写归一', () => {
+  it('非法/缺失值回退默认 #3b54c4；合法值大小写归一', () => {
     const api = installAccentScript();
     expect(api.normalize('#ABCDEF')).toBe('#abcdef');
-    expect(api.normalize('#12345')).toBe('#2f5e9e');
-    expect(api.normalize('red')).toBe('#2f5e9e');
-    expect(api.normalize('')).toBe('#2f5e9e');
+    expect(api.normalize('#12345')).toBe('#3b54c4');
+    expect(api.normalize('red')).toBe('#3b54c4');
+    expect(api.normalize('')).toBe('#3b54c4');
   });
 
   it('亮色：各派生变量齐全，--text-on-accent 对比度 ≥4.5', () => {
@@ -63,11 +63,28 @@ describe('accent 派生变量', () => {
     expect(lum(pal.vars['--accent-active'])).toBeLessThan(lum(pal.vars['--accent-hover']));
   });
 
+  it('bright brand accents keep both fill ink and functional text readable', () => {
+    const api = installAccentScript();
+    for (const fill of ['#3b54c4', '#beefea', '#ffd94d', '#ffc7de', '#b7d6f7']) {
+      const palette = api.palette(fill, 'light');
+      expect(api.contrast(fill, palette.vars['--text-on-accent']), fill).toBeGreaterThanOrEqual(4.5);
+      expect(api.contrast('#ffffff', palette.vars['--accent-ink']), fill).toBeGreaterThanOrEqual(4.5);
+      expect(api.contrast(palette.vars['--accent-soft'], palette.vars['--accent-ink-on-soft']), fill).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
+  it('previously stored accents remain explicit preferences rather than being migrated', () => {
+    const api = installAccentScript();
+    api.apply('#2f5e9e');
+    expect(document.getElementById('simplecal-accent-theme').textContent).toContain('--accent:#2f5e9e');
+    expect(window.SimpleCalAccent).toBe(api);
+  });
+
   it('暗色：accent 先抬到与深底 ≥4.5，文字对比度同样 ≥4.5（含默认深蓝）', () => {
     const api = installAccentScript();
-    for (const hex of ['#2f5e9e', '#6b4fa8', '#b3392f', '#4b5162']) {
+    for (const hex of ['#3b54c4', '#6b4fa8', '#b3392f', '#4b5162']) {
       const pal = api.palette(hex, 'dark');
-      expect(api.contrast(pal.accent, '#0e0f13'), hex).toBeGreaterThanOrEqual(4.5);
+      expect(api.contrast(pal.accent, '#10201e'), hex).toBeGreaterThanOrEqual(4.5);
       expect(api.contrast(pal.accent, pal.vars['--text-on-accent']), hex).toBeGreaterThanOrEqual(4.5);
     }
   });
@@ -84,7 +101,7 @@ describe('accent 派生变量', () => {
     api.apply('#1f9e8f');
     expect(document.querySelectorAll('#simplecal-accent-theme').length).toBe(1);
     // 默认色 → 回到 tokens.css 默认（移除注入）
-    api.apply('#2f5e9e');
+    api.apply('#3b54c4');
     expect(document.getElementById('simplecal-accent-theme')).toBeNull();
     // 非法值 → 回退默认（不注入）
     api.apply('#zzzzzz');
@@ -112,7 +129,7 @@ describe('首屏 prepaint（读 localStorage 快照）', () => {
 
   it('快照里是默认色/非法值时不注入（不闪默认色以外的偏差）', () => {
     installAccentScript();
-    localStorage.setItem('cal:snapshot', snapshot({ accentColor: '#2f5e9e' }));
+    localStorage.setItem('cal:snapshot', snapshot({ accentColor: '#3b54c4' }));
     // eslint-disable-next-line no-new-func
     new Function(inlineThemeScript())();
     expect(document.getElementById('simplecal-accent-theme')).toBeNull();

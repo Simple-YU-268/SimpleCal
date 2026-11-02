@@ -5,7 +5,7 @@
  *   - 只计算 accent 语义族（--accent / hover / active / soft / contrast /
  *     --text-on-accent / --accent-ink-on-soft / --ring / --today），
  *     不碰日历色、事件色、危险/成功/警告色；
- *   - 默认色 #2f5e9e 直接沿用 tokens.css 既有取值（不注入，保持默认观感）；
+ *   - 默认色 #7edbd2 直接沿用 tokens.css 既有取值（不注入，保持默认观感）；
  *   - 暗色主题单独算一套：accent 先抬到与深色底 ≥4.5:1，再派生其余；
  *   - --text-on-accent 按亮度在白/深墨中选对比度更高者（≥4.5:1）。
  *
@@ -15,11 +15,11 @@
 (function (global) {
   'use strict';
 
-  var DEFAULT_ACCENT = '#2f5e9e';
-  var DARK_BG = '#0e0f13';
-  var DARK_SOFT_BASE = '#1a1c24';
+  var DEFAULT_ACCENT = '#3b54c4';
+  var DARK_BG = '#10201e';
+  var DARK_SOFT_BASE = '#1d3230';
   var LIGHT_SOFT_BASE = '#ffffff';
-  var INK_DARK = '#101216';
+  var INK_DARK = '#10201e';
   var INK_LIGHT = '#ffffff';
   var STYLE_ID = 'simplecal-accent-theme';
 
@@ -82,7 +82,10 @@
 
   /** 白/深墨二选一，取对比度更高者（数学上必 ≥4.5）。 */
   function inkFor(accent) {
-    return contrast(accent, INK_LIGHT) >= contrast(accent, INK_DARK) ? INK_LIGHT : INK_DARK;
+    var light = contrast(accent, INK_LIGHT);
+    var dark = contrast(accent, INK_DARK);
+    if (Math.max(light, dark) < 4.5) return '#000000';
+    return light >= dark ? INK_LIGHT : INK_DARK;
   }
 
   /** 在指定底色上把颜色逐步提亮/压暗，直到达到 minContrast（用于暗色主题）。 */
@@ -108,6 +111,8 @@
       ink: ink,
       vars: {
         '--accent': accent,
+        '--accent-fill': accent,
+        '--accent-ink': ensureContrast(accent, bg, 4.5),
         '--accent-hover': darken(accent, 0.12),
         '--accent-active': darken(accent, 0.2),
         '--accent-soft': isDark
@@ -116,8 +121,8 @@
         '--accent-contrast': ink,
         '--text-on-accent': ink,
         // 深色 soft 上的 accent 文字用更亮一阶，保证小字号可读（与旧 token 同思路）。
-        '--accent-ink-on-soft': isDark ? lighten(accent, 0.12) : accent,
-        '--ring': 'color-mix(in srgb, ' + accent + ' 45%, transparent)',
+        '--accent-ink-on-soft': ensureContrast(accent, isDark ? blend(accent, DARK_SOFT_BASE, 0.18) : blend(accent, LIGHT_SOFT_BASE, 0.1), 4.5),
+        '--ring': 'color-mix(in srgb, ' + ensureContrast(accent, bg, 4.5) + ' 55%, transparent)',
         '--today': accent,
       },
     };
@@ -188,7 +193,7 @@
     return null;
   }
 
-  global.FncalAccent = {
+  global.SimpleCalAccent = {
     DEFAULT: DEFAULT_ACCENT,
     STYLE_ID: STYLE_ID,
     normalize: normalize,
@@ -199,4 +204,6 @@
     apply: apply,
     applyFromSnapshot: applyFromSnapshot,
   };
+  // Retain the old integration name for saved shells and existing extensions.
+  global.FncalAccent = global.SimpleCalAccent;
 })(typeof window !== 'undefined' ? window : globalThis);

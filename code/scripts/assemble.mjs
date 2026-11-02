@@ -162,29 +162,16 @@ for (const f of ['ICON.PNG', 'ICON_256.PNG']) {
   else log(`[ok] ${f} ${w}x${h}`);
 }
 
-// 图标来源一致性（P3 加固）：包内图标必须与**负责人核过的已批准图标集**逐字节相同。
-// 0.2.6：logo = v8（用户最终确认版）。
-// 0.2.34：logo = v9（v8 造型不变，仅 256 大图标轻微锐化），核对目标 = `scripts/icon-approved-v9/`；
-// v8 目录保留为锐化前基线，供 check-icons 做「alpha 逐字节相同 / 只动 256」的前置断言；
-// v6/v7 留作旧图反向基线。
+// Verify the new identity in source and shipped output. Any missing asset,
+// stale historical artwork, ICO mismatch or digest drift fails assembly.
 {
-  const { createHash } = await import('node:crypto');
-  const projectRoot = path.resolve(codeDir, '..');
-  const logoDir = path.join(here, 'icon-approved-v9');
-  const pairs = [
-    ['ICON.PNG', path.join(logoDir, 'icon-64.png')],
-    ['ICON_256.PNG', path.join(logoDir, 'icon-256.png')],
-    [path.join('app', 'ui', 'images', 'icon_64.png'), path.join(logoDir, 'icon-64.png')],
-    [path.join('app', 'ui', 'images', 'icon_256.png'), path.join(logoDir, 'icon-256.png')],
-  ];
-  const sha = (p) => createHash('sha256').update(fs.readFileSync(p)).digest('hex');
-  for (const [inPkg, src] of pairs) {
-    const a = path.join(FNOS, inPkg);
-    if (!fs.existsSync(a)) { fail(`缺少图标 ${inPkg}`); continue; }
-    if (!fs.existsSync(src)) { notes.push(`图标源不存在，跳过来源核对：${src}`); continue; }
-    if (sha(a) !== sha(src)) fail(`图标不同源：${inPkg} 与 ${path.relative(projectRoot, src)} 不一致`);
-    else log(`[ok] 图标同源 ${inPkg}`);
-  }
+  const { spawnSync } = await import('node:child_process');
+  const result = spawnSync(process.execPath, [path.join(here, 'check-icons.mjs'), '--fnos', FNOS], {
+    encoding: 'utf8', maxBuffer: 4 * 1024 * 1024,
+  });
+  if (result.stdout) process.stdout.write(result.stdout);
+  if (result.stderr) process.stderr.write(result.stderr);
+  if (result.error || result.status !== 0) fail('SimpleCal icon integrity verification failed' + (result.error ? ': ' + result.error.message : ''));
 }
 
 if (notes.length) { console.log(''); notes.forEach((n) => console.log(`NOTE: ${n}`)); }

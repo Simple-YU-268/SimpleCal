@@ -214,7 +214,7 @@ export const DEFAULT_SETTINGS = Object.freeze({
   // （当年 1 月 1 日所在周为 W1）。旧设置没有这个键时按 ISO 处理。
   weekNumberMode: 'iso',
   // 0.2.4 ⑭：主题色（accent）。默认深蓝 = --accent；只影响 accent 语义族。
-  accentColor: '#2f5e9e',
+  accentColor: '#3b54c4',
   eventColorMode: 'calendar', // 'calendar' | 'category'
   defaultReminders: { timed: [10], allDay: [540] }, // minutes before
   // 0.2.0（B3）：默认日历。'' = 上次使用（lastCalendarId），否则指定一个日历 id。

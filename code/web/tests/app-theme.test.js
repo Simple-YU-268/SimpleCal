@@ -52,15 +52,15 @@ describe('app — theme stays in sync with the setting on every render', () => {
       return m;
     };
     const light = mkMeta('(prefers-color-scheme: light)', '#ffffff');
-    const dark = mkMeta('(prefers-color-scheme: dark)', '#0e0f13');
+    const dark = mkMeta('(prefers-color-scheme: dark)', '#1c1e22');
 
     const root = document.createElement('div');
     document.body.append(root);
     const store = makeStore({ theme: 'dark' });
     app = createApp(root, { store, user: { username: 'x' } });
     // Explicit dark: BOTH metas carry the dark color, whatever the OS scheme.
-    expect(light.content).toBe('#0e0f13');
-    expect(dark.content).toBe('#0e0f13');
+    expect(light.content).toBe('#1c1e22');
+    expect(dark.content).toBe('#1c1e22');
 
     store._setTheme('light');
     store._emit();
@@ -71,7 +71,7 @@ describe('app — theme stays in sync with the setting on every render', () => {
     store._setTheme('system');
     store._emit();
     expect(light.content).toBe('#ffffff');
-    expect(dark.content).toBe('#0e0f13');
+    expect(dark.content).toBe('#1c1e22');
 
     light.remove();
     dark.remove();

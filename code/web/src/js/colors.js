@@ -1,35 +1,24 @@
-/**
- * Event color palette — the single source of truth for event colors. Views
- * inject the chosen `hex` inline (as `--chip-color` / `--ev-fill`) via
- * `colorHex()`, so there are no mirrored CSS tokens to keep in sync.
- *
- * `fg` is the ink that reads on a fill of that color (chip text runs at
- * 12–13px, where WCAG AA wants 4.5:1). Near-black ink clears that bar on a
- * bright fill, but on a mid-tone one it reads as a heavy smudge rather than as
- * text — so the fills are pitched deep enough to carry white ink at 4.5:1 or
- * better, and white is the ink everywhere it works. Amber is the exception
- * every palette has: an orange dark enough for white ink is a brown, so it
- * stays bright and keeps the near-black ink. Injected beside the fill as
- * `--ev-fg` wherever text or a glyph sits ON the color.
+/** Stable category keys with SimpleCal's bright, dark-ink event fills.
+ * Stored custom hex colors are preserved and choose their ink by WCAG contrast.
  */
-const DARK_INK = '#101216'; // the dark theme's own base — reads as "black" on a chip
+const DARK_INK = '#173b35'; // the dark theme's own base — reads as "black" on a chip
 import { t } from '../i18n/index.js';
 import { el } from './dom.js';
 import { icon } from './icons.js';
 
 export const EVENT_COLORS = [
-  { key: 'blue', label: '蓝色', hex: '#3171e0', fg: '#ffffff' }, // 4.6:1
-  { key: 'indigo', label: '靛蓝', hex: '#5b5ef4', fg: '#ffffff' }, // 4.8:1
-  { key: 'violet', label: '紫色', hex: '#9355dc', fg: '#ffffff' }, // 4.6:1
-  { key: 'pink', label: '粉色', hex: '#d52f85', fg: '#ffffff' }, // 4.6:1
-  { key: 'red', label: '红色', hex: '#d73b3c', fg: '#ffffff' }, // 4.6:1
-  { key: 'orange', label: '橙色', hex: '#f59e0b', fg: DARK_INK }, // 8.7:1 (white: 2.2)
-  { key: 'green', label: '绿色', hex: '#088657', fg: '#ffffff' }, // 4.6:1
-  { key: 'teal', label: '青色', hex: '#078477', fg: '#ffffff' }, // 4.6:1
-  { key: 'graphite', label: '石墨', hex: '#6b7280', fg: '#ffffff' }, // 4.8:1
+  { key: 'blue', label: '蓝色', hex: '#B7D6F7', fg: DARK_INK },
+  { key: 'indigo', label: '靛蓝', hex: '#C6CFF4', fg: DARK_INK },
+  { key: 'violet', label: '紫色', hex: '#DCD0F5', fg: DARK_INK },
+  { key: 'pink', label: '粉色', hex: '#FFC7DE', fg: DARK_INK },
+  { key: 'red', label: '红色', hex: '#FFB8AA', fg: DARK_INK },
+  { key: 'orange', label: '橙色', hex: '#FFD94D', fg: DARK_INK },
+  { key: 'green', label: '绿色', hex: '#BEEFEA', fg: DARK_INK },
+  { key: 'teal', label: '青色', hex: '#7EDBD2', fg: DARK_INK },
+  { key: 'graphite', label: '石墨', hex: '#D6DFE6', fg: DARK_INK },
 ];
 
-export const DEFAULT_COLOR = 'indigo';
+export const DEFAULT_COLOR = 'teal';
 
 const COLOR_MAP = new Map(EVENT_COLORS.map((c) => [c.key, c]));
 
@@ -62,11 +51,16 @@ export function colorFg(key) {
   if (/^#[0-9a-fA-F]{6}/.test(raw)) {
     // 自定义色：按亮度选白/近黑墨色，保证文字可读（WCAG 近似判断）。
     const hex = raw.slice(1, 7);
-    const r = parseInt(hex.slice(0, 2), 16);
-    const g = parseInt(hex.slice(2, 4), 16);
-    const b = parseInt(hex.slice(4, 6), 16);
-    const luminance = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
-    return luminance > 0.62 ? DARK_INK : '#ffffff';
+    const luminance = (value) => {
+      const channels = value.slice(1, 7).match(/../g).map((part) => parseInt(part, 16) / 255)
+        .map((channel) => channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4);
+      return channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722;
+    };
+    const fill = luminance(`#${hex}`);
+    const dark = luminance(DARK_INK);
+    const darkContrast = (Math.max(fill, dark) + 0.05) / (Math.min(fill, dark) + 0.05);
+    const whiteContrast = 1.05 / (fill + 0.05);
+    return Math.max(darkContrast, whiteContrast) < 4.5 ? '#000000' : darkContrast >= whiteContrast ? DARK_INK : '#ffffff';
   }
   return (COLOR_MAP.get(key) || COLOR_MAP.get(DEFAULT_COLOR)).fg;
 }

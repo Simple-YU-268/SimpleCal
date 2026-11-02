@@ -1,0 +1,151 @@
+{
+    "schemaVersion":  2,
+    "generatedAt":  "2026-11-02T16:49:54.4780577+08:00",
+    "title":  "Design System: SimpleCal",
+    "extensions":  {
+                       "shadows":  [
+                                       {
+                                           "name":  "dialog",
+                                           "value":  "0 24px 80px rgb(12 45 38 / 18%)",
+                                           "purpose":  "Separate a focused detail or editor from the calendar."
+                                       },
+                                       {
+                                           "name":  "panel",
+                                           "value":  "0 1px 3px rgb(18 37 31 / 8%), 0 12px 32px rgb(18 37 31 / 8%)",
+                                           "purpose":  "Lift the calendar paper off the neutral workspace."
+                                       },
+                                       {
+                                           "name":  "glass-contact",
+                                           "value":  "0 1px 2px rgb(15 25 22 / 5%)",
+                                           "purpose":  "Lift a glass pane by contact only. The hairline border declares the edge; a wide shadow on top of it would be a ghost card."
+                                       },
+                                       {
+                                           "name":  "float",
+                                           "value":  "0 2px 6px rgb(18 37 31 / 10%), 0 16px 40px rgb(18 37 31 / 12%)",
+                                           "purpose":  "Separate a popover or dropdown from the surface beneath it."
+                                       }
+                                   ],
+                       "motion":  [
+                                      {
+                                          "name":  "detail-enter",
+                                          "value":  "380ms cubic-bezier(0.16, 1, 0.3, 1)",
+                                          "purpose":  "Gentle enlargement from the selected task or event."
+                                      },
+                                      {
+                                          "name":  "detail-exit",
+                                          "value":  "160ms cubic-bezier(0.4, 0, 1, 1)",
+                                          "purpose":  "Fade an inert clone after releasing dialog state."
+                                      }
+                                  ],
+                       "breakpoints":  [
+                                           {
+                                               "name":  "desktop",
+                                               "value":  "901px"
+                                           },
+                                           {
+                                               "name":  "tasks-default-open",
+                                               "value":  "1280px"
+                                           },
+                                           {
+                                               "name":  "compact-month",
+                                               "value":  "520px"
+                                           }
+                                       ]
+                   },
+    "components":  [
+                       {
+                           "name":  "Primary action",
+                           "kind":  "button",
+                           "refersTo":  "button-primary",
+                           "description":  "Deep indigo fill with white text.",
+                           "html":  "\u003cbutton class=\"action\"\u003eCreate event\u003c/button\u003e",
+                           "css":  ".action {background:#3b54c4;color:#ffffff;border:0;border-radius:10px;padding:12px 20px;font:600 14px system-ui;} .action:focus-visible {outline:2px solid #3b54c4;outline-offset:3px;}"
+                       },
+                       {
+                           "name":  "Event chip",
+                           "kind":  "chip",
+                           "refersTo":  "event-chip",
+                           "description":  "A tinted bar carrying the calendar\u0027s colour, with the event title.",
+                           "html":  "\u003cspan class=\"chip\" style=\"--chip-color:#3B54C4\"\u003e涓婂崍10:00 浜у搧璁捐璇勫\u003c/span\u003e",
+                           "css":  ".chip {display:flex;gap:6px;min-height:22px;padding:2px 8px;border-radius:6px;font:500 13px system-ui;background:color-mix(in srgb, var(--chip-color) 46%, var(--surface));} .chip:hover {background:color-mix(in srgb, var(--chip-color) 64%, var(--surface));}"
+                       },
+                       {
+                           "name":  "Now rule",
+                           "kind":  "indicator",
+                           "description":  "One rule across every day column of the week, with a dot at its left end.",
+                           "html":  "\u003cdiv class=\"now-line\"\u003e\u003c/div\u003e",
+                           "css":  ".now-line {position:absolute;left:0;right:0;height:2px;background:var(--danger);z-index:6;pointer-events:none;} .now-line::before {content:\u0027\u0027;position:absolute;left:-4px;top:50%;transform:translateY(-50%);width:8px;height:8px;border-radius:50%;background:var(--danger);}"
+                       }
+                   ],
+    "narrative":  {
+                      "northStar":  "Bright, orderly planning",
+                      "overview":  "A month-first calendar with quiet navigation and tasks within reach. The desktop is one window: three glass panes around a paper calendar, floating on a washed canvas. The toolbar answers two questions 鈥?where am I on the left, what am I doing on the right.",
+                      "keyCharacteristics":  [
+                                                 "Neutral surfaces, one indigo accent",
+                                                 "Evergreen ink",
+                                                 "Colour-carried event blocks on paper",
+                                                 "Month-first hierarchy",
+                                                 "One window, three panes",
+                                                 "Two-group toolbar",
+                                                 "Purposeful enlargement"
+                                             ],
+                      "rules":  [
+                                    {
+                                        "name":  "Neutral ramp",
+                                        "body":  "The surface ramp is grey, not green-tinted. A tinted ramp made the whole app read as one green wash and dulled the accent; the green survives only in the ink that text is drawn in.",
+                                        "section":  "colors"
+                                    },
+                                    {
+                                        "name":  "Colour carries the block",
+                                        "body":  "Event color rides a 46% block over the paper on desktop (30% in dark mode), so the grid lines and day numbers stay legible while the category stays unmistakable. All-day and multi-day bars keep their solid fill.",
+                                        "section":  "colors"
+                                    },
+                                    {
+                                        "name":  "Glass where it separates",
+                                        "body":  "The toolbar, the navigation column, the task panel and the sign-in card are glass because they float over other content. The calendar itself stays paper.",
+                                        "section":  "elevation"
+                                    },
+                                    {
+                                        "name":  "One window, three panes",
+                                        "body":  "Header, navigation column and task panel share one glass material; the calendar is the paper inside that window. A transparent navigation column made the application read as three and a half pieces.",
+                                        "section":  "elevation"
+                                    },
+                                    {
+                                        "name":  "Canvas wash",
+                                        "body":  "The canvas under the window is a two-stop vertical wash, light above and deeper below, one step under the chrome and two under the paper. A flat single-colour canvas made the window float on nothing.",
+                                        "section":  "colors"
+                                    },
+                                    {
+                                        "name":  "Two groups in the toolbar",
+                                        "body":  "Left answers where am I (today, stepping arrows, period title, view switcher); right answers what am I doing (search, tasks, settings, account). The switcher follows the title because it describes the same thing the title describes.",
+                                        "section":  "layout"
+                                    },
+                                    {
+                                        "name":  "Indigo means one thing",
+                                        "body":  "Indigo marks the primary action, today and the current selection. Hover states are neutral 鈥?tinting every icon hover made the toolbar glow.",
+                                        "section":  "colors"
+                                    },
+                                    {
+                                        "name":  "Readable pastels",
+                                        "body":  "Use dark ink on bright event fills.",
+                                        "section":  "colors"
+                                    },
+                                    {
+                                        "name":  "No side-tabs",
+                                        "body":  "A saturated stripe down the edge of a card reads as an alert, not as decoration. Carry state in the fill, the type, or a border of the surface ramp instead.",
+                                        "section":  "shapes"
+                                    }
+                                ],
+                      "dos":  [
+                                  "Preserve custom settings and native keyboard access.",
+                                  "Keep the last stylesheet in the cascade honest: a rule added there silently beats an earlier @media block, so scope it to the widths it was designed for.",
+                                  "Let a control title hug its own text; stretch it only when it is a flexible label."
+                              ],
+                      "donts":  [
+                                    "Do not spread blur across calendar content.",
+                                    "Do not nest cards.",
+                                    "Do not rely on pastel color alone for completion, selection or keyboard focus.",
+                                    "Do not put a view switcher between two tools that belong together."
+                                ]
+                  }
+}

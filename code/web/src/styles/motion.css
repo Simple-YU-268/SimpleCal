@@ -1,0 +1,16 @@
+/* One authored moment: an item opens into its focused details surface. */
+.dialog-motion {
+  animation: none !important;
+  transform-origin: center;
+}
+.modal-motion-ghost {
+  pointer-events: none !important;
+  user-select: none;
+  overflow: hidden;
+}
+@media (prefers-reduced-motion: reduce) {
+  .modal, .modal-scrim, .dialog-scrim, .toast {
+    animation: none !important;
+    transition-duration: 0.01ms !important;
+  }
+}

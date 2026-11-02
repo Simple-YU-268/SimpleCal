@@ -62,12 +62,12 @@ describe('① 事件/任务颜色联动日历色', () => {
     await store.load();
     const ev = await store.saveEvent({ title: '会议', start: at(), end: at() + 3600_000 });
     const task = await store.saveTask({ title: '写周报', due: at(18) });
-    // 默认跟随日历色（我的日历 = 粉色 key、任务 = 绿色 key）
-    expect(store.getEvent(ev.id).color).toBe('pink');
-    expect(store.getTask(task.id).color).toBe('green');
+    // Existing custom calendar hex values survive palette renewal; new palette fills resolve to stable keys.
+    expect(store.getEvent(ev.id).color).toBe('#d52f85');
+    expect(store.getTask(task.id).color).toBe('#088657');
 
-    await store.updateCalendar('default', { color: '#3171e0' });
-    await store.updateCalendar('tasks', { color: '#d73b3c' });
+    await store.updateCalendar('default', { color: '#B7D6F7' });
+    await store.updateCalendar('tasks', { color: '#FFB8AA' });
     expect(store.getEvent(ev.id).color).toBe('blue');
     expect(store.getTask(task.id).color).toBe('red');
   });
@@ -91,7 +91,7 @@ describe('⑨ 自定义颜色与新建默认色', () => {
     expect(cal.color).toBe('#123456');
     expect(colorHex(cal.color)).toBe('#123456');
     expect(colorFg('#123456')).toBe('#ffffff');
-    expect(colorFg('#f5f0e0')).toBe('#101216');
+    expect(colorFg('#f5f0e0')).toBe('#173b35');
   });
 
   it('新建事件默认颜色 = 所属日历色，且不写 colorOverride', async () => {

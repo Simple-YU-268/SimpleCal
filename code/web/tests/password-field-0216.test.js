@@ -70,8 +70,8 @@ describe('0.2.16 A3 — 密码显隐与 CapsLock', () => {
     expect(field.capsHint.hidden).toBe(true);
   });
 
-  it('login.subtitle 用新口径：数据存放于这台 NAS，家人共用；不经第三方云。', () => {
-    expect(zhCN['login.subtitle']).toBe('数据存放于这台 NAS，家人共用；不经第三方云。');
+  it('login.subtitle describes independent planning without assuming NAS hardware', () => {
+    expect(zhCN['login.subtitle']).toBe('把时间留给生活，日程与待办一目了然。');
     // 副标题里不再出现「数据只保存在这台设备上」这种旧说法。
     expect(zhCN['login.subtitle']).not.toContain('只保存在这台设备');
   });

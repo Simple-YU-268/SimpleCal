@@ -146,7 +146,7 @@
 }
 @media (hover: hover) and (pointer: fine) {
 .cal-row__name:hover {
-  color: var(--accent);
+  color: var(--accent-ink);
 }
 }
 
@@ -344,7 +344,7 @@ body.is-reordering {
  * 键盘高亮/当前项用 accent-soft 底，与其它可选项一致。 */
 .cal-picker__row:focus-visible {
   background: var(--accent-soft);
-  color: var(--accent);
+  color: var(--accent-ink);
 }
 
 .cal-picker__name {
@@ -457,7 +457,7 @@ body.is-reordering {
 
 .cal-select__item[aria-selected='true'] {
   background: var(--accent-soft);
-  color: var(--accent);
+  color: var(--accent-ink);
 }
 .cal-select__label {
   flex: 1;
@@ -469,7 +469,7 @@ body.is-reordering {
 .cal-select__check {
   flex: none;
   display: inline-flex;
-  color: var(--accent);
+  color: var(--accent-ink);
 }
 .cal-select__item--new {
   margin-top: 2px;
@@ -737,7 +737,7 @@ body.is-reordering {
 }
 .settings__chip[aria-pressed='true'] {
   background: var(--accent-soft);
-  color: var(--accent);
+  color: var(--accent-ink);
   border-color: var(--accent);
 }
 .settings__segmented {
@@ -757,7 +757,7 @@ body.is-reordering {
   height: 36px;
   border-radius: 50%;
   background: var(--accent-soft);
-  color: var(--accent);
+  color: var(--accent-ink);
   font-size: var(--fs-md);
   font-weight: 600;
 }
@@ -1099,7 +1099,7 @@ label,
 
 .ym-wheel__row[aria-selected='true'] {
   background: var(--surface-2);
-  color: var(--accent);
+  color: var(--accent-ink);
   font-size: var(--fs-lg);
   font-weight: 650;
 }
@@ -1192,7 +1192,7 @@ label,
 }
 .search__chip[aria-pressed='true'] {
   background: var(--accent-soft);
-  color: var(--accent);
+  color: var(--accent-ink);
   border-color: transparent;
 }
 .search__swatch {
@@ -1832,7 +1832,6 @@ label,
   gap: 8px;
   padding: 8px 10px;
   border: 1px solid var(--border);
-  border-left: 3px solid var(--text-3);
   border-radius: var(--r-sm);
   background: var(--surface-2);
   font-size: 12px;
@@ -1844,17 +1843,19 @@ label,
   grid-column: 1 / -1;
 }
 .security-callout--warn {
-  border-left-color: var(--warning);
+  /* 0.3.0：警示语义靠**整圈边框 + 底色**表达，不再用 3px 的左侧色条——
+     左侧粗色条是 AI 生成界面的标志性做法，而且它把这条警告挤窄了。 */
+  border-color: color-mix(in srgb, var(--warning) 42%, var(--border));
   color: var(--text-1);
   background: color-mix(in srgb, var(--warning) 10%, var(--surface-2));
 }
 .security-callout--danger {
-  border-left-color: var(--danger);
+  border-color: color-mix(in srgb, var(--danger) 42%, var(--border));
   color: var(--danger-ink);
   background: var(--danger-soft);
 }
 .security-callout--info {
-  border-left-color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent-ink) 32%, var(--border));
 }
 .security-callout--action {
   align-items: center;

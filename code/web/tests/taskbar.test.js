@@ -53,7 +53,13 @@ function makeStore(tasks = []) {
     deleteCalendar: async () => ({ ok: true }),
     restoreCalendar: async () => ({ ok: true }),
     saveEvent: async (e) => e,
-    saveTask: async (t) => t,
+    saveTask: vi.fn(async (task) => {
+      const existing = list.find((item) => item.id === task.id);
+      if (existing) Object.assign(existing, task);
+      else list.push({ ...task });
+      for (const fn of [...listeners]) fn();
+      return { ...task };
+    }),
   };
 }
 
@@ -85,6 +91,7 @@ describe('B4 任务栏', () => {
     if (app) app.destroy();
     app = null;
     document.body.replaceChildren();
+    vi.unstubAllGlobals();
   });
 
   const open = (tasks = TASKS) => createApp(root, { store: makeStore(tasks), user: { username: 'x' } });
@@ -182,13 +189,68 @@ describe('B4 任务栏', () => {
     expect(document.activeElement).toBe(toggleBtn());
   });
 
-  it('点任务行标题打开任务编辑器', () => {
+  it('点任务行先查看详情，再明确进入编辑', () => {
     app = open();
     toggleBtn().click();
     rows()[0].querySelector('.task-row__main').click();
+    const details = document.querySelector('.modal-scrim .modal--view');
+    expect(details).toBeTruthy();
+    details.querySelector('[aria-label="编辑任务"]').click();
     const dialog = document.querySelector('.modal-scrim .modal--editor');
     expect(dialog).toBeTruthy();
     expect(dialog.textContent).toContain('编辑任务');
+  });
+
+  it('saving an edited task restores focus to its replacement button after store rerenders', async () => {
+    // JSDOM omits CSS.escape, which current supported browsers provide. The
+    // fixture's only punctuation is the colon in the taskbar focus identifier.
+    vi.stubGlobal('CSS', { escape: (value) => String(value).replaceAll(':', '\\:') });
+    const store = makeStore(TASKS);
+    app = createApp(root, { store, user: { username: 'x' } });
+    toggleBtn().click();
+    const trigger = rows()[0].querySelector('.task-row__main');
+    const taskId = rows()[0].dataset.focusKey.replace('taskbar:', '');
+    trigger.focus();
+    trigger.click();
+    document.querySelector('.modal--view .modal__head button').click();
+    const editor = document.querySelector('form.modal--editor');
+    const title = editor.querySelector('.input--title');
+    title.value = 'Updated task';
+    title.dispatchEvent(new Event('input', { bubbles: true }));
+    editor.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+    for (let i = 0; i < 4; i++) await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(store.saveTask).toHaveBeenCalledWith(expect.objectContaining({ id: taskId, title: 'Updated task' }));
+    expect(document.querySelector('.modal-scrim')).toBeNull();
+    const replacement = [...document.querySelectorAll('.task-row__main')]
+      .find((button) => button.dataset.focusKey === `taskbar-main:${taskId}`);
+    expect(trigger.isConnected).toBe(false);
+    expect(replacement).toBeTruthy();
+    expect(replacement).not.toBe(trigger);
+    expect(replacement.textContent).toContain('Updated task');
+    expect(document.activeElement).toBe(replacement);
+    expect(taskbar().hidden).toBe(false);
+  });
+
+  it.each(['details', 'editor'])('Escape closes task %s while preserving the taskbar and trigger focus', (surface) => {
+    app = open();
+    toggleBtn().click();
+    const trigger = rows()[0].querySelector('.task-row__main');
+    trigger.focus();
+    trigger.click();
+    const details = document.querySelector('.modal-scrim .modal--view');
+    expect(details).toBeTruthy();
+    if (surface === 'editor') {
+      details.querySelector('.modal__head button').click();
+      expect(document.querySelector('.modal--editor')).toBeTruthy();
+    }
+    const escape = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true });
+    document.dispatchEvent(escape);
+    expect(escape.defaultPrevented).toBe(true);
+    expect(document.querySelector('.modal-scrim')).toBeNull();
+    expect(taskbar().hidden).toBe(false);
+    expect(toggleBtn().getAttribute('aria-pressed')).toBe('true');
+    expect(document.querySelector('.app').classList.contains('has-taskbar')).toBe(true);
+    expect(document.activeElement).toBe(trigger);
   });
 
   it('0.2.8：任务多时列表滚动、行不被压缩（min-height 56px）', () => {

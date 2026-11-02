@@ -5,34 +5,52 @@
    ========================================================================= */
 
 :root {
-  /* Neutral ramp (light) */
+  /* Neutral ramp (light).
+
+     0.3.0 视觉重做：把**表面**那一段从「带绿的灰」改成中性冷灰，**文字**那一段
+     保留松墨绿。理由是参照 Apple 日历 / TimeTree 的做法——画布是中性的，颜色
+     交给内容（日程色、分类色）。以前整页都是绿的（背景 #f7faf8、边框 #dce7e1、
+     正文 #173b35），薄荷色一进来就被同色系淹没，页面读起来「发闷」；把表面
+     抽成中性灰之后，薄荷色重新变成「点睛色」，墨绿也回到「墨」的位置。 */
   --gray-0: #ffffff;
-  --gray-25: #fbfbfd;
-  --gray-50: #f5f6f8;
-  --gray-100: #eceef2;
-  --gray-150: #e2e5eb;
-  --gray-200: #d6dae2;
-  --gray-300: #b9bfcc;
+  --gray-25: #f4f6f8;
+  --gray-50: #eef1f5;
+  --gray-100: #e7ebf0;
+  --gray-150: #dde2e8;
+  --gray-200: #cbd2da;
+  --gray-300: #a8b1bc;
   /* An off switch's track. 0.2.17（B5）：原 #858c9d 在 --surface-2 上只有 3.1:1，
      贴着组件边界 3:1 的下限（暗色 3.1:1 同样贴线），换主题/护眼屏就是一团。
      压深到 4.2:1（--surface）/ 3.9:1（--surface-2），开关的「关」状态一眼可分。 */
-  --switch-off: #737b8e;
-  --gray-400: #939bab;
+  --switch-off: #66736f;
+  /* 0.3.0：--gray-400 是「压暗但仍要读得清」的一档（非本月日号、迷你月历的
+     星期头与淡出日期）。它必须仍然达到 4.5:1——在 --bg #f4f6f8 上是 4.53:1，
+     在白底上是 4.91:1。再淡一点就开始看不清了，所以这一档比 --text-3 只浅
+     一级，而不是两级。 */
+  --gray-400: #687370;
   /* 4.9:1 on --surface-2 and 4.5:1 on --surface-3 (the old #6b7280 sat at
      4.47 and 4.16): --text-3 is resting text on both — other-month day
      numbers, chip times, task due times, and every hovered row. */
-  --gray-500: #656c7a;
-  --gray-600: #4b5162;
-  --gray-700: #363b49;
-  --gray-800: #23262f;
-  --gray-900: #14161c;
+  --gray-500: #566260;
+  --gray-600: #414c49;
+  --gray-700: #2e3c38;
+  --gray-800: #1e2f2a;
+  --gray-900: #12251f;
 
-  /* Brand / accent —— FnCal 深蓝（与 fnOS 原生控制语言对齐） */
-  --accent: #2f5e9e;
-  --accent-hover: #3c6fb4;
-  --accent-active: #26507f;
-  --accent-soft: #e8eff8;
+  /* Independent SimpleCal indigo brand and accessible evergreen ink. */
+  --accent: #3b54c4;
+  --accent-hover: #344aac;
+  --accent-active: #2f439d;
+  --accent-soft: #ebeef9;
   --accent-contrast: #ffffff;
+  --accent-ink: #3b54c4;
+  --accent-fill: var(--accent);
+  --brand-indigo: #3b54c4;
+  --brand-periwinkle: #9fb4de;
+  --brand-sun: #f5c95c;
+  --brand-rose: #f7b4cb;
+  --brand-jade: #6ec7ad;
+  --ink-on-brand: #ffffff;
 
   /* 农历行视觉缩放（0.2.21 F6）：内层文字 12px（浏览器最小字号）再按这个比例缩小，
      视觉 ≈9.6px；后续调档只改这一处（不要再用 font-size 往下压，会被最小字号抬回去）。
@@ -45,7 +63,14 @@
   --surface-2: var(--gray-50);
   --surface-3: var(--gray-100);
   --surface-inset: var(--gray-50);
-  --overlay-scrim: rgba(20, 22, 28, 0.44);
+  --overlay-scrim: rgba(23, 49, 44, 0.28);
+
+  /* 画布（0.3.1）：窗口浮在它上面，所以它必须比**每一个面板**都低一档。
+     上浅下深的两段冷灰给出方向感（光从上方来），也让「纸面」——月历本身——
+     在亮色下是画面里最亮的东西、在暗色下是唯一不透光的一层。
+     亮/暗两套各自成套，暗色是同一套逻辑的反面：画布比纸面深。 */
+  --canvas-top: #eff3f8;
+  --canvas-bottom: #e6ebf1;
 
   /* Text */
   --text: var(--gray-900);
@@ -54,13 +79,13 @@
   --text-inverse: var(--gray-0);
   --text-on-accent: #ffffff;
   /* Accent-colored text sitting on --accent-soft (the active mobile tab). */
-  --accent-ink-on-soft: var(--accent);
+  --accent-ink-on-soft: #3b54c4;
 
   /* Lines */
   --border: var(--gray-150);
   --border-strong: var(--gray-200);
   --grid-line: var(--gray-100);
-  --ring: color-mix(in srgb, var(--accent) 45%, transparent);
+  --ring: color-mix(in srgb, var(--accent-ink) 55%, transparent);
 
   /* Feedback */
   --danger: #e5484d;
@@ -77,10 +102,13 @@
   --today: var(--accent);
 
   /* Radius */
-  --r-xs: 4px;
-  --r-sm: 6px;
-  --r-md: 9px;
-  --r-lg: 12px;
+  --r-xs: 6px;
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 16px;
+  /* 0.3.0：日程 chip 的圆角单独一个 token。Apple 日历的日程条是「小圆角」，
+     TimeTree 的事件块偏方；6px 落在两者之间，也够装下圆点 + 时间的行高。 */
+  --r-chip: 6px;
   /* 0.2.0：右侧任务栏宽度（>1200 用 300，901–1200 用 260；断点在 layout 里）。 */
   --taskbar-w: 300px;
   --r-xl: 16px;
@@ -101,22 +129,39 @@
     Arial, 'Apple Color Emoji', sans-serif;
   --fs-xs: 11px;
   --fs-sm: 12px;
-  --fs-base: 13px;
+  --fs-base: 14px;
   --fs-md: 14px;
   --fs-lg: 16px;
   --fs-xl: 20px;
   --fs-2xl: 26px;
+  /* 0.3.0：工作区标题单独一档（月份/年份标题）。Apple 日历的标题是「粗 + 紧」，
+     20px 太小、26px 又抢日历本身，所以给标题一档 22px + -0.03em。 */
+  --fs-title: 22px;
   --lh-tight: 1.2;
   --lh-normal: 1.5;
 
   /* Elevation */
-  --shadow-sm: 0 1px 2px rgba(20, 22, 28, 0.06), 0 1px 1px rgba(20, 22, 28, 0.04);
-  --shadow-md: 0 4px 12px rgba(20, 22, 28, 0.1), 0 2px 4px rgba(20, 22, 28, 0.06);
-  --shadow-lg: 0 12px 32px rgba(20, 22, 28, 0.16), 0 4px 10px rgba(20, 22, 28, 0.08);
-  --shadow-pop: 0 8px 28px rgba(20, 22, 28, 0.18);
+  --shadow-sm: 0 1px 2px rgba(23, 59, 53, 0.05), 0 1px 1px rgba(23, 59, 53, 0.03);
+  --shadow-md: 0 4px 12px rgba(23, 59, 53, 0.08), 0 2px 4px rgba(23, 59, 53, 0.05);
+  --shadow-lg: 0 12px 32px rgba(23, 59, 53, 0.12), 0 4px 10px rgba(23, 59, 53, 0.05);
+  --shadow-pop: 0 8px 28px rgba(23, 59, 53, 0.14);
+
+  /* 0.3.0 材质层。
+
+     玻璃只用在「浮在内容之上、需要和内容分家」的表面：顶栏、右侧任务栏、弹层。
+     月历本身保持纸面（不透明），否则网格线会糊、字会发虚——这是 Apple 日历
+     的做法，也是 DESIGN.md 里「Reserve blur for surfaces that benefit from
+     separation and context」那条。 */
+  --glass-bg: color-mix(in srgb, var(--surface) 78%, transparent);
+  --glass-bg-strong: color-mix(in srgb, var(--surface) 92%, transparent);
+  --glass-blur: saturate(180%) blur(24px);
+  --glass-border: color-mix(in srgb, var(--border-strong) 60%, transparent);
+  /* 面板投影：带偏移 + 柔化，不是零偏移光晕。 */
+  --shadow-panel: 0 1px 2px rgba(15, 25, 22, 0.04), 0 8px 28px rgba(15, 25, 22, 0.06);
+  --shadow-float: 0 2px 6px rgba(15, 25, 22, 0.06), 0 18px 48px rgba(15, 25, 22, 0.12);
 
   /* Motion */
-  --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
   --dur-fast: 120ms;
   --dur: 180ms;
   --dur-slow: 260ms;
@@ -133,36 +178,42 @@
 /* ---- Dark theme (explicit or via OS preference) ---------------------- */
 :root[data-theme='dark'] {
   color-scheme: dark;
-  --gray-0: #16181f;
-  --gray-25: #0e0f13;
-  --gray-50: #1a1c24;
-  --gray-100: #21242e;
-  --gray-150: #2a2e3a;
-  --gray-200: #343946;
-  --gray-300: #454b5b;
-  --switch-off: #767f99; /* 0.2.17 B5: 4.4:1 on the dark surfaces */
-  --gray-400: #6a7182;
-  --gray-500: #8a91a2;
-  --gray-600: #a7adbc;
-  --gray-700: #c6cad5;
-  --gray-800: #e2e5ec;
-  --gray-900: #f4f6fa;
+  /* 0.3.0：深色同样走「中性表面 + 墨色文字」，跟亮色一一对应。 */
+  --gray-0: #1c1e22;
+  --gray-25: #15171a;
+  --gray-50: #232629;
+  --gray-100: #2c3034;
+  --gray-150: #34383d;
+  --gray-200: #42474d;
+  --gray-300: #5a6068;
+  --switch-off: #8b959d; /* 0.2.17 B5: 4.4:1 on the dark surfaces */
+  --gray-400: #7c838c;
+  --gray-500: #9aa1aa;
+  --gray-600: #b7bdc5;
+  --gray-700: #d0d5db;
+  --gray-800: #e3e6ea;
+  --gray-900: #f2f4f6;
 
-  --accent: #7da4d8;
-  --accent-hover: #9dbbe0;
-  --accent-active: #6a93cc;
-  --accent-soft: #1b2a40;
-  --accent-contrast: #0e0f13;
+  --accent: #6f82d4;
+  --accent-ink: #6f82d4;
+  --accent-hover: #6272bb;
+  --accent-active: #5968aa;
+  --accent-soft: #2c404e;
+  --accent-contrast: #10201e;
   /* 深色下浅蓝 accent 用于文字/描边；其上的文字用深色墨水保证对比度。 */
   --text-on-accent: var(--accent-contrast);
   /* 深色 accent-soft 上的 accent 文字用 hover 亮阶，保证小字号可读。 */
-  --accent-ink-on-soft: var(--accent-hover);
+  --accent-ink-on-soft: #9ca9e1;
 
   --bg: var(--gray-25);
   --surface: var(--gray-0);
   --surface-2: var(--gray-50);
   --surface-3: var(--gray-100);
-  --overlay-scrim: rgba(0, 0, 0, 0.6);
+  --overlay-scrim: rgba(8, 10, 12, 0.62);
+
+  /* 暗色画布：比纸面（--surface）更深，窗口才有「浮在暗桌面上」的层次。 */
+  --canvas-top: #14171b;
+  --canvas-bottom: #090b0e;
 
   --border: var(--gray-150);
   --border-strong: var(--gray-200);
@@ -181,39 +232,46 @@
   --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.5);
   --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.6);
   --shadow-pop: 0 10px 34px rgba(0, 0, 0, 0.6);
+  --shadow-panel: 0 1px 2px rgba(0, 0, 0, 0.5), 0 8px 28px rgba(0, 0, 0, 0.42);
+  --shadow-float: 0 2px 6px rgba(0, 0, 0, 0.5), 0 18px 48px rgba(0, 0, 0, 0.6);
+  --glass-border: color-mix(in srgb, var(--border-strong) 70%, transparent);
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
     color-scheme: dark;
-    --gray-0: #16181f;
-    --gray-25: #0e0f13;
-    --gray-50: #1a1c24;
-    --gray-100: #21242e;
-    --gray-150: #2a2e3a;
-    --gray-200: #343946;
-    --gray-300: #454b5b;
-  --switch-off: #767f99; /* 0.2.17 B5: 4.4:1 on the dark surfaces */
-    --gray-400: #6a7182;
-    --gray-500: #8a91a2;
-    --gray-600: #a7adbc;
-    --gray-700: #c6cad5;
-    --gray-800: #e2e5ec;
-    --gray-900: #f4f6fa;
+    --gray-0: #1c1e22;
+    --gray-25: #15171a;
+    --gray-50: #232629;
+    --gray-100: #2c3034;
+    --gray-150: #34383d;
+    --gray-200: #42474d;
+    --gray-300: #5a6068;
+    --switch-off: #8b959d; /* 0.2.17 B5: 4.4:1 on the dark surfaces */
+    --gray-400: #7c838c;
+    --gray-500: #9aa1aa;
+    --gray-600: #b7bdc5;
+    --gray-700: #d0d5db;
+    --gray-800: #e3e6ea;
+    --gray-900: #f2f4f6;
 
-    --accent: #7da4d8;
-    --accent-hover: #9dbbe0;
-    --accent-active: #6a93cc;
-    --accent-soft: #1b2a40;
-    --accent-contrast: #0e0f13;
+    --accent: #6f82d4;
+    --accent-ink: #6f82d4;
+    --accent-hover: #6272bb;
+    --accent-active: #5968aa;
+    --accent-soft: #2c404e;
+    --accent-contrast: #10201e;
     --text-on-accent: var(--accent-contrast);
-    --accent-ink-on-soft: var(--accent-hover);
+    --accent-ink-on-soft: #9ca9e1;
 
     --bg: var(--gray-25);
     --surface: var(--gray-0);
     --surface-2: var(--gray-50);
     --surface-3: var(--gray-100);
-    --overlay-scrim: rgba(0, 0, 0, 0.6);
+    --overlay-scrim: rgba(8, 10, 12, 0.62);
+
+    --canvas-top: #14171b;
+    --canvas-bottom: #090b0e;
 
     --border: var(--gray-150);
     --border-strong: var(--gray-200);
@@ -231,5 +289,8 @@
     --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.5);
     --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.6);
     --shadow-pop: 0 10px 34px rgba(0, 0, 0, 0.6);
+    --shadow-panel: 0 1px 2px rgba(0, 0, 0, 0.5), 0 8px 28px rgba(0, 0, 0, 0.42);
+    --shadow-float: 0 2px 6px rgba(0, 0, 0, 0.5), 0 18px 48px rgba(0, 0, 0, 0.6);
+    --glass-border: color-mix(in srgb, var(--border-strong) 70%, transparent);
   }
 }

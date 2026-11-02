@@ -18,6 +18,8 @@ import './styles/views.css';
 import './styles/offline.css';
 // 0.2.0 多日历：侧栏日历区块 + 日历弹窗（只用 tokens 既有颜色）
 import './styles/calendar.css';
+import './styles/motion.css';
+import './styles/renewal.css';
 
 import { el, clear } from './js/dom.js';
 import { icon } from './js/icons.js';

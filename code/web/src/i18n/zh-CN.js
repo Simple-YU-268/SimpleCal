@@ -19,7 +19,7 @@ export const zhCN = {
 
   /* ---- 登录 ---- */
   'login.title': 'SimpleCal',
-  'login.subtitle': '数据存放于这台 NAS，家人共用；不经第三方云。',
+  'login.subtitle': '把时间留给生活，日程与待办一目了然。',
   'login.username': '用户名',
   'login.password': '密码',
   'login.submit': '登录',
@@ -757,7 +757,7 @@ export const zhCN = {
   'shortcuts.close': '关闭弹窗、菜单或侧栏',
   'settings.accentColor': '主题色',
   'settings.accent.deepBlue': '深蓝',
-  'settings.accent.teal': '青绿',
+  'settings.accent.indigo': '深靛蓝',
   'settings.accent.purple': '紫',
   'settings.accent.orange': '橙',
   'settings.accent.red': '红',

@@ -98,7 +98,7 @@ describe('P1-12 年视图圆底色', () => {
 
   it('CSS：无事件日没有任何 year-day 底色/描边规则；今天无事件只加粗主色', () => {
     expect(css).toMatch(/\.year__day\.has-events \.year__daynum \{[\s\S]{0,120}background: var\(--year-day-color/);
-    expect(css).toMatch(/\.year__day\.is-today:not\(\.has-events\) \{[\s\S]{0,80}color: var\(--accent\)/);
+    expect(css).toMatch(/\.year__day\.is-today:not\(\.has-events\) \{[\s\S]{0,80}color: var\(--accent-ink\)/);
     // 旧的 #has-events::after 小圆点已移除
     expect(css).not.toMatch(/\.year__day\.has-events::after/);
   });

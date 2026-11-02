@@ -1,7 +1,7 @@
 {
   "name": "SimpleCal",
   "short_name": "SimpleCal",
-  "description": "SimpleCal：本地优先的日程管理应用，自带 CalDAV 服务。数据只保存在本机。",
+  "description": "SimpleCal：明亮、有序的日历与任务工作台。",
   "id": "/",
   "start_url": "/",
   "scope": "/",
@@ -9,13 +9,36 @@
   "orientation": "any",
   "lang": "zh-CN",
   "dir": "ltr",
-  "background_color": "#ffffff",
-  "theme_color": "#2f5e9e",
-  "categories": ["productivity", "utilities"],
+  "background_color": "#F4F6F8",
+  "theme_color": "#3B54C4",
+  "categories": [
+    "productivity",
+    "utilities"
+  ],
   "icons": [
-    { "src": "/icon-192.png", "type": "image/png", "sizes": "192x192", "purpose": "any" },
-    { "src": "/icon-512.png", "type": "image/png", "sizes": "512x512", "purpose": "any" },
-    { "src": "/icon-192-maskable.png", "type": "image/png", "sizes": "192x192", "purpose": "maskable" },
-    { "src": "/icon-512-maskable.png", "type": "image/png", "sizes": "512x512", "purpose": "maskable" }
+    {
+      "src": "/icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-192-maskable.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icon-512-maskable.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "maskable"
+    }
   ]
 }

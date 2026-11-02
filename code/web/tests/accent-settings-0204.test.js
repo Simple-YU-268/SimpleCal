@@ -68,7 +68,7 @@ describe('设置 → 一般：主题色', () => {
     document.getElementById('simplecal-accent-theme')?.remove();
   });
 
-  it('位置紧跟主题分段；6 个预设 + 自定义圆；默认深蓝选中', async () => {
+  it('位置紧跟主题分段；6 个预设 + 自定义圆；默认薄荷色选中', async () => {
     const store = createStore(makeBackend());
     await store.load();
     opened = openAccountDialog({ user: { username: 'admin', role: 'admin' }, store });
@@ -83,15 +83,15 @@ describe('设置 → 一般：主题色', () => {
     const presets = [...picker.querySelectorAll('.swatch')];
     expect(presets.length).toBe(6);
     expect(presets.map((b) => b.getAttribute('aria-label'))).toEqual([
-      '深蓝', '青绿', '紫', '橙', '红', '石墨',
+      '深蓝', '深靛蓝', '紫', '橙', '红', '石墨',
     ]);
     const checked = presets.filter((b) => b.getAttribute('aria-checked') === 'true');
     expect(checked.length).toBe(1);
-    expect(checked[0].dataset.accent).toBe('#2f5e9e');
+    expect(checked[0].dataset.accent).toBe(DEFAULT_ACCENT);
     expect(picker.querySelector('.swatch--custom')).toBeTruthy();
   });
 
-  it('选「青绿」→ 应用 → 落库；重新 load 后保持', async () => {
+  it('选「深蓝」→ 应用 → 落库；重新 load 后保持', async () => {
     const backend = makeBackend();
     const store = createStore(backend);
     await store.load();
@@ -99,19 +99,19 @@ describe('设置 → 一般：主题色', () => {
     const general = opened.dialog.querySelector('#settings-page-general');
     const apply = applyButton(opened.dialog);
     expect(apply.disabled).toBe(true);
-    const teal = [...general.querySelectorAll('.settings__accents .swatch')]
-      .find((b) => b.getAttribute('aria-label') === '青绿');
-    teal.click();
+    const deepBlue = [...general.querySelectorAll('.settings__accents .swatch')]
+      .find((b) => b.dataset.accent === '#2f5e9e');
+    deepBlue.click();
     await flush();
     expect(apply.disabled).toBe(false);
     apply.click();
     await flush();
-    expect(store.getSettings().accentColor).toBe('#1f9e8f');
-    expect(backend.map.get('cal:settings').accentColor).toBe('#1f9e8f');
+    expect(store.getSettings().accentColor).toBe('#2f5e9e');
+    expect(backend.map.get('cal:settings').accentColor).toBe('#2f5e9e');
 
     const reloaded = createStore(backend);
     await reloaded.load();
-    expect(reloaded.getSettings().accentColor).toBe('#1f9e8f');
+    expect(reloaded.getSettings().accentColor).toBe('#2f5e9e');
   });
 
   it('非法 HEX 回退默认：sanitize、saveSettings、跨设备脏值三条路径', async () => {
@@ -140,7 +140,7 @@ describe('设置 → 一般：主题色', () => {
     expect(document.getElementById('simplecal-accent-theme')).toBeNull();
     // 预设清单与负责人口径一致
     expect(ACCENT_PRESETS.map((p) => p.hex)).toEqual([
-      '#2f5e9e', '#1f9e8f', '#6b4fa8', '#c26a1f', '#b3392f', '#4b5162',
+      '#2f5e9e', '#3b54c4', '#6b4fa8', '#c26a1f', '#b3392f', '#4b5162',
     ]);
   });
 });

@@ -57,6 +57,7 @@ import {
   solarToLunar,
 } from './lib/lunar-core.js';
 import { t } from '../i18n/index.js';
+import { createDialogMotion, motionRect } from './motion.js';
 
 /** What the guest field accepts as an address. Deliberately loose — the mail
  *  server is the real judge — but strict enough that a name or a half-typed
@@ -71,6 +72,7 @@ export function createEventModal({
   // A holiday's details card offers it as its one action; null hides it.
   onHolidaySettings = null,
 }) {
+  const motion = createDialogMotion();
   let scrim = null;
   let current = null; // the event/task being edited, or null for new
   let mode = 'event'; // 'event' | 'ooo' (out of office) | 'task'
@@ -2005,7 +2007,9 @@ export function createEventModal({
     // 上一次打开留下的保存态/冲突面板不能带进新窗口。
     setSaving(false);
     hideConflict();
-    close();
+    const transitionOrigin = motionRect(scrim?.querySelector('.modal')) || motion.origin;
+    const returnFocus = scrim ? lastFocused : motion.trigger || document.activeElement;
+    close(false, false);
     current = event;
     onCloseCb = (defaults && defaults.onClose) || null;
     if (event && event.isTask) mode = 'task';
@@ -2047,7 +2051,7 @@ export function createEventModal({
     lunarMonth = (event && event.lunarMonth) || 0;
     lunarDay = (event && event.lunarDay) || 0;
     lunarLeap = Boolean(event && event.lunarLeap);
-    lastFocused = document.activeElement;
+    lastFocused = returnFocus || motion.trigger || document.activeElement;
 
     const form = buildForm();
     setSaving(false);
@@ -2163,6 +2167,7 @@ export function createEventModal({
     syncDatePickers();
     showError('');
     anchorTop();
+    motion.enter(form, transitionOrigin);
 
     requestAnimationFrame(() => fields.title.focus());
   }
@@ -2239,6 +2244,7 @@ export function createEventModal({
   function viewWhen(item) {
     const opts = { hour12: store.getSettings().hour12 };
     if (item.isTask) {
+      if (item.due == null || !Number.isFinite(new Date(item.due).getTime())) return '';
       const due = new Date(item.due);
       return item.allDay
         ? t('editor.view.due', { date: formatFullDate(due) })
@@ -2559,8 +2565,9 @@ export function createEventModal({
     // 0.2.9（用户 17）：标题下方、时间上方先表明「归属」——所属日历。
     const rows = [viewCalendarRow(item)];
     const whenExtras = [viewRepeat(item), viewLunarHint(item)].filter(Boolean);
-    rows.push(viewRow(!isTask && item.ooo ? 'plane' : 'clock', [
-      el('div', { text: viewWhen(item) }),
+    const when = viewWhen(item);
+    if (when || whenExtras.length) rows.push(viewRow(!isTask && item.ooo ? 'plane' : 'clock', [
+      when ? el('div', { text: when }) : null,
       ...whenExtras.map((t) => el('div', { class: 'view__muted', text: t })),
     ]));
     // 0.2.1（#16）：提醒行已移除（由客户端执行，服务端只存储 VALARM），
@@ -2702,13 +2709,17 @@ export function createEventModal({
     }
   }
 
-  function openView(item) {
+  function openView(item, origin) {
     if (!item) return;
-    close();
+    if (origin) motion.rememberOrigin(origin);
+    else if (!motion.origin) motion.rememberOrigin(document.activeElement);
+    const transitionOrigin = motion.origin;
+    const returnFocus = motion.trigger || document.activeElement;
+    close(false, false);
     current = item;
     mode = item.isTask ? 'task' : item.ooo ? 'ooo' : 'event';
     viewing = true;
-    lastFocused = document.activeElement;
+    lastFocused = returnFocus;
 
     const card = buildViewCard(item);
     scrim = el('div', { class: 'modal-scrim modal-scrim--anchored' }, [card]);
@@ -2719,6 +2730,7 @@ export function createEventModal({
     document.addEventListener('keydown', onViewKeydown, true);
     window.addEventListener('resize', onViewportResize);
     anchorTop();
+    motion.enter(card, transitionOrigin);
     requestAnimationFrame(() => card.focus());
   }
 
@@ -2839,12 +2851,16 @@ export function createEventModal({
    * 关窗。0.2.16（A1）：保存中默认拒绝关闭（按钮已禁用，这里兜住 Esc/遮罩）；
    * `force` 供会话失效时由 app.destroy 拆场用——此时草稿已被 captureDraft 抓走。
    */
-  function close(force = false) {
+  function close(force = false, animate = true) {
+    // DOM click handlers pass an Event; only an explicit boolean can force teardown.
+    force = force === true;
     // 0.2.20（E8）：日期弹层是单例，编辑器关掉时一并收起，不留孤儿节点。
     closeDatePopover();
     // 0.2.16（A1）：保存中的窗口不允许被关掉（按钮已禁用，这里兜住 Esc/遮罩）。
     if (saving && !force) return;
-    if (!scrim) return;
+    if (!scrim) { if (force) motion.cancel(); return; }
+    if (animate && !force) motion.exit(scrim.querySelector('.modal'));
+    else motion.cancel();
     document.removeEventListener('keydown', onKeydown, true);
     document.removeEventListener('keydown', onViewKeydown, true);
     stopViewportWatch();
@@ -2859,6 +2875,7 @@ export function createEventModal({
     if (cb) cb();
     restoreFocus();
     lastFocused = null;
+    motion.forgetOrigin();
   }
 
   /** Return focus to whatever opened the modal. A save/delete re-renders the
@@ -2878,5 +2895,5 @@ export function createEventModal({
     }
   }
 
-  return { openNew, openEdit, openView, close, isOpen, captureDraft, restoreDraft };
+  return { openNew, openEdit, openView, close, isOpen, captureDraft, restoreDraft, rememberOrigin: motion.rememberOrigin };
 }

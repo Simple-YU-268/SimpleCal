@@ -50,7 +50,7 @@ ul {
 }
 
 a {
-  color: var(--accent);
+  color: var(--accent-ink);
   text-decoration: none;
 }
 
@@ -217,7 +217,7 @@ a {
   transform: translateY(0.5px);
 }
 .icon-btn.is-active {
-  color: var(--accent);
+  color: var(--accent-ink);
   background: var(--accent-soft);
 }
 

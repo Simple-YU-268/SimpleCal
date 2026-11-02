@@ -7,12 +7,12 @@
  *   - 把设置里的 accent 交给 prepaint 脚本应用（失败时静默沿用 tokens.css 默认）。
  */
 
-export const DEFAULT_ACCENT = '#2f5e9e';
+export const DEFAULT_ACCENT = '#3b54c4';
 
-/** 负责人定的 6 个预设（深蓝为默认）。 */
+/** Stable preset keys; indigo is the SimpleCal default. */
 export const ACCENT_PRESETS = [
   { key: 'deepBlue', hex: '#2f5e9e' },
-  { key: 'teal', hex: '#1f9e8f' },
+  { key: 'indigo', hex: '#3b54c4' },
   { key: 'purple', hex: '#6b4fa8' },
   { key: 'orange', hex: '#c26a1f' },
   { key: 'red', hex: '#b3392f' },
@@ -33,7 +33,7 @@ export function isAccentHex(value) {
 
 /** 运行时应用（首屏由 prepaint 脚本负责；设置变更后由 app 渲染调用）。 */
 export function applyAccentColor(value) {
-  const api = typeof window !== 'undefined' ? window.FncalAccent : null;
+  const api = typeof window !== 'undefined' ? (window.SimpleCalAccent || window.FncalAccent) : null;
   if (!api || typeof api.apply !== 'function') return;
   api.apply(normalizeAccent(value));
 }

@@ -227,8 +227,11 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 24px;
-  height: 24px;
+  /* 0.3.0：日号从 24px 放大到 26px —— 月视图里「今天是几号」是最该先被
+     读到的东西，13px 的数字在 7 列网格里太轻了。padding/margin 没动，
+     农历右缘对齐的口径（dayhead 8 + margin 2 + padding 6 = 16px）不变。 */
+  min-width: 26px;
+  height: 26px;
   padding: 0 6px;
   margin: 2px;
   border-radius: var(--r-full);
@@ -626,7 +629,7 @@
   color: var(--text-on-accent);
 }
 .timegrid__head-col.is-today .timegrid__dow {
-  color: var(--accent);
+  color: var(--accent-ink);
 }
 /* 0.2.12（C11-2）：日期头下面的农历副标题。列窄时省略号截断（日期号是固定
    32px 圆，不会被它挤动）；≤720px 收窄屏只留日期号，避免表头变高。 */
@@ -674,6 +677,12 @@
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
+/* 小时标签是「骑」在小时线上的（top:-7px = 压住线）。但第一个小时（0 时）
+   就在滚动区顶部，上移的半行会被容器裁掉一半——看着像「上午12时」被切了。
+   头一个小时把标签放回行内，线该在哪还是哪。 */
+.timegrid__hour:first-child .timegrid__hour-label {
+  top: 1px;
+}
 /* 0.2.12（C11-1）：「第二时区」列已删除，时间轴只留本地一列。 */
 .timegrid__head-gutter {
   position: relative;
@@ -702,7 +711,9 @@
   cursor: default;
 }
 
-/* Now-indicator */
+/* Now-indicator: one rule across every day column. It is an out-of-flow
+   child of `.timegrid__cols`, so it spans the whole range without adding a
+   grid track of its own. */
 .now-line {
   position: absolute;
   left: 0;
@@ -1210,7 +1221,7 @@ body.is-dragging .tevent--resizing * {
   line-height: 1;
 }
 .agenda__date-num.is-today {
-  color: var(--accent);
+  color: var(--accent-ink);
 }
 .agenda__date-dow {
   font-size: var(--fs-sm);
@@ -1264,7 +1275,13 @@ body.is-dragging .tevent--resizing * {
   background: var(--chip-color);
 }
 .agenda__event-time {
-  width: 128px;
+  /* Wide enough for a full 12-hour range with the Chinese period marker
+     ("上午10:00 – 上午11:00") to stay on ONE line — macOS Calendar keeps the
+     range unbroken, and a wrapped range pushed the title onto a second line
+     and knocked the row out of alignment with its neighbours. A range that
+     crosses midnight ("上午10:00 – 11月3日 上午11:00") is longer still; that
+     one is rare enough to wrap. */
+  width: 164px;
   flex: none;
   color: var(--text-2);
   font-variant-numeric: tabular-nums;
@@ -1549,7 +1566,7 @@ body.is-dragging .tevent--resizing * {
   text-align: left;
   font-size: var(--fs-md);
   font-weight: 650;
-  color: var(--accent);
+  color: var(--accent-ink);
   padding: 0 2px var(--sp-2);
 }
 @media (hover: hover) {
@@ -1626,7 +1643,7 @@ button.year__day {
 }
 /* 今天但无事件：只加粗 + 主色数字。 */
 .year__day.is-today:not(.has-events) {
-  color: var(--accent);
+  color: var(--accent-ink);
   font-weight: 700;
 }
 /* 今天且有事件：事件色圆底 + 今天描边环。
@@ -1757,7 +1774,7 @@ button.year__day {
    有事件的今天是事件色填色圆，accent 环画在外侧并留 2px `--surface` 空隙（见上）。 */
 .year__day.is-today:not(.has-events) .year__daynum {
   box-shadow: inset 0 0 0 2px var(--accent);
-  color: var(--accent);
+  color: var(--accent-ink);
   font-weight: 700;
 }
 
@@ -1792,7 +1809,8 @@ button.year__day {
     overflow: hidden;
     text-overflow: ellipsis;
   }
-  .header__tools .segmented button {
+  /* 0.3.1：视图切换器搬进了 .header__nav（紧跟日期标题），选择器同步跟过去。 */
+  .header__nav .segmented button {
     padding: 0 var(--sp-2);
   }
 }
@@ -1819,7 +1837,8 @@ button.year__day {
   .tabbar {
     display: grid;
   }
-  .header__tools .segmented {
+  /* 0.3.1：视图切换器在 .header__nav 里；≤720 由底部页签接管视图切换。 */
+  .header__nav .segmented {
     display: none;
   }
   .menu-toggle {
@@ -1889,7 +1908,7 @@ button.year__day {
     padding: var(--sp-1);
     font-size: 10px;
   }
-  /* Agenda: the desktop 96px date column + 128px time column left event
+  /* Agenda: the desktop 96px date column + 164px time column left event
      titles — the most important field — only ~70px on a 390px phone.
      Tighten both fixed columns so titles keep the lion's share. */
   .agenda__day {
@@ -1980,6 +1999,11 @@ button.year__day {
     overflow: hidden;
   }
   /* 日历色映射：左侧 3px 色条（原 7px 点的颜色语义，白底上仍能一眼分辨日历）。 */
+  /* impeccable-disable side-tab -- category colour coding, not decoration: a
+     phone month cell is only ~48px wide, so the 7px dot that used to carry the
+     colour cost the title its width (0.2.17 B1 replaced it with this 3px
+     stripe). Without it there is no second signal that says which calendar an
+     event belongs to. */
   .chip::after {
     content: '';
     position: absolute;
@@ -2005,12 +2029,21 @@ button.year__day {
   }
   .chip__time {
     display: inline;
-    flex: none;
+    /* 时间在手机上让位给标题。
+       7 列的月视图在 390px 宽的屏幕上每格只有 ~48px，一条「上午10:00」
+       自己就要 49px——时间和标题挤在同一行，结果是时间被从中间切断
+       （「上午10:」），标题一个字都放不下，两头都读不出来。
+       标题才是「这是什么事件」的那一半；时间仍然留在 DOM 里（读屏、
+       详情、宽一点的紧凑屏都还读得到），只是把宽度让出来。 */
+    flex: 0 1 0;
+    min-width: 0;
+    overflow: hidden;
     font-size: var(--fs-xs);
   }
   /* 时间 + 标题：标题单行省略（B1.1）。 */
   .chip__title {
     display: block;
+    flex: 1 1 auto;
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;

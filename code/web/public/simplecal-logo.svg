@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <title>SimpleCal</title>
+  <rect width="64" height="64" rx="17" fill="#3B54C4"/>
+  <g><path d="M22 17H42C49 17 53 21 53 28V45C53 52 49 56 42 56H22C15 56 11 52 11 45V28C11 21 15 17 22 17Z" fill="#FCFFF9"/>
+  <path d="M23 12V21M41 12V21" stroke="#A9BEE4" stroke-width="4.5" stroke-linecap="round"/>
+  <path d="M39 29.7C37.2 28.2 34.9 27.4 32.5 27.4C26.8 27.4 22.3 31.9 22.3 37.5C22.3 43.1 26.8 47.6 32.5 47.6C34.9 47.6 37.2 46.8 39 45.3" fill="none" stroke="#3B54C4" stroke-width="5.5" stroke-linecap="round"/>
+  <circle cx="42.5" cy="37.5" r="5.5" fill="#FFD94D"/></g>
+</svg>

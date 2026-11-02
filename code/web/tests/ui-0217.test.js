@@ -442,18 +442,22 @@ describe('0.2.17 B4 周数算法联动 + 快捷键清单', () => {
 /* ------------------------------------------------------------------ B5 */
 
 describe('0.2.17 B5 开关「关」态的对比度', () => {
-  it('--switch-off 亮色 #737b8e 对白底 ≥ 3.5:1', () => {
-    expect(tokensCss).toContain('--switch-off: #737b8e');
-    expect(contrast('#737b8e', '#ffffff')).toBeGreaterThanOrEqual(3.5);
+  // 0.3.0 视觉重做把中性灰阶整体换掉了，开关「关」态也跟着去掉绿味：
+  // #687f7a → #66736f（亮）、#8ca79e → #8b959d（暗）。对比度口径不变。
+  it('--switch-off 亮色 #66736f 对白底 ≥ 3.5:1', () => {
+    expect(tokensCss).toContain('--switch-off: #66736f');
+    expect(contrast('#66736f', '#ffffff')).toBeGreaterThanOrEqual(3.5);
   });
 
-  it('--switch-off 暗色两处都是 #767f99，对 #16181f ≥ 3.5:1', () => {
-    expect(tokensCss.match(/--switch-off: #767f99/g)).toHaveLength(2);
-    expect(contrast('#767f99', '#16181f')).toBeGreaterThanOrEqual(3.5);
+  it('--switch-off 暗色两处都是 #8b959d，对 #1c1e22 ≥ 3.5:1', () => {
+    expect(tokensCss.match(/--switch-off: #8b959d/g)).toHaveLength(2);
+    expect(contrast('#8b959d', '#1c1e22')).toBeGreaterThanOrEqual(3.5);
   });
 
-  it('旧的 #858c9d 已不再使用', () => {
+  it('旧的 #858c9d 与重做前的绿味开关色已不再使用', () => {
     expect(stripComments(tokensCss)).not.toContain('#858c9d');
+    expect(stripComments(tokensCss)).not.toContain('#687f7a');
+    expect(stripComments(tokensCss)).not.toContain('#8ca79e');
   });
 });
 

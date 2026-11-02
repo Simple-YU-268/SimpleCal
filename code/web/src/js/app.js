@@ -79,7 +79,7 @@ export function createApp(root, { store, user }) {
     miniCursor: startOfMonth(new Date()),
     sidebarOpen: false,
     // 0.2.0（B4）：右侧任务栏与它的筛选页签。
-    taskbarOpen: false,
+    taskbarOpen: typeof window !== 'undefined' && window.innerWidth >= 1280,
     taskFilter: 'all', // 'all' | 'open' | 'done'
   };
 
@@ -943,7 +943,7 @@ export function createApp(root, { store, user }) {
     menuBtn,
     el('div', { class: 'header__brand' }, [
       el('span', { class: 'brand-mark' }, [
-        el('img', { src: './icon-192.png', alt: '', width: '30', height: '30' }),
+        el('img', { src: './simplecal-mark.svg', alt: '', width: '34', height: '34' }),
       ]),
       el('span', { class: 'brand-name', text: t('app.name') }),
     ]),
@@ -985,14 +985,25 @@ export function createApp(root, { store, user }) {
         }),
       ]),
       headerTitleEl,
+      // 0.3.1：视图切换器从右侧工具区搬进**日期导航区**，紧跟标题。
+      // 原来它排在搜索胶囊与「任务」按钮之间，把右边的工具簇劈成两半——
+      // 一堆视图按钮既不属于「看时间」也不属于「做事情」。
+      // 现在顶栏是两组：左边「在哪（今天/前后/哪个月/哪个视图）」，
+      // 右边「做什么（搜索/任务/设置/账号）」。
+      segmented,
     ]),
     // 0.2.3：顶部中间常驻搜索条（桌面显示输入框；≤720 收起为 header 的搜索图标）。
     searchBar,
     el('div', { class: 'header__spacer' }),
-    el('div', { class: 'header__tools' }, [segmented, taskBtn, searchBtn, settingsBtn, avatarBtn]),
+    el('div', { class: 'header__tools' }, [taskBtn, searchBtn, settingsBtn, avatarBtn]),
   ]);
 
   const shell = el('div', { class: 'app' }, [header, sidebarSlot, mainEl, taskbarEl, taskbarScrim, tabbar]);
+  const rememberItemOrigin = (event) => {
+    const target = event.target?.closest?.('.chip, .task-row, .event-block, .agenda__event, [data-focus-key]');
+    if (target) modal.rememberOrigin?.(target);
+  };
+  shell.addEventListener('pointerdown', rememberItemOrigin, true);
   clear(root);
   root.removeAttribute('aria-busy');
   root.append(shell);
@@ -1092,7 +1103,8 @@ export function createApp(root, { store, user }) {
       el('button', {
         class: 'task-row__main',
         type: 'button',
-        on: { click: () => modal.openEdit(task) },
+        dataset: { focusKey: `taskbar-main:${task.id}` },
+        on: { click: (event) => modal.openView(task, event.currentTarget) },
       }, [
         el('span', { class: 'task-row__title', text: task.title || t('taskbar.untitled') }),
         el('span', { class: 'task-row__meta' }, [
@@ -1522,6 +1534,7 @@ export function createApp(root, { store, user }) {
   }
 
   function onKeydown(e) {
+    if (e.defaultPrevented) return;
     // A shortcut that re-renders (view switch, navigation, new event) would
     // tear down the nodes an in-flight drag measures, committing a bogus move.
     // Ignore keys until the gesture ends — mirrors the tick/resize guards.
@@ -1700,6 +1713,7 @@ export function createApp(root, { store, user }) {
       } catch {
         /* 没有打开窗口时忽略 */
       }
+      shell.removeEventListener('pointerdown', rememberItemOrigin, true);
       unbindFileDrop();
       unsub();
       unsubDragEnd();
@@ -1721,7 +1735,7 @@ export function createApp(root, { store, user }) {
 }
 
 function normalizeView(v) {
-  return VIEWS.some((x) => x.key === v) ? v : 'week';
+  return VIEWS.some((x) => x.key === v) ? v : 'month';
 }
 
 function tabIcon(key) {
@@ -1737,9 +1751,11 @@ function tabIcon(key) {
 }
 
 /** Apply the theme by toggling the root `data-theme` attribute. */
-// Browser / installed-PWA chrome colors; must match --bg in tokens.css and the
-// per-scheme <meta name="theme-color"> defaults in index.html.
-const THEME_COLORS = { light: '#ffffff', dark: '#0e0f13' };
+// Browser / installed-PWA chrome colors; must match the app's topmost surface
+// (the toolbar, --surface) and the per-scheme <meta name="theme-color"> defaults
+// in index.html. 0.3.1: the old values still carried the pre-0.3.0 green-tinted
+// palette, so the browser chrome was a different colour from the app.
+const THEME_COLORS = { light: '#ffffff', dark: '#1c1e22' };
 
 export function applyTheme(theme) {
   const rootEl = document.documentElement;

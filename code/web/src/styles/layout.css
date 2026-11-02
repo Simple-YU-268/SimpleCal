@@ -63,7 +63,11 @@
   font-size: var(--fs-xl);
   font-weight: 650;
   letter-spacing: -0.02em;
-  flex: 1 1 auto;
+  /* 0.3.1：标题**贴住自己的文字**，不再吃掉导航区的全部余量。
+     之前它 flex: 1 1 auto，于是「2026年11月」和搜索胶囊之间出现一大段空白
+     （实测 438px 的标题盒），顶栏被撕成两半。现在余量统一落到导航区末尾，
+     标题右侧紧跟着视图切换器，一组东西挨在一起。 */
+  flex: 0 1 auto;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -281,7 +285,7 @@
   opacity: 0.4;
 }
 .mini__cell.is-today {
-  color: var(--accent);
+  color: var(--accent-ink);
   font-weight: 700;
 }
 /* 0.2.10（用户 1-19）：今天 = 主题色**圆描边、不填色**，数字 accent 加粗；
@@ -1026,7 +1030,7 @@
 /* URLs/emails auto-detected in user text (see linkify in dom.js). Focus uses
    the global :focus-visible outline. */
 .linkified {
-  color: var(--accent);
+  color: var(--accent-ink);
   text-decoration: underline;
   text-underline-offset: 2px;
 }
@@ -1901,7 +1905,7 @@
 }
 .io-cal-picker__row[aria-selected='true'] {
   background: var(--accent-soft);
-  color: var(--accent);
+  color: var(--accent-ink);
 }
 .io-cal-picker__row:focus-visible {
   outline: 2px solid var(--accent);
@@ -2317,7 +2321,7 @@
   visibility: hidden;
 }
 .auth-rules__item[data-met='true'] {
-  color: var(--accent);
+  color: var(--accent-ink);
 }
 .auth-rules__item[data-met='true'] .auth-rules__mark {
   opacity: 1;

@@ -553,11 +553,13 @@ describe('0.2.20 E8：日期弹层单例与 toggle', () => {
   it('openDatePopover 有单例守卫，连续两次同锚点不会留下两个节点', () => {
     const anchor = document.createElement('button');
     document.body.append(anchor);
+    const clock = vi.spyOn(Date, 'now').mockReturnValue(1_800_000_000_000);
     const first = openDatePopover({ anchor, value: '2026-08-19', weekStartsOn: 1 });
     expect(document.querySelectorAll('.date-pop')).toHaveLength(1);
     // 80ms 内的同一锚点重复打开被去重（防双触发）
     const second = openDatePopover({ anchor, value: '2026-08-19', weekStartsOn: 1 });
     expect(second).toBe(first);
+    clock.mockRestore();
     expect(document.querySelectorAll('.date-pop')).toHaveLength(1);
     closeDatePopover();
   });

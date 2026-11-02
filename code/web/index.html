@@ -9,7 +9,7 @@
     <meta name="keywords" content="SimpleCal, 日程管理, 日历视图, 事件, 重复事件, 日程, 导入导出, CalDAV" />
     <meta name="robots" content="noindex, nofollow" />
     <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#0e0f13" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#1c1e22" media="(prefers-color-scheme: dark)" />
 
     <!-- 0.2.4 ⑭：主题色派生变量（首屏 prepaint 与运行时共用；默认色不注入）。 -->
     <script src="./accent-prepaint.js"></script>
@@ -22,8 +22,8 @@
           var settings = typeof raw === 'string' ? JSON.parse(raw) : raw;
           var theme = settings && settings.theme;
           if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme;
-          if (settings && settings.accentColor && window.FncalAccent) {
-            window.FncalAccent.apply(settings.accentColor);
+          if (settings && settings.accentColor && (window.SimpleCalAccent || window.FncalAccent)) {
+            (window.SimpleCalAccent || window.FncalAccent).apply(settings.accentColor);
           }
         } catch (_e) {
           /* 无快照或存储被禁用时沿用系统主题/默认 accent */

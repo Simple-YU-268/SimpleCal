@@ -1,0 +1,892 @@
+/* =========================================================================
+   SimpleCal 0.3.0 — 现代日历工作台
+
+   参照 Apple 日历（macOS / iOS）与 TimeTree 的**信息结构与材质语言**重做
+   视觉层，保留 SimpleCal 的薄荷/粉彩身份、松墨绿墨色与全部既有行为。
+
+   分工：本文件只负责**视觉表达**（颜色、字重、圆角、材质、密度），
+   结构与几何仍然住在 base.css / layout.css / views.css / calendar.css，
+   这样那些断言几何的用例继续成立，也让「改样式」和「改行为」互不干扰。
+
+   三条参照各自借了什么：
+     · Apple 日历 —— 浮在画布上的玻璃工具条、连体的一对翻页箭头、
+       分段控件的白色「拇指」、月视图里安静的网格 + 显眼的日子。
+     · TimeTree —— 左侧日历清单用**色块**承载日历色，事件在月视图里
+       带自己的颜色底，让「哪天的哪个日程」一眼可辨。
+     · 两者共同 —— 中性的画布 + 内容着色；薄荷色退回「点睛色」的位置。
+   ========================================================================= */
+
+/* ---- 浏览器自带的表面 ---------------------------------------------- *
+   滚动条、选区、插字符、焦点环都属于浏览器默认，跟任何设计系统都不沾边。
+   这是「页面是被做出来的」和「页面是被拼起来的」之间最便宜的区别。 */
+body {
+  /* 画布：窗口浮在它上面，所以它必须比**每一块面板**都低一档。
+     上浅下深的两段冷灰给出方向感（光从上方来），也让「纸面」——月历本身——
+     在亮色下是画面里最亮的一层、在暗色下是唯一不透光的一层。
+     亮/暗两套值在 tokens.css 里成套给，这里只消费。 */
+  background: linear-gradient(180deg, var(--canvas-top) 0%, var(--canvas-bottom) 100%);
+  background-attachment: fixed;
+  caret-color: var(--accent-ink);
+}
+::selection {
+  background: color-mix(in srgb, var(--accent) 42%, transparent);
+  color: var(--text);
+}
+:focus-visible {
+  outline: 2px solid var(--accent-ink);
+  outline-offset: 2px;
+}
+* {
+  scrollbar-color: var(--gray-300) transparent;
+  scrollbar-width: thin;
+}
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--gray-300);
+  border: 3px solid transparent;
+  border-radius: var(--r-full);
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--gray-400);
+  background-clip: content-box;
+}
+/* 日历与面板里的数字都要对齐：日期、时间、计数器。 */
+.header,
+.mini,
+.month,
+.taskbar {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- 控件基线 ------------------------------------------------------- */
+.btn,
+.icon-btn,
+.input,
+.select,
+.textarea {
+  border-radius: 10px;
+}
+.btn {
+  font-weight: 600;
+}
+.btn--primary,
+.btn--primary:hover {
+  color: var(--text-on-accent);
+}
+.icon-btn {
+  color: var(--text-2);
+}
+@media (hover: hover) and (pointer: fine) {
+  .icon-btn:hover {
+    /* 悬停是**中性**的一层薄雾，不是薄荷色。之前每个图标按钮一悬停就发绿，
+       齿轮和放大镜跟着一起闪，一排控件像在呼吸。薄荷色留给「选中」这一件事。 */
+    color: var(--text);
+    background: var(--surface-2);
+  }
+}
+.icon-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* 分段控件：容器是「槽」，选中项是一枚浮在上面的白色拇指（Apple 的做法）。
+   拇指带一点投影才立得起来——但只有这一层有影，容器本身是平的。
+   0.3.1：顶栏的视图切换与任务栏的筛选用**同一套**配方；横向内边距收到 10px，
+   拇指另外补一圈发丝描边（在玻璃条上白底会糊）。 */
+.segmented {
+  background: var(--surface-2);
+  padding: 3px;
+  border-radius: 11px;
+  gap: 2px;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--border) 60%, transparent);
+}
+.segmented button {
+  height: 30px;
+  padding: 0 10px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-2);
+}
+.segmented button[aria-pressed='true'],
+.segmented button[aria-selected='true'],
+.segmented button[aria-checked='true'] {
+  background: var(--accent);
+  color: var(--text-on-accent);
+  box-shadow: var(--shadow-sm);
+}
+@media (hover: hover) and (pointer: fine) {
+  .segmented button:not([aria-pressed='true']):not([aria-selected='true']):not([aria-checked='true']):hover {
+    color: var(--text);
+    background: color-mix(in srgb, var(--surface) 55%, transparent);
+  }
+}
+.segmented button:active {
+  transform: translateY(0.5px);
+}
+.segmented button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ---- 应用外壳 ------------------------------------------------------- */
+@media (min-width: 901px) {
+  .app {
+    margin: 14px;
+    width: calc(100% - 28px);
+    height: calc(100% - 28px);
+    gap: 12px;
+    grid-template-rows: 64px minmax(0, 1fr);
+    grid-template-columns: 232px minmax(0, 1fr);
+  }
+  .app.has-taskbar {
+    grid-template-columns: 232px minmax(0, 1fr) 300px;
+  }
+
+  /* 顶栏：浮在画布上的玻璃条。玻璃是「功能性材料」——它把工具条和日历分开，
+     不是装饰；月历本身保持纸面，网格线才不会糊。 */
+  .header {
+    padding: 0 14px 0 18px;
+    gap: 10px;
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    background: var(--glass-bg);
+    /* 边缘由发丝描边声明，阴影只留一层接触影——玻璃不该有厚重的落影，
+       也不该和「1px 边框 + 大软阴影」同时出现（那是幽灵卡片）。 */
+    box-shadow: 0 1px 2px rgba(15, 25, 22, 0.05);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+  }
+
+  /* 月历：纸面 + 细边框 + 一层柔和投影，像摊在桌面上的本子。 */
+  .main {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    box-shadow: var(--shadow-panel);
+    overflow: hidden;
+  }
+
+  .sidebar {
+    /* 0.3.1：侧栏和顶栏、任务栏是**同一块玻璃**。之前它是透明的，
+       于是整个应用读起来是「三块半」——顶栏和任务栏浮着，左边一列却是画布本身。
+       三块玻璃 + 一张纸面 = 一扇窗（one window, three panes）。 */
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    box-shadow: 0 1px 2px rgba(15, 25, 22, 0.05);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    padding: 14px 10px 0;
+    gap: 20px;
+  }
+  /* 列表底部渐隐要淡进**这块玻璃**的颜色，不是纸面的白。 */
+  .sidebar::after {
+    background: linear-gradient(to top, var(--glass-bg-strong), transparent);
+  }
+
+  .taskbar {
+    padding: 20px 16px;
+    gap: 16px;
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    background: var(--glass-bg);
+    box-shadow: 0 1px 2px rgba(15, 25, 22, 0.05);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+  }
+
+  .mini {
+    padding: 6px 4px;
+  }
+}
+
+/* ---- 顶栏内容 ------------------------------------------------------- */
+.header__brand {
+  gap: 10px;
+}
+.brand-mark,
+.brand-mark img {
+  width: 32px;
+  height: 32px;
+}
+.brand-name {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+}
+.header__title {
+  font-size: var(--fs-title);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+/* 0.3.1 顶栏重新分组：
+     左边「我在哪」= 今天 / 前后 / 哪个月 / 哪个视图；
+     右边「我要做什么」= 搜索 / 任务 / 设置 / 账号。
+     视图切换器因此跟标题走（Google 日历的分组逻辑），标题贴住自己的文字，
+     余量落在导航区末尾——顶栏不再被「一堆视图按钮」劈成两半。 */
+.header__nav > .segmented {
+  flex: none;
+  margin-left: var(--sp-1);
+}
+.header__today,
+.nav-arrows {
+  flex: none;
+}
+/* 翻页箭头是一对**裸**的 chevron，不套凹槽：凹槽会让顶栏左半边出现
+   「药丸 + 药丸」两个并排的灰块，读起来拥挤。Apple 日历这里是两个裸图标，
+   悬停时才浮出一枚小方片。 */
+.nav-arrows {
+  gap: 0;
+  border-radius: 10px;
+  background: none;
+}
+.nav-arrows .icon-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+}
+@media (hover: hover) and (pointer: fine) {
+  .nav-arrows .icon-btn:hover {
+    background: var(--surface-2);
+    color: var(--text);
+  }
+}
+/* 「今天」是顶栏唯一的主导航按钮：白底 + 发丝描边，像一枚真正能按下的键，
+   而不是又一个灰胶囊（玻璃条上灰胶囊几乎看不见）。 */
+.header__today {
+  height: 32px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: var(--surface);
+  border-color: var(--border);
+  color: var(--text);
+  font-weight: 600;
+  box-shadow: var(--shadow-sm);
+}
+@media (hover: hover) and (pointer: fine) {
+  .header__today:hover {
+    background: var(--surface);
+    border-color: var(--gray-300);
+  }
+}
+/* 搜索条：药丸 + 前置放大镜，聚焦时整条变白（Apple 的搜索栏做法）。 */
+.header__search {
+  background: var(--surface-2);
+  /* 玻璃条上的搜索框要有一圈发丝描边才读得出是「可输入的一栏」，
+     而不是一块灰色的影子。 */
+  border-color: var(--border);
+}
+.header__search:focus-within {
+  background: var(--surface);
+  border-color: var(--accent-ink);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
+  outline: none;
+}
+.header__search-input {
+  font-size: 13px;
+}
+
+/* ---- 侧栏 ------------------------------------------------------------ */
+.sidebar__create {
+  /* 侧栏唯一的主操作：薄荷实心 + 一枚前导的「+」，圆角 12px（控件级，
+     不是面板级），落影让它从玻璃上浮起半毫米。 */
+  min-height: 42px;
+  font-weight: 600;
+  border-radius: 12px;
+  letter-spacing: 0.01em;
+  box-shadow: 0 1px 2px rgba(23, 59, 53, 0.1), 0 6px 16px rgba(23, 59, 53, 0.08);
+}
+.mini__title {
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: -0.015em;
+}
+.mini__dow {
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: none;
+  color: var(--gray-400);
+}
+.mini__cell {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-2);
+}
+@media (hover: hover) and (pointer: fine) {
+  .mini__cell:hover {
+    background: var(--surface-3);
+  }
+}
+.mini__cell.is-today {
+  color: var(--accent-ink);
+  font-weight: 700;
+}
+/* 今天在迷你月历里也是一枚实心薄荷圆盘，跟主月视图口径一致：
+   左边小月历、右边大月历，「今天」长一个样，扫一眼就知道是同一天。 */
+.mini__cell.is-today:not(.is-selected) {
+  background: var(--accent);
+  color: var(--text-on-accent);
+  font-weight: 700;
+  box-shadow: none;
+}
+.mini__cell.is-today:not(.is-selected).has-events::after {
+  background: var(--text-on-accent);
+}
+.mini__cell.is-muted {
+  color: var(--gray-400);
+}
+.side-calendars__title {
+  /* 区块标签比内容弱一档：颜色更浅、字距更开，扫视时先看日历名再看到标签。 */
+  color: var(--text-3);
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+}
+.cal-group__title {
+  font-weight: 650;
+  color: var(--text-3);
+}
+.cal-row {
+  height: 34px;
+}
+.cal-row__name {
+  font-size: var(--fs-md);
+  font-weight: 500;
+}
+/* 迷你月历与日历清单之间留一条发丝线，侧栏于是有了「主块 / 清单」的层级。 */
+.side-calendars {
+  border-top: 1px solid var(--grid-line);
+  padding-top: 14px;
+}
+.side-calendars__head {
+  padding: 0 0 6px;
+}
+@media (hover: hover) and (pointer: fine) {
+  .cal-row:hover {
+    background: var(--surface-3);
+  }
+}
+
+/* ---- 月视图：网格 ---------------------------------------------------- */
+.month__dow {
+  min-height: 40px;
+  align-items: center;
+  border-bottom-color: var(--border);
+}
+.month__dow-cell {
+  padding: 0 var(--sp-2);
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  /* Apple 与 TimeTree 的星期头都是居中、灰色、小字；不做大写变换。 */
+  text-transform: none;
+  text-align: center;
+  color: var(--text-3);
+}
+.month__cell {
+  border-right-color: var(--grid-line);
+  border-bottom-color: var(--border);
+}
+/* 0.3.0：非本月的那几天**不再铺灰底**。
+   以前整行灰块把月视图的上沿压成一块大色团（尤其 11 月这种 1 号在第五列、
+   上沿整整六格都是上月日期的月份）。Apple 日历的做法是只把日号压淡、底色
+   仍是纸面——月份归属靠数字读出来，不是靠一块底色。 */
+.month__cell.is-othermonth {
+  background: transparent;
+}
+.month__cell.is-weekend:not(.is-othermonth) {
+  background: color-mix(in srgb, var(--surface-2) 42%, transparent);
+}
+@media (hover: hover) and (pointer: fine) {
+  .month__cell:not(.is-othermonth):not(.is-drop-target):hover {
+    background: color-mix(in srgb, var(--accent) 7%, var(--surface));
+  }
+}
+
+/* 日号：右对齐（与 macOS 日历、TimeTree 一致，也保住农历右缘对齐的口径）。
+   数字放大到 13px/650，「今天」是一枚薄荷圆盘。 */
+.month__daynum {
+  font-size: 14px;
+  font-weight: 650;
+  color: var(--text-2);
+}
+.month__cell.is-othermonth .month__daynum {
+  color: var(--gray-400);
+  font-weight: 500;
+}
+.month__cell.is-today .month__daynum {
+  background: var(--accent);
+  color: var(--text-on-accent);
+  font-weight: 700;
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--accent) 55%, transparent);
+}
+.month__lunar {
+  color: var(--text-3);
+}
+.month__cell.is-othermonth .month__lunar {
+  color: var(--gray-400);
+}
+
+/* ---- 月视图：事件 ---------------------------------------------------- */
+/* TimeTree 的做法：每条日程带着**自己的颜色底**，一眼分得出是谁的日程。
+   这里把日程色按 22% 调进纸面里，得到柔和但可辨的一层色；全天/跨天条仍然是
+   实色块 + 深墨（原来的 chip--filled），跟 TimeTree 的全天条一致。 */
+/* The chip's desktop expression. This sheet is the LAST one loaded, so a plain
+   `.chip` rule here silently beat views.css's `@media (max-width: 520px)`
+   compact block: phones were getting the 22px/13px desktop chip instead of the
+   20px/11px single-line one, which is what pushed the time off the chip and
+   left the cell showing a sliced "上午10:". The desktop expression therefore
+   stops at the same breakpoint, and the phone design below wins again. */
+@media (min-width: 521px) {
+  .chip {
+    gap: 6px;
+    min-height: 22px;
+    padding: 2px 8px;
+    border-radius: var(--r-chip);
+    font-size: var(--fs-sm);
+    background: color-mix(in srgb, var(--chip-color) 46%, var(--surface));
+  }
+}
+@media (hover: hover) and (pointer: fine) and (min-width: 521px) {
+  .chip:hover {
+    background: color-mix(in srgb, var(--chip-color) 64%, var(--surface));
+  }
+}
+.chip__dot {
+  width: 7px;
+  height: 7px;
+  box-shadow: none;
+}
+.chip__time {
+  font-size: 11px;
+  font-weight: 500;
+}
+.chip__title {
+  font-weight: 500;
+}
+/* 单日事件离格子边留一点呼吸；跨天条是整条铺满的，不动。手机上格子本来就
+   窄，这 2px 留给标题更值。 */
+@media (min-width: 521px) {
+  .chip:not(.chip--span-start):not(.chip--span-mid):not(.chip--span-end) {
+    margin-inline: 2px;
+  }
+}
+.chip--filled {
+  background: var(--chip-color);
+  font-weight: 500;
+}
+.chip--filled .chip__title {
+  font-weight: 600;
+}
+.chip--task {
+  background: color-mix(in srgb, var(--chip-color) 14%, var(--surface));
+}
+.chip--holiday {
+  background: transparent;
+}
+/* 「还有 N 个」不是按钮的样子，是一行安静的提示。 */
+.month__more {
+  color: var(--accent-ink);
+  font-weight: 600;
+  border-radius: var(--r-xs);
+}
+@media (hover: hover) and (pointer: fine) {
+  .month__more:hover {
+    background: var(--accent-soft);
+  }
+}
+.month__more-popover {
+  border-radius: 12px;
+  box-shadow: var(--shadow-float);
+}
+
+/* ---- 周 / 四日 / 日视图 --------------------------------------------- */
+/* 表头：星期小字居中，日期号是一枚圆盘，今天填薄荷。跟月视图同一套语言，
+   换视图时表头的「读法」不变。 */
+.timegrid__dow {
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: none;
+  color: var(--text-3);
+}
+.timegrid__datenum {
+  width: 30px;
+  height: 30px;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.timegrid__head-col.is-today .timegrid__datenum {
+  background: var(--accent);
+  color: var(--text-on-accent);
+}
+.timegrid__lunar {
+  color: var(--text-3);
+}
+.timegrid__allday-label {
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: none;
+}
+/* 时间轴里的整点标签：11px、表格数字、安静一点。 */
+.timegrid__hour-label {
+  font-size: 11px;
+  color: var(--text-3);
+}
+/* 今天的整条列染上薄荷色——一整条到底，不是只有日期号那一格。 */
+.timegrid__col.is-today,
+.timegrid__allday-col.is-today {
+  background: color-mix(in srgb, var(--accent) 6%, var(--surface));
+}
+/* 事件块：TimeTree 的实色块 + 深墨字。边框从「一圈发暗的描边」改成
+   「没有描边 + 一层轻投影」——粉彩块自己已经能和白底分开，加描边只会
+   让边缘发脏。 */
+.tevent {
+  border: 0;
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(15, 25, 22, 0.14);
+}
+.tevent.is-ooo {
+  border: 1px dashed color-mix(in srgb, var(--ooo-color) 50%, var(--border));
+}
+.tevent__title {
+  font-weight: 600;
+}
+/* 「现在」这条线：细一点、圆头收一点，像 Apple 的红色指针。 */
+.now-line {
+  height: 2px;
+  background: var(--danger);
+}
+.now-line::before {
+  width: 8px;
+  height: 8px;
+  left: -4px;
+}
+
+/* ---- 右侧任务栏 ------------------------------------------------------ */
+.taskbar__title {
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+/* 任务行是**列表项**，不是卡片：一条细分割线 + 悬停底色就够。
+   （craft floor：卡片是懒惰的容器，嵌套卡片永远不对。） */
+.task-row {
+  /* 0.3.1：密度收紧——一屏里能多看两条任务，行与行之间靠一条发丝线分开。 */
+  min-height: 56px;
+  padding: 8px;
+  gap: 10px;
+  border-radius: 8px;
+  border-bottom: 1px solid var(--grid-line);
+}
+.task-row:last-child {
+  border-bottom: 0;
+}
+@media (hover: hover) and (pointer: fine) {
+  .task-row:hover {
+    background: var(--surface-2);
+  }
+}
+.task-row__title {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.45;
+}
+.task-row__meta {
+  font-size: 12px;
+  line-height: 1.45;
+}
+/* 复选框：未完成是一枚**空心圆环**（跟着该任务的日历色），
+   完成后填成实心——形状变化本身就是状态，不靠颜色单独承担信息。 */
+.task-row__check {
+  transition: background var(--dur-fast) var(--ease),
+    border-color var(--dur-fast) var(--ease);
+}
+.task-row__check:hover {
+  border-color: var(--cal-color, var(--accent));
+}
+
+/* ---- 弹层 ------------------------------------------------------------ */
+.modal-scrim {
+  background: var(--overlay-scrim);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.modal {
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: var(--shadow-float);
+  border: 0;
+}
+.modal__head {
+  padding: 24px 26px 16px;
+}
+.modal__body {
+  padding-left: 26px;
+  padding-right: 26px;
+}
+.modal__foot {
+  padding: 18px 26px;
+}
+.view__title {
+  font-size: 24px;
+  letter-spacing: -0.025em;
+  line-height: 1.35;
+}
+.popover {
+  border-radius: 12px;
+  box-shadow: var(--shadow-float);
+}
+
+/* ---- 登录 ------------------------------------------------------------ */
+.screen {
+  /* 登录页与工作台共用同一块地面（--canvas-*），只是上面多了一层薄荷/粉彩的柔光。 */
+  background: radial-gradient(ellipse at 8% 5%, color-mix(in srgb, var(--brand-periwinkle) 46%, transparent), transparent 58%),
+    radial-gradient(ellipse at 95% 95%, color-mix(in srgb, var(--brand-rose) 18%, transparent), transparent 52%),
+    linear-gradient(180deg, var(--canvas-top) 0%, var(--canvas-bottom) 100%);
+}
+.auth-card {
+  width: min(430px, calc(100vw - 32px));
+  padding: 42px 38px;
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  background: var(--glass-bg-strong);
+  box-shadow: 0 18px 70px rgba(15, 25, 22, 0.1);
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
+}
+.auth-card__logo {
+  width: 60px;
+  height: 60px;
+}
+.auth-card__title {
+  font-size: 30px;
+  font-weight: 750;
+  letter-spacing: -0.035em;
+}
+.auth-card__sub {
+  line-height: 1.7;
+  color: var(--text-2);
+}
+.auth-card .input,
+.auth-card .btn {
+  min-height: 46px;
+}
+
+/* ---- 紧凑布局：导航单独占一行，月历不能被压扁 ----------------------- */
+@media (max-width: 900px) {
+  :root {
+    --header-h: 104px;
+  }
+  .header {
+    display: grid;
+    grid-template-columns: 32px minmax(0, 1fr) auto;
+    grid-template-rows: 40px 44px;
+    gap: 4px 8px;
+    padding: 8px 12px;
+    /* ≤900 是**满幅应用**（不是浮在画布上的窗），顶栏因此是实心的，
+       下面压一条发丝线；玻璃留给浮层（抽屉、弹窗）。 */
+    background: var(--surface);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+  .header > .menu-toggle {
+    grid-column: 1;
+    grid-row: 1;
+    width: 32px;
+    min-width: 32px;
+  }
+  .header__brand {
+    grid-column: 2;
+    grid-row: 1;
+    min-width: 0;
+    gap: 6px;
+  }
+  .header__brand .brand-mark,
+  .header__brand img {
+    width: 28px;
+    height: 28px;
+  }
+  .header__brand .brand-name {
+    display: inline;
+    font-size: 15px;
+  }
+  .header__tools {
+    grid-column: 3;
+    grid-row: 1;
+    gap: 2px;
+  }
+  .header__tools > .icon-btn {
+    width: 32px;
+    min-width: 32px;
+    height: 36px;
+  }
+  .header__nav {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    width: 100%;
+    min-width: 0;
+    gap: 8px;
+  }
+  /* 视图切换器跟着导航区走（顶栏已经重新分组），排在日期控件之后。 */
+  .header__nav > .segmented {
+    order: 0;
+  }
+  .header__title {
+    /* 标题贴住文字，视图切换器紧跟其后（与桌面同一套分组），
+       翻页箭头与「今天」推到行的右端——手机上就是「左标题 / 右翻页」。 */
+    flex: 0 1 auto;
+    min-width: 110px;
+    font-size: 18px;
+    order: 0;
+  }
+  .header__today {
+    order: 2;
+  }
+  .nav-arrows {
+    order: 1;
+    margin-left: auto;
+  }
+  .header__spacer {
+    display: none;
+  }
+  /* 平板：左列是**灰底导航**，右边是白纸日历——macOS 日历的分工。
+     手机（≤720）侧栏变成抽屉，那里再换回实心白。 */
+  .sidebar {
+    background: var(--surface-2);
+    border-radius: 0;
+  }
+  .sidebar::after {
+    background: linear-gradient(to top, var(--surface-2), transparent);
+  }
+  .main {
+    background: var(--surface);
+  }
+  .taskbar {
+    background: var(--surface);
+  }
+  .modal__head {
+    padding: 20px 20px 12px;
+  }
+  .modal__body {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+  .modal__foot {
+    padding: 16px 20px;
+  }
+  .auth-card {
+    padding: 32px 26px;
+  }
+}
+@media (max-width: 360px) {
+  .header__brand .brand-name {
+    display: none;
+  }
+}
+@media (max-width: 900px) {
+  .header__search {
+    display: none;
+  }
+  .search-toggle {
+    display: inline-flex;
+  }
+  .header__tools .icon-btn__label {
+    display: none;
+  }
+}
+@media (max-width: 720px) {
+  /* 手机：侧栏是抽屉，实心白底（浮在内容之上，不能半透明）。 */
+  .sidebar {
+    background: var(--surface);
+  }
+  .sidebar::after {
+    background: linear-gradient(to top, var(--surface), transparent);
+  }
+  .app.has-taskbar .taskbar {
+    z-index: 80;
+  }
+  .app.has-taskbar .taskbar-scrim:not([hidden]) {
+    z-index: 79;
+    inset: 0;
+  }
+}
+
+/* ---- 偏好 ------------------------------------------------------------ */
+@media (prefers-reduced-transparency: reduce) {
+  .header,
+  .sidebar,
+  .taskbar,
+  .auth-card {
+    background: var(--surface);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+  .sidebar::after {
+    background: linear-gradient(to top, var(--surface), transparent);
+  }
+  .modal-scrim {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .month__cell,
+  .task-row,
+  .btn,
+  .icon-btn {
+    transition: none;
+  }
+}
+
+/* Colour-carried month view; compact phone chips retain their own geometry. */
+@media (min-width: 521px) {
+  .chip:not(.chip--filled):not(.chip--holiday) .chip__dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 2px;
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.14);
+  }
+  .chip__title { font-weight: 600; }
+  .month__grid .chip__time { display: none; }
+  :root[data-theme='dark'] .chip:not(.chip--filled):not(.chip--holiday) {
+    background: color-mix(in srgb, var(--chip-color) 30%, var(--surface));
+  }
+}
+.month__cell.is-today {
+  background: color-mix(in srgb, var(--accent) 9%, var(--surface));
+}
+@media (min-width: 901px) {
+  .app .sidebar .cal-row__box {
+    width: 14px;
+    height: 14px;
+    border-radius: 4px;
+    background-size: 11px 11px;
+  }
+  .app .sidebar .cal-row { height: 36px; }
+  .app .sidebar .cal-row__name { font-weight: 600; }
+}
+:root[data-theme='dark'] .month__cell.is-today {
+  background: color-mix(in srgb, var(--accent) 14%, var(--surface));
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .month__cell.is-today {
+    background: color-mix(in srgb, var(--accent) 14%, var(--surface));
+  }
+  @media (min-width: 521px) {
+    :root:not([data-theme='light']) .chip:not(.chip--filled):not(.chip--holiday) {
+      background: color-mix(in srgb, var(--chip-color) 30%, var(--surface));
+    }
+  }
+}
