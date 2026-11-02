@@ -12,3 +12,5 @@ code/web/playwright-report/
 .env
 /node_modules/.vite/
 .agents/
+.simplecal-deploy/
+code/web/e2e/.tmp-builds/

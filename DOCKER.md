@@ -123,3 +123,9 @@ bash deploy/docker-acceptance.sh
 
 镜像基于 `node:22-alpine`。ARM 与 x86 主机分别构建本机架构镜像；
 跨架构分发需额外使用 buildx 并在目标平台实测。
+## Production Upgrades
+
+Keep production Compose configuration outside the source checkout. Use the
+[health-gated upgrade script](deploy/UPGRADES.md) to build before switching and
+restore the previous image if startup fails. Never extract a source archive
+over the live deployment directory.

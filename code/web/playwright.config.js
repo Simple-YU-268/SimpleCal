@@ -16,5 +16,11 @@ export default defineConfig({
     command: 'node e2e/update-server.mjs',
     url: 'http://127.0.0.1:5189',
     reuseExistingServer: false,
+  }, {
+    // 两份真实构建的升级测试：启动时会真的跑两次 Vite 构建。
+    command: 'node e2e/build-server.mjs',
+    url: 'http://127.0.0.1:5190/fixture',
+    reuseExistingServer: false,
+    timeout: 300000,
   }],
 });
