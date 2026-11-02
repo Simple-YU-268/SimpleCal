@@ -8,7 +8,7 @@
  *
  *   1. 随机初始密码 → 会话返回 mustChangePassword=true；
  *   2. 旧密码改密失败（401）、缺 CSRF 失败（403 中文）、改密成功清标记；
- *   3. 改密后旧密码 401、新密码 200（真实 HTTP，不 mock）；
+ *   3. 改密后旧密码 401、新密码 200（真实 HTTP，不 mock），初始密码文件被删除；
  *   4. 管理员建号 → 管理员自设密码即最终密码，不强制改密（0.2.4 保留）；
  *   5. 管理员重置密码（0.2.8）→ 固定默认密码 1234567890 + 强制首登改密：
  *      未改密时业务 API 403；改密后可正常用；默认密码与重置前密码都失效；
@@ -214,6 +214,17 @@ async function main() {
   record('改密后：accounts.json 标记已清除', 'false',
     String(Boolean(persisted.accounts[0].mustChangePassword)),
     persisted.accounts[0].mustChangePassword === false);
+
+  // 初始密码文件只保存那份已经失效的初始密码，留着就是一份躺在数据目录里的
+  // 过期凭据，所以改密成功后必须删掉它。
+  let initialFileLeft = true;
+  try {
+    await fs.access(initialFile);
+  } catch {
+    initialFileLeft = false;
+  }
+  record('改密后：初始密码文件已删除', 'file gone',
+    initialFileLeft ? 'still exists' : 'removed', initialFileLeft === false);
 
   /* ---------------- 3. 管理员建号 → 密码即最终密码（0.2.4） ---------- */
   const created = await rest(adminSession, 'POST', '/api/v1/admin/users', {

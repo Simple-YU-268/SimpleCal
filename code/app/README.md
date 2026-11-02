@@ -306,7 +306,8 @@ VALARM 展开再补。VTODO 暂不生成 `VTIMEZONE`（导出 `DUE` 为 UTC）�
 
 设置 `CALDAV_DATA_DIR` 可在任意服务器指定数据根目录，优先于 fnOS 的 `TRIM_PKGVAR`。
 使用该配置且未指定密码时，首次启动生成随机管理员密码，写入数据目录的
-`admin-initial-password.txt`，首次登录须改密；改密后请删除该文件。
+`admin-initial-password.txt`，首次登录须改密；改密成功后服务端自动删除该文件
+（它只会一直保存着那份已经失效的初始密码）。
 可用 `CALDAV_ADMIN_PASSWORD_FILE` 指定 UTF-8 密码文件（去除末尾一个换行），
 不能同时设置 `CALDAV_ADMIN_PASSWORD`。该文件每次启动均须可读；已有账号不会被重置。
 构建通用运行包及 systemd 示例见仓库根目录 `SERVER.md`。

@@ -18,8 +18,17 @@ import { parseBasicHeader, challengeHeaders } from './basic.mjs';
 import { SESSION_COOKIE, CSRF_COOKIE, SESSION_TTL_MS, PENDING_MFA_TTL_MS } from './session.mjs';
 import { rateLimitKey } from './rate-limit.mjs';
 import { DEFAULT_RESET_PASSWORD, needsRehash } from './accounts.mjs';
+import { unlink } from 'node:fs/promises';
+import path from 'node:path';
 
 const MUTATING_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE', 'MKCOL', 'MKCALENDAR', 'PROPPATCH', 'MOVE', 'COPY']);
+
+// The bootstrap password file (written on first start when the admin password
+// was generated rather than supplied). It only ever holds the *initial*
+// password, so it must go away as soon as that password stops being the
+// account's password — otherwise the file lingers in the data directory
+// holding a stale credential that operators have to remember to delete.
+export const ADMIN_INITIAL_PASSWORD_FILE = 'admin-initial-password.txt';
 
 export function isMutatingMethod(method) {
   return MUTATING_METHODS.has(String(method || '').toUpperCase());
@@ -28,6 +37,23 @@ export function isMutatingMethod(method) {
 export { challengeHeaders };
 
 export function createAuthService({ config, accounts, session, limiter, audit, logger, security = null, proxy = null }) {
+  // Best-effort removal of the bootstrap password file. Once the account's
+  // password is no longer the one that file holds, the file is a stale
+  // credential sitting in the data directory — delete it instead of asking
+  // operators to remember to.
+  async function dropInitialPasswordFile() {
+    if (!config || !config.varDir) return;
+    const file = path.join(config.varDir, ADMIN_INITIAL_PASSWORD_FILE);
+    try {
+      await unlink(file);
+      if (logger && typeof logger.event === 'function') {
+        logger.event('admin-initial-password-removed', { file });
+      }
+    } catch {
+      /* not there, or not removable — the password itself already changed */
+    }
+  }
+
   // 0.2.37（S1/S2）：来源地址与外部协议统一走可信反代解析器。
   // 未传 resolver（旧测试）时退回 socket 地址，行为与 0.2.36 逐字相同。
   function sourceOf(req) {
@@ -419,6 +445,7 @@ export function createAuthService({ config, accounts, session, limiter, audit, l
     if (!changed) return { ok: false, status: 401, reason: 'session_invalid' };
     const fresh = await accounts.findById(account.id);
     if (!fresh) return { ok: false, status: 401, reason: 'session_invalid' };
+    await dropInitialPasswordFile();
     audit.passwordChanged({ username: fresh.username, id: fresh.id, remoteAddress: clientAddress(req) });
     if (wasForced) {
       audit.forcedPasswordChanged({ username: fresh.username, id: fresh.id, remoteAddress: clientAddress(req) });

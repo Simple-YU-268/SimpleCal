@@ -32,7 +32,9 @@ COPY code/app/ ./
 COPY --from=web /src/dist ./www
 
 # 测试代码与本地运行残留不进镜像
-RUN rm -rf /app/test /app/var /app/.var-* /app/*.log \
+# source map 不进镜像（体积与源码泄露）：与通用运行包、fnOS 包的口径一致。
+RUN find /app/www -name '*.map' -delete \
+ && rm -rf /app/test /app/var /app/.var-* /app/*.log \
  && mkdir -p /data \
  && chown -R node:node /app /data
 

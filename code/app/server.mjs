@@ -52,7 +52,7 @@ import { createAccountStore } from './auth/accounts.mjs';
 import { loadOrCreateSecret, createSessionCodec } from './auth/session.mjs';
 import { createRateLimiter } from './auth/rate-limit.mjs';
 import { createAuditLog } from './auth/audit.mjs';
-import { createAuthService } from './auth/index.mjs';
+import { createAuthService, ADMIN_INITIAL_PASSWORD_FILE } from './auth/index.mjs';
 import { createSecurityService } from './security/service.mjs';
 import { createSecretVault } from './security/vault.mjs';
 import { createProxyResolver } from './security/proxy.mjs';
@@ -80,7 +80,6 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // 搜索面板加宽、编辑弹窗农历日期选择、搜索胶囊圆头等高）——同样是纯前端。
 export const VERSION = '0.4.0';
 
-const ADMIN_INITIAL_PASSWORD_FILE = 'admin-initial-password.txt';
 const DEFAULT_UID_DOMAIN = 'caldav.local';
 
 function envFlag(value) {
