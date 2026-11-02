@@ -30,7 +30,12 @@ All browser dependencies are bundled locally; no runtime CDN is used.
    upgraded page only references the new build, keeps a single cache without
    stale assets, and still opens offline. Ten desktop/mobile browser cases pass.
 2. Add real backend login, event save, and update acceptance browser tests.
-   The current settings fixture deliberately uses an in-memory store.
+   The settings fixture still uses an in-memory store, but the product backend
+   now runs inside the end-to-end suite: `e2e/backend-server.mjs` starts
+   `code/app/server.mjs` with a throwaway data directory, and
+   `e2e/real-backend.spec.js` covers login, event creation, a reload read-back
+   (including a server-side check of the stored event), renaming, deletion and
+   sign-out on desktop and mobile.
 3. Extend Floating UI to other popovers after keyboard/focus regression checks.
 4. Compare recurrence against a standard implementation using a shared corpus:
    DST, all-day dates, WKST, EXDATE, overridden instances and lunar recurrence.

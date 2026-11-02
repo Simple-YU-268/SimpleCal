@@ -22,5 +22,11 @@ export default defineConfig({
     url: 'http://127.0.0.1:5190/fixture',
     reuseExistingServer: false,
     timeout: 300000,
+  }, {
+    // 真实后端：跑产品的 server.mjs，临时数据目录，退出即清理。
+    command: 'node e2e/backend-server.mjs',
+    url: 'http://127.0.0.1:5291/api/version',
+    reuseExistingServer: false,
+    timeout: 120000,
   }],
 });

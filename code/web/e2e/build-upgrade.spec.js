@@ -6,10 +6,23 @@ test.describe.configure({ mode: 'serial' });
 
 /** 页面当前引用的 /assets/ 资源（JS + CSS）。 */
 async function documentAssets(page) {
-  return page.evaluate(() => {
-    const urls = [...document.querySelectorAll('script[src*="/assets/"]'), ...document.querySelectorAll('link[href*="/assets/"]')];
-    return urls.map((node) => new URL(node.src || node.href).pathname);
-  });
+  try {
+    return await page.evaluate(() => {
+      const urls = [...document.querySelectorAll('script[src*="/assets/"]'), ...document.querySelectorAll('link[href*="/assets/"]')];
+      return urls.map((node) => new URL(node.src || node.href).pathname);
+    });
+  } catch {
+    return [];
+  }
+}
+
+/** 读取构建指纹；刷新途中上下文会被销毁，返回 null 让调用方重试。 */
+async function buildFingerprint(page) {
+  try {
+    return await page.evaluate(() => document.querySelector('meta[name="simplecal-build"]')?.content);
+  } catch {
+    return null;
+  }
 }
 
 test('升级到新构建后只使用新资源，缓存不混且离线可打开', async ({ page, context, request }) => {
@@ -32,11 +45,17 @@ test('升级到新构建后只使用新资源，缓存不混且离线可打开',
   await page.goto(base);
   await page.evaluate(() => navigator.serviceWorker.ready);
   await page.reload();
-  await expect.poll(() => page.evaluate(() => !!navigator.serviceWorker.controller)).toBe(true);
+  await expect
+    .poll(async () => {
+      try {
+        return await page.evaluate(() => !!navigator.serviceWorker.controller);
+      } catch {
+        return false;
+      }
+    })
+    .toBe(true);
 
-  expect(await page.evaluate(() => document.querySelector('meta[name="simplecal-build"]').content)).toBe(
-    fixture.a.fingerprint,
-  );
+  expect(await buildFingerprint(page)).toBe(fixture.a.fingerprint);
   await expect(page.locator('.auth-card__title')).toHaveText('SimpleCal');
   const accentA = await page.evaluate(
     () => getComputedStyle(document.querySelector('.btn--primary')).backgroundColor,
@@ -51,9 +70,7 @@ test('升级到新构建后只使用新资源，缓存不混且离线可打开',
   const notice = page.locator('.update-notice');
   await expect(notice).toBeVisible();
   await notice.locator('button').click();
-  await expect
-    .poll(() => page.evaluate(() => document.querySelector('meta[name="simplecal-build"]')?.content))
-    .toBe(fixture.b.fingerprint);
+  await expect.poll(() => buildFingerprint(page)).toBe(fixture.b.fingerprint);
 
   // ---- 新页面必须整体切换到新构建：JS 文案、CSS 主题色、资源清单 ----
   await expect(page.locator('.auth-card__title')).toHaveText('SimpleCal B');
