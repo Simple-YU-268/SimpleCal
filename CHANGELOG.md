@@ -14,6 +14,16 @@
   可直接对着公网 HTTPS 入口跑，也可只跑本机 `127.0.0.1` 端口。
 - 部署形态：容器只绑 `127.0.0.1:5581`，公网入口走 nginx 反代 + certbot TLS，
   DAV 的 href / Location 用 `CALDAV_PUBLIC_BASE_URL` 对齐公开地址。
+- 新增 `deploy/docker-compose.reverse-proxy.yml`：反代部署的完整 Compose 示例
+  （端口只绑回环、镜像打版本标签、`CALDAV_PUBLIC_BASE_URL` 对外），
+  `DOCKER.md` 同步给出 nginx 片段——DAV 方法要求 HTTP/1.1、关闭请求与响应缓冲、
+  不限制请求体大小。
+
+### 发布产物调整
+
+- **从 0.4.1 起不再构建与发布 fnOS 专用安装包（`.fpk`）**，官方发布产物只剩通用
+  服务器运行包 `SimpleCal-server-<版本>.tar.gz`。fnOS 的装配与打包工具链仍保留在
+  仓库里，需要自建的人可以照 `BUILD.md` 走。
 
 ### 修复
 

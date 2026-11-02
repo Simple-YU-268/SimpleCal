@@ -99,17 +99,20 @@ docker compose up -d --build
 docker compose exec simplecal cat /data/admin-initial-password.txt
 ```
 
-打开 **`http://localhost:5581/`**，用户名为 **`caldav`**。首次登录改密后，删除容器中的初始密码文件：
+打开 **`http://localhost:5581/`**，用户名为 **`caldav`**。首次登录必须改密，改密成功后
+服务端会自动删除容器里的初始密码文件：
 
 ```bash
-docker compose exec simplecal rm /data/admin-initial-password.txt
+docker compose exec simplecal cat /data/admin-initial-password.txt
 ```
 
 数据保存在 `simplecal-data` 命名卷中。升级和重建时保留该卷；`docker compose down -v` 会删除数据卷。
 
 ### 方式三：fnOS 安装包
 
-仓库保留 fnOS 安装向导、桌面入口和 `.fpk` 构建支持。自行构建后，在应用中心安装 `SimpleCal-<版本>.fpk`，按向导设置端口与管理员账号。
+从 0.4.1 起，发行版不再构建与发布 fnOS 专用安装包，官方发布产物只有通用服务器运行包
+`SimpleCal-server-<版本>.tar.gz`。仓库仍保留 fnOS 安装向导、桌面入口和 `.fpk` 构建工具链，
+需要自建的人在应用中心安装 `SimpleCal-<版本>.fpk`，按向导设置端口与管理员账号。
 
 构建命令见 [从源码构建](BUILD.md#fnos-安装包)。
 

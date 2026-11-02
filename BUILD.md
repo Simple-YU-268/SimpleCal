@@ -31,6 +31,10 @@ node code/scripts/build-server.mjs
 
 ## fnOS 安装包
 
+> 从 0.4.1 起，发行版不再构建与发布 fnOS 专用安装包（`.fpk`）——主发布产物是
+> 通用服务器运行包 `SimpleCal-server-<版本>.tar.gz`。下面的装配与打包工具链保留在
+> 仓库里，需要自建 fnOS 包的人仍然可以照着走。
+
 先构建前端，再装配并打包：
 
 ```bash

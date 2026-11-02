@@ -67,6 +67,40 @@ docker run -d --name simplecal --restart unless-stopped \
 走反向代理时把 `ports` 绑到 `127.0.0.1:<端口>`（如 `"127.0.0.1:5581:5280"`），
 由代理负责对外暴露；需要 DAV 的 href / Location 与公开地址一致时，
 同时把 `CALDAV_PUBLIC_BASE_URL` 设成对外地址。
+完整的 Compose 示例见 `deploy/docker-compose.reverse-proxy.yml`。
+
+nginx 片段（DAV 方法与大文件都需要注意）：
+
+```nginx
+server {
+    server_name calendar.example.com;
+
+    # DAV / ICS 导入导出可能有大文件，不限制请求体大小。
+    client_max_body_size 0;
+
+    location / {
+        proxy_pass http://127.0.0.1:5581;
+        proxy_http_version 1.1;
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # DAV 方法与流式请求不能被缓冲截断
+        proxy_request_buffering off;
+        proxy_buffering off;
+        proxy_read_timeout 600s;
+        proxy_send_timeout 600s;
+    }
+
+    listen 443 ssl;
+    ssl_certificate     /etc/letsencrypt/live/calendar.example.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/calendar.example.com/privkey.pem;
+}
+```
+
+`/.well-known/caldav` 由服务端自己返回 302 指向 `/principals/`，
+CalDAV 客户端发现地址时不需要额外的代理规则。
 本部署方式不提供 fnOS 桌面图标与安装向导。账号初始化只发生一次。
 
 ## Docker 主机验收

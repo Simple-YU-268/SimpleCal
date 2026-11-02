@@ -1,0 +1,45 @@
+# SimpleCal 反向代理部署示例。
+#
+# 与仓库根目录的 docker-compose.yml（本地试用默认）不同，这份配置按
+# 「nginx / Caddy 终结 TLS，再反向代理到容器」的方式布置：
+#
+#   1. 端口只绑 127.0.0.1，容器本身不直接对外暴露；
+#   2. CALDAV_PUBLIC_BASE_URL 填对外地址，DAV 的 href、Location、
+#      分享链接与前端连接信息都按这个地址生成；
+#   3. 镜像打上版本标签，升级时靠标签区分。
+#
+# 用法：
+#   cp deploy/docker-compose.reverse-proxy.yml docker-compose.yml
+#   docker compose up -d --build
+#
+# 配套的 nginx 片段见 DOCKER.md。
+name: simplecal
+
+services:
+  simplecal:
+    build: .
+    image: simplecal:0.4.1
+    container_name: simplecal
+    restart: unless-stopped
+    ports:
+      # 只监听回环：对外访问交给反向代理。
+      - "127.0.0.1:5581:5280"
+    environment:
+      CALDAV_HOST: "0.0.0.0"
+      CALDAV_PORT: "5280"
+      CALDAV_USER: "caldav"
+      # 对外地址：DAV 的 href / Location / 分享链接按它生成。
+      CALDAV_PUBLIC_BASE_URL: "https://calendar.example.com"
+      # 仅在首次初始化管理员时使用；之后修改此值不会重置已有密码。
+      CALDAV_ADMIN_PASSWORD: "${CALDAV_ADMIN_PASSWORD:-}"
+    volumes:
+      - simplecal-data:/data
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:5280/api/version').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      start_period: 20s
+      retries: 3
+
+volumes:
+  simplecal-data:
