@@ -1,0 +1,135 @@
+{
+  "createdAt": "2026-10-31T01:39:39.476Z",
+  "platform": "win32",
+  "node": "v24.20.0",
+  "sizes": [
+    1000,
+    10000
+  ],
+  "notes": [
+    "Synthetic VEVENT only; no recurrence or lunar projection writes.",
+    "Cold means provider projection cache cold, not OS filesystem cache cold.",
+    "Seeding is excluded from operation timings. Memory samples are not a process peak or retained-cache estimate.",
+    "Sequential operation timings on this host are observations, not latency guarantees."
+  ],
+  "runs": [
+    {
+      "count": 1000,
+      "operations": {
+        "coldProjectionAndSingleRead": {
+          "ms": 401.035,
+          "objects": 1
+        },
+        "warmBatch100": {
+          "ms": 35.401,
+          "objects": 100
+        },
+        "warmSequential100": {
+          "ms": 62.95,
+          "objects": 100
+        },
+        "componentCandidates": {
+          "ms": 95.506,
+          "objects": 1000
+        },
+        "snapshot": {
+          "ms": 53.274,
+          "objects": 1000
+        }
+      },
+      "memory": {
+        "before": {
+          "rssBytes": 55672832,
+          "heapUsedBytes": 6841864,
+          "externalBytes": 2673625
+        },
+        "coldProjectionAndSingleRead": {
+          "rssBytes": 61419520,
+          "heapUsedBytes": 7900256,
+          "externalBytes": 2656295
+        },
+        "warmBatch100": {
+          "rssBytes": 61612032,
+          "heapUsedBytes": 10842168,
+          "externalBytes": 2761685
+        },
+        "warmSequential100": {
+          "rssBytes": 61980672,
+          "heapUsedBytes": 8141552,
+          "externalBytes": 2659042
+        },
+        "componentCandidates": {
+          "rssBytes": 63148032,
+          "heapUsedBytes": 9987024,
+          "externalBytes": 2665018
+        },
+        "snapshot": {
+          "rssBytes": 67534848,
+          "heapUsedBytes": 12411568,
+          "externalBytes": 2494566
+        }
+      },
+      "cleanup": true,
+      "seedMs": 618.343
+    },
+    {
+      "count": 10000,
+      "operations": {
+        "coldProjectionAndSingleRead": {
+          "ms": 6384.059,
+          "objects": 1
+        },
+        "warmBatch100": {
+          "ms": 100.401,
+          "objects": 100
+        },
+        "warmSequential100": {
+          "ms": 62.428,
+          "objects": 100
+        },
+        "componentCandidates": {
+          "ms": 1414.916,
+          "objects": 10000
+        },
+        "snapshot": {
+          "ms": 741.715,
+          "objects": 10000
+        }
+      },
+      "memory": {
+        "before": {
+          "rssBytes": 71901184,
+          "heapUsedBytes": 10315288,
+          "externalBytes": 2700144
+        },
+        "coldProjectionAndSingleRead": {
+          "rssBytes": 95772672,
+          "heapUsedBytes": 25518032,
+          "externalBytes": 2902138
+        },
+        "warmBatch100": {
+          "rssBytes": 97939456,
+          "heapUsedBytes": 28319312,
+          "externalBytes": 3007528
+        },
+        "warmSequential100": {
+          "rssBytes": 101507072,
+          "heapUsedBytes": 31799024,
+          "externalBytes": 3112918
+        },
+        "componentCandidates": {
+          "rssBytes": 128200704,
+          "heapUsedBytes": 34580336,
+          "externalBytes": 2683325
+        },
+        "snapshot": {
+          "rssBytes": 133787648,
+          "heapUsedBytes": 52998272,
+          "externalBytes": 2866989
+        }
+      },
+      "cleanup": true,
+      "seedMs": 8048.137
+    }
+  ]
+}

@@ -1,5 +1,9 @@
 # SimpleCal 通用服务器演进
 
+当前 CalDAV 演进实施与验收结果见 [实施状态](research/IMPLEMENTATION_STATUS.md)。
+Provider v2 已增加批量/候选读取与分页；普通事件 API、KV 单事件和 DAV 条件变更共用领域约束。
+本地账号日历授权及本地邀请账本已接入，外部邮件调度和真实客户端验收仍未完成。
+
 ## 已实施的边界
 
 ```mermaid
@@ -33,6 +37,10 @@ AI 的日历授权、时间窗、字段裁剪和删除提案策略保持独立�
 通用运行目录默认命名为 `dist/SimpleCal-server-<版本>/`。
 
 ## 后续工作
+
+CalDAV 与 CardDAV 已共用 REPORT href 解析和条件读取响应模块；适配器继续负责认证、
+资源类型与集合范围检查。固定版本对照、REA 捕获证据、已验证变更及后续验收顺序见
+[CalDAV 实现对照](research/CALDAV_COMPARISON.md)。
 
 1. 补齐事件字段的机器可读 schema、复杂规则校验和范围查询契约。
 2. 增加分页、重复实例查询与例外编辑语义；先定义边界再开放参数。

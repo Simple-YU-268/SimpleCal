@@ -1,0 +1,41 @@
+{
+  "createdAt": "2026-10-30T16:01:44.428Z",
+  "platform": "win32",
+  "node": "v24.20.0",
+  "install": {
+    "command": "npm ci",
+    "exitCode": 0,
+    "packagesAdded": 101,
+    "auditReported": {
+      "moderate": 3,
+      "high": 5
+    },
+    "notes": "Existing lockfile install; no audit fix performed."
+  },
+  "test": {
+    "command": "npm.cmd test",
+    "exitCode": 0,
+    "elapsedMs": 75085,
+    "summary": "\n> simplecal-web@0.1.0 test\n> node scripts/test.mjs\n\n\n RUN  v4.1.10 C:/Users/yy197/Desktop/SimpleCal/code/web\n\n\n Test Files  118 passed (118)\n      Tests  1501 passed | 1 skipped (1502)\n   Start at  12:00:28\n   Duration  72.55s (transform 21.92s, setup 9.51s, import 81.46s, tests 186.99s, environment 861.44s)\n\n"
+  },
+  "build": {
+    "command": "npm.cmd run build",
+    "exitCode": 0,
+    "elapsedMs": 3048,
+    "summary": "\n> simplecal-web@0.1.0 build\n> vite build\n\nvite v8.1.4 building client environment for production...\n\u001b[2K\rtransforming...<script src=\"./accent-prepaint.js\"> in \"/index.html\" can't be bundled without type=\"module\" attribute\n✓ 67 modules transformed.\nrendering chunks...\ncomputing gzip size...\ndist/index.html                   3.07 kB │ gzip:   1.37 kB\ndist/assets/index-W4IecIjj.css  125.58 kB │ gzip:  22.05 kB\ndist/assets/index-C_6nXg0J.js   411.53 kB │ gzip: 120.59 kB │ map: 1,604.75 kB\n\n\u001b[33m[INEFFECTIVE_DYNAMIC_IMPORT] \u001b[0msrc/js/calendar-dialog.js is dynamically imported by src/js/data-io.js but also statically imported by src/js/account-dialog.js, src/js/app.js, src/js/modal.js, dynamic import will not move module into another chunk.\n\n✓ built in 978ms\n"
+  },
+  "audits": {
+    "zeroCloud": 2,
+    "i18n": 0,
+    "lifecycle": 0,
+    "icons": 0,
+    "zeroCloudExplicit": {
+      "command": "node scripts/audit-zero-cloud.mjs app web/dist",
+      "cwd": "code",
+      "exitCode": 0,
+      "files": 499,
+      "hits": 0,
+      "note": "Default audit exited2 before fnOS assembly; explicit targets are the backend and actual generated frontend."
+    }
+  }
+}

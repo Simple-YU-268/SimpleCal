@@ -1,0 +1,187 @@
+{
+  "reference": {
+    "name": "Radicale",
+    "version": "3.9.0"
+  },
+  "har_sha256": "d27c4ef54457f72eb7b5cb8154b57dc8bdbec574a69f067cf9ad72f68025b3c0",
+  "fixtures": [
+    {
+      "uid": "alpha",
+      "summary": "Team Planning",
+      "start": "20261030T090000Z",
+      "end": "20261030T100000Z",
+      "extra": [
+        "LOCATION:Studio",
+        "ATTENDEE;CN=\"Alice Example\":mailto:alice@example.test"
+      ]
+    },
+    {
+      "uid": "beta",
+      "summary": "Budget Review",
+      "start": "20261030T120000Z",
+      "end": "20261030T130000Z",
+      "extra": [
+        "ATTENDEE;CN=\"Bob Example\":mailto:bob@example.test"
+      ]
+    },
+    {
+      "uid": "gamma",
+      "summary": "team\\, Roadmap",
+      "start": "20261102T090000Z",
+      "end": "20261102T100000Z",
+      "extra": [
+        "LOCATION:Remote"
+      ]
+    }
+  ],
+  "results": [
+    {
+      "case": "SUMMARY ASCII case folding",
+      "har_ordinal": 5,
+      "status": 207,
+      "uids": [
+        "alpha",
+        "gamma"
+      ],
+      "expected_simplecal_uids": [
+        "alpha",
+        "gamma"
+      ],
+      "matches_expected": true
+    },
+    {
+      "case": "SUMMARY octet comparison",
+      "har_ordinal": 6,
+      "status": 207,
+      "uids": [
+        "alpha"
+      ],
+      "expected_simplecal_uids": [
+        "alpha"
+      ],
+      "matches_expected": true
+    },
+    {
+      "case": "SUMMARY negation",
+      "har_ordinal": 7,
+      "status": 207,
+      "uids": [
+        "beta"
+      ],
+      "expected_simplecal_uids": [
+        "beta"
+      ],
+      "matches_expected": true
+    },
+    {
+      "case": "property present",
+      "har_ordinal": 8,
+      "status": 207,
+      "uids": [
+        "alpha",
+        "gamma"
+      ],
+      "expected_simplecal_uids": [
+        "alpha",
+        "gamma"
+      ],
+      "matches_expected": true
+    },
+    {
+      "case": "property absent",
+      "har_ordinal": 9,
+      "status": 207,
+      "uids": [
+        "beta"
+      ],
+      "expected_simplecal_uids": [
+        "beta"
+      ],
+      "matches_expected": true
+    },
+    {
+      "case": "multiple property filters are conjunctive",
+      "har_ordinal": 10,
+      "status": 207,
+      "uids": [
+        "gamma"
+      ],
+      "expected_simplecal_uids": [
+        "gamma"
+      ],
+      "matches_expected": true
+    },
+    {
+      "case": "parameter text matching",
+      "har_ordinal": 11,
+      "status": 207,
+      "uids": [
+        "alpha"
+      ],
+      "expected_simplecal_uids": [
+        "alpha"
+      ],
+      "matches_expected": true
+    },
+    {
+      "case": "parameter absent",
+      "har_ordinal": 12,
+      "status": 207,
+      "uids": [
+        "alpha",
+        "beta"
+      ],
+      "expected_simplecal_uids": [
+        "alpha",
+        "beta"
+      ],
+      "matches_expected": true
+    },
+    {
+      "case": "parameter present",
+      "har_ordinal": 13,
+      "status": 207,
+      "uids": [
+        "alpha",
+        "beta"
+      ],
+      "expected_simplecal_uids": [
+        "alpha",
+        "beta"
+      ],
+      "matches_expected": true
+    },
+    {
+      "case": "time range",
+      "har_ordinal": 14,
+      "status": 207,
+      "uids": [
+        "alpha"
+      ],
+      "expected_simplecal_uids": [
+        "alpha"
+      ],
+      "matches_expected": true
+    },
+    {
+      "case": "time and property are conjunctive",
+      "har_ordinal": 15,
+      "status": 207,
+      "uids": [],
+      "expected_simplecal_uids": [],
+      "matches_expected": true
+    },
+    {
+      "case": "iCalendar TEXT escape decoding",
+      "har_ordinal": 16,
+      "status": 207,
+      "uids": [
+        "gamma"
+      ],
+      "expected_simplecal_uids": [
+        "gamma"
+      ],
+      "matches_expected": true
+    }
+  ]
+}

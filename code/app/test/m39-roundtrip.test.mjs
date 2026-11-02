@@ -17,7 +17,7 @@
  */
 
 import { spawnSync } from 'node:child_process';
-import { promises as fs } from 'node:fs';
+import { promises as fs, existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -175,21 +175,30 @@ async function main() {
   await fs.rm(OUT, { recursive: true, force: true });
   await fs.mkdir(OUT, { recursive: true });
 
-  const expected = JSON.parse(await fs.readFile(path.join(DATA, 'expected.json'), 'utf8'));
-  for (const sample of expected.samples) {
-    const original = await fs.readFile(path.join(DATA, sample.file), 'utf8');
-    const modelA = await eventFromIcs(original);
-    const exportText = eventToIcs(modelA);
-    await fs.writeFile(path.join(OUT, `export-${sample.id}.ics`), exportText, 'utf8');
-    const modelB = await eventFromIcs(exportText);
+  // The sample corpus (data/ical-samples) is an opt-in fixture, not part of the
+  // published tree. When it is absent the round-trip section cannot run, so we
+  // skip it loudly instead of aborting the whole file with a fatal ENOENT.
+  const hasCorpus = existsSync(path.join(DATA, 'expected.json'))
+    && existsSync(path.join(DATA, 'compare_roundtrip.mjs'));
+  if (!hasCorpus) {
+    console.log(`[SKIP] S1–S8 往返比对（缺少样本语料 ${DATA}）`);
+  } else {
+    const expected = JSON.parse(await fs.readFile(path.join(DATA, 'expected.json'), 'utf8'));
+    for (const sample of expected.samples) {
+      const original = await fs.readFile(path.join(DATA, sample.file), 'utf8');
+      const modelA = await eventFromIcs(original);
+      const exportText = eventToIcs(modelA);
+      await fs.writeFile(path.join(OUT, `export-${sample.id}.ics`), exportText, 'utf8');
+      const modelB = await eventFromIcs(exportText);
 
-    const problemsA = checkModel(modelA, sample);
-    record(`${sample.id} 原文件 -> 模型 A`, 'expected.json 全字段', problemsA.length ? `${problemsA.length} 处不符` : 'ok',
-      problemsA.length === 0, problemsA.join('; '));
+      const problemsA = checkModel(modelA, sample);
+      record(`${sample.id} 原文件 -> 模型 A`, 'expected.json 全字段', problemsA.length ? `${problemsA.length} 处不符` : 'ok',
+        problemsA.length === 0, problemsA.join('; '));
 
-    const problemsB = checkModel(modelB, sample);
-    record(`${sample.id} 导出文件 -> 模型 B（往返）`, 'expected.json 全字段', problemsB.length ? `${problemsB.length} 处不符` : 'ok',
-      problemsB.length === 0, problemsB.join('; '));
+      const problemsB = checkModel(modelB, sample);
+      record(`${sample.id} 导出文件 -> 模型 B（往返）`, 'expected.json 全字段', problemsB.length ? `${problemsB.length} 处不符` : 'ok',
+        problemsB.length === 0, problemsB.join('; '));
+    }
   }
 
   /* store.js model -> ICS -> model */
@@ -295,9 +304,11 @@ async function main() {
   }
 
   /* Independent comparator over the export directory */
-  console.log('\n--- compare_roundtrip.mjs（独立比对器，退出码 0 = pass=8 fail=0）---');
-  const compared = spawnSync(process.execPath, [path.join(DATA, 'compare_roundtrip.mjs'), OUT], { stdio: 'inherit' });
-  record('compare_roundtrip.mjs: 8 个样本', 'exit=0（pass=8 fail=0）', `exit=${compared.status}`, compared.status === 0);
+  if (hasCorpus) {
+    console.log('\n--- compare_roundtrip.mjs（独立比对器，退出码 0 = pass=8 fail=0）---');
+    const compared = spawnSync(process.execPath, [path.join(DATA, 'compare_roundtrip.mjs'), OUT], { stdio: 'inherit' });
+    record('compare_roundtrip.mjs: 8 个样本', 'exit=0（pass=8 fail=0）', `exit=${compared.status}`, compared.status === 0);
+  }
 
   console.log(`\nM3.9 RESULTS: ${results.length - failures}/${results.length} passed`);
   if (failures) {

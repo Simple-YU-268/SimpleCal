@@ -2,6 +2,7 @@
 // 与上传 PEM 的校验。不调用外部命令、不联网。
 import crypto from 'node:crypto';
 import os from 'node:os';
+import { domainToASCII } from 'node:url';
 
 const OID = {
   commonName: '2.5.4.3',
@@ -213,7 +214,7 @@ export function defaultHostNames(extra = []) {
     if (/^\d{1,3}(\.\d{1,3}){3}$/.test(value) || value.includes(':')) ip.add(value);
     else dns.add(value);
   }
-  return { dns: [...dns], ip: [...ip] };
+  return { dns: [...new Set([...dns].map((name) => domainToASCII(name)).filter(Boolean))], ip: [...ip] };
 }
 
 // 从 SPKI DER 里取出 RSAPublicKey（去算法头），用于 SubjectPublicKeyInfo 的 BIT STRING。
@@ -311,7 +312,13 @@ export function readCertificate(certPem) {
   const subject = cert.subject || '';
   const cn = (subject.match(/CN=([^\n,]+)/) || [])[1] || '';
   const sanText = cert.subjectAltName || '';
-  const san = sanText.split(',').map(s => s.trim()).filter(Boolean).map(s => s.replace(/^DNS:/, '').replace(/^IP Address:/, ''));
+  // Node quotes unusual SAN values as JSON strings; commas/Unicode escapes
+  // inside those values are data, not separators.
+  const san = [...sanText.matchAll(/(?:DNS|IP Address):("(?:\\.|[^"\\])*"|[^,]*)/g)].map((match) => {
+    const value = match[1].trim();
+    if (!value.startsWith('"')) return value;
+    try { return JSON.parse(value); } catch { return value; }
+  });
   return {
     cn,
     subject,

@@ -6,6 +6,6 @@
     <D:getetag/>
     <CS:getctag/>
     <C:supported-calendar-component-set/>
-    <C:supported-report-set/>
+    <D:supported-report-set/>
   </D:prop>
 </D:propfind>

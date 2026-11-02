@@ -16,6 +16,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
+import { domainToASCII } from 'node:url';
 import http from 'node:http';
 import https from 'node:https';
 import net from 'node:net';
@@ -131,7 +132,7 @@ try {
   const san = (selfSigned.json && selfSigned.json.certificate && selfSigned.json.certificate.san) || [];
   ok('SAN 含填写的域名', san.includes('fncal.lan.test'), JSON.stringify(san));
   ok('SAN 含 localhost', san.includes('localhost'), JSON.stringify(san));
-  ok('SAN 含主机名', san.includes(os.hostname()), JSON.stringify(san));
+  ok('SAN 含 IDNA 编码主机名', san.includes(domainToASCII(os.hostname())), JSON.stringify(san));
   ok('SAN 含本机局域网 IPv4', lanIpv4.length === 0 || lanIpv4.every((ip) => san.includes(ip)), `${JSON.stringify(lanIpv4)} vs ${JSON.stringify(san)}`);
   ok('SAN 不再为空且含回环', san.includes('127.0.0.1'), JSON.stringify(san));
 
@@ -219,7 +220,7 @@ try {
   const davPropfind = await call('/calendars/admin/', { method: 'PROPFIND' });
   eq('HTTPS 生效后 HTTP 上的 PROPFIND → 403', 403, davPropfind.status);
   ok('403 文案为中文并给出 https 地址', davPropfind.text.includes('请把 CalDAV 客户端地址改为 https://') && davPropfind.text.includes(`:${free}/`), davPropfind.text.trim());
-  eq('403 带 X-SimpleCal-Https-Port', String(free), davPropfind.headers.get('x-fncal-https-port'));
+  eq('403 带 X-SimpleCal-Https-Port', String(free), davPropfind.headers.get('x-simplecal-https-port'));
   const davPut = await call('/calendars/admin/x.ics', { method: 'PUT', body: 'BEGIN:VCALENDAR' });
   eq('HTTPS 生效后 HTTP 上的 PUT → 403', 403, davPut.status);
   const wellKnown = await call('/.well-known/caldav');

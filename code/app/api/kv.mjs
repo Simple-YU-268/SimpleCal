@@ -164,7 +164,7 @@ export function createKvApi({ store, events = createEventService({ store }) }) {
     return { value: legacyValue({ ...(await eventFromIcs(object.content)), id: target.id }, calendarId), etag: object.etag };
   }
 
-  async function writeOne(key, value) {
+  async function writeOne(key, value, headers = {}) {
     if (!value || typeof value !== 'object' || Array.isArray(value)) {
       const err = new Error('value must be a JSON object');
       err.status = 400;
@@ -191,7 +191,7 @@ export function createKvApi({ store, events = createEventService({ store }) }) {
       throw err;
     }
     if (target.kind === 'evt') {
-      return events.putLegacy(target.calendarId, target.id, value);
+      return events.putLegacy(target.calendarId, target.id, value, headers);
     }
     if (typeof value.title !== 'string' || !value.title.trim()) {
       const err = new Error('task requires a title');
@@ -208,7 +208,7 @@ export function createKvApi({ store, events = createEventService({ store }) }) {
     return { etag: result.etag, created: result.created, calendarId: target.calendarId };
   }
 
-  async function deleteOne(key) {
+  async function deleteOne(key, headers = {}) {
     if (key === SETTINGS_KEY) return store.deleteUserData('settings');
     const target = await resolveKey(key);
     if (!target) {
@@ -219,6 +219,10 @@ export function createKvApi({ store, events = createEventService({ store }) }) {
       return true;
     }
     if (!(await store.calendarExists(target.calendarId))) return false;
+    if (target.kind === 'evt') {
+      const result = await events.removeLegacy(target.calendarId, target.id, headers);
+      return Boolean(result?.deleted);
+    }
     const result = await store.deleteEvent(target.calendarId, `${target.id}.ics`);
     if (result && result.deleted) return true;
     // Legacy `cal:task:*` before the migration ran (or after a rollback).
@@ -374,9 +378,10 @@ export function createKvApi({ store, events = createEventService({ store }) }) {
       } catch (err) {
         return json(res, err.status || 400, { ok: false, code: 'invalid_request', message: err.message });
       }
-      const current = await readOne(key);
+      const eventTarget = await resolveKey(key);
+      const current = eventTarget?.kind === 'evt' ? null : await readOne(key);
       const ifMatch = req.headers['if-match'];
-      if (ifMatch != null) {
+      if (ifMatch != null && eventTarget?.kind !== 'evt') {
         if (!current || normalizeTag(ifMatch) !== normalizeTag(current.etag)) {
           return json(res, 412, {
             ok: false,
@@ -388,20 +393,23 @@ export function createKvApi({ store, events = createEventService({ store }) }) {
       }
       let result;
       try {
-        result = await writeOne(key, body);
+        result = await writeOne(key, body, req.headers);
       } catch (err) {
-        return json(res, err.status || 400, { ok: false, code: err.code || 'invalid_value', message: err.message });
+        return json(res, err.status || 400, { ok: false, code: err.code || 'invalid_value', message: [409, 412].includes(err.status) ? '资源已被修改，请刷新后重试' : err.message });
       }
       return json(res, result.created ? 201 : 200, { ok: true, key, etag: `"${result.etag}"`, calendarId: result.calendarId }, { ETag: `"${result.etag}"` });
     }
 
     if (req.method === 'DELETE') {
-      const current = await readOne(key);
+      const eventTarget = await resolveKey(key);
+      const current = eventTarget?.kind === 'evt' ? null : await readOne(key);
       const ifMatch = req.headers['if-match'];
-      if (ifMatch != null && (!current || normalizeTag(ifMatch) !== normalizeTag(current.etag))) {
+      if (eventTarget?.kind !== 'evt' && ifMatch != null && (!current || normalizeTag(ifMatch) !== normalizeTag(current.etag))) {
         return json(res, 412, { ok: false, code: 'conflict', message: '资源已被修改，请刷新后重试' });
       }
-      const deleted = await deleteOne(key);
+      let deleted;
+      try { deleted = await deleteOne(key, req.headers); }
+      catch (err) { return json(res, err.status || 400, { ok: false, code: err.code || 'invalid_value', message: [409, 412].includes(err.status) ? '资源已被修改，请刷新后重试' : err.message }); }
       return deleted ? json(res, 200, { ok: true }) : json(res, 404, { ok: false, code: 'not_found' });
     }
 

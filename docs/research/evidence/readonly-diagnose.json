@@ -1,0 +1,12 @@
+{
+  "pass": true,
+  "files": 11,
+  "sourceUnchanged": true,
+  "checks": [
+    "createApp readOnly startup",
+    "GET-equivalent object read",
+    "syncToken",
+    "listObjects"
+  ],
+  "platform": "win32"
+}

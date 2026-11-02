@@ -1,5 +1,6 @@
 // 安全设置服务（0.2.13）：把配置、证书、TOTP、CalDAV 专用密码、白名单、
 // 密码策略、审计查询收敛到一个对象，供 HTTP 层与 API 使用。
+import { domainToASCII } from 'node:url';
 import {
   DEFAULT_HTTPS_PORT,
   changedEntries,
@@ -254,8 +255,8 @@ export function createSecurityService({ file, config = {}, accounts, audit = nul
       const end = value.indexOf(']');
       if (end !== -1) return value.slice(1, end);
     }
-    if (/^[^:]+:\d+$/.test(value)) return value.slice(0, value.lastIndexOf(':'));
-    return value;
+    if (/^[^:]+:\d+$/.test(value)) value = value.slice(0, value.lastIndexOf(':'));
+    return domainToASCII(value) || value;
   }
 
   // 当前访问地址（host[:port] / [IPv6]:port）是否被证书 SAN 覆盖。

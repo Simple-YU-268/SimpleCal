@@ -130,11 +130,14 @@ async function main() {
       ];
       const cancelled = vevent({ uid: 'p14-cancelled', start: '20261120T110000Z', end: '20261120T120000Z', summary: 'Cancelled', extra: ['STATUS:CANCELLED'] });
       const transparent = vevent({ uid: 'p14-free', start: '20261121T130000Z', end: '20261121T140000Z', summary: 'Free', extra: ['TRANSP:TRANSPARENT'] });
-      const put = await call(BASE, 'PUT', `${dav}p14.ics`, {
-        body: vcal([timed, allDay, cancelled, transparent]),
-        headers: { 'Content-Type': 'text/calendar; charset=utf-8' },
-      });
-      record('PUT free-busy fixtures', '201', String(put.status), put.status === 201);
+      const puts = [];
+      for (const block of [timed, allDay, cancelled, transparent]) {
+        const uid = block.find((line) => line.startsWith('UID:')).slice(4);
+        puts.push(await call(BASE, 'PUT', `${dav}${uid}.ics`, {
+          body: vcal([block]), headers: { 'Content-Type': 'text/calendar; charset=utf-8' },
+        }));
+      }
+      record('PUT free-busy fixtures', '201 each', puts.map((r) => r.status).join(','), puts.every((r) => r.status === 201));
 
       // Query range aligned to local calendar days: all-day DATE values are
       // interpreted in the server's local timezone (no VTIMEZONE in the model).

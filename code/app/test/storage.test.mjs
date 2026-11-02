@@ -200,13 +200,13 @@ async function main() {
     {
       const token = await tokenOfCalendar(CAL);
       record('sync-token format', 'urn:uuid:<calendarId>:<ctag>', token,
-        /^urn:uuid:store-[a-z0-9]+:\d+$/.test(token));
+        /^urn:uuid:store-[a-z0-9]+:\d+:[0-9a-f-]+$/.test(token));
     }
 
     /* 4. concurrent PUTs without If-Match: serialised, all succeed, meta valid */
     {
       const before = await tokenOfCalendar(CAL);
-      const beforeCtag = Number(before.split(':').pop());
+      const beforeCtag = Number(before.split(':')[3]);
       const writes = Array.from({ length: 10 }, (_, i) => call('PUT', `${calPath}concurrent.ics`, {
         body: ics('concurrent', `version-${i}`),
         headers: { 'Content-Type': 'text/calendar' },
@@ -214,7 +214,7 @@ async function main() {
       const responses = await Promise.all(writes);
       const allOk = responses.every((r) => r.status === 201 || r.status === 204);
       const after = await tokenOfCalendar(CAL);
-      const afterCtag = Number(after.split(':').pop());
+      const afterCtag = Number(after.split(':')[3]);
       const got = await call('GET', `${calPath}concurrent.ics`);
       const metaOk = await fs.readFile(path.join(userDir, CAL, 'meta.json'), 'utf8')
         .then((text) => Boolean(JSON.parse(text).ctag))

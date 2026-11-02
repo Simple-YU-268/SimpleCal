@@ -1,0 +1,164 @@
+{
+  "createdAt": "2026-10-30T15:56:52.097Z",
+  "target": "local-ephemeral",
+  "platform": "win32",
+  "node": "v24.20.0",
+  "cases": [
+    {
+      "name": "OPTIONS capabilities",
+      "pass": true
+    },
+    {
+      "name": "principal and calendar-home discovery",
+      "pass": true
+    },
+    {
+      "name": "MKCALENDAR synthetic collection",
+      "pass": true
+    },
+    {
+      "name": "PUT create and GET raw data",
+      "pass": true
+    },
+    {
+      "name": "calendar-multiget found and missing",
+      "pass": true
+    },
+    {
+      "name": "calendar-query component/time-range",
+      "pass": true
+    },
+    {
+      "name": "initial sync token",
+      "pass": true
+    },
+    {
+      "name": "conditional update and stale-write rejection",
+      "pass": true
+    },
+    {
+      "name": "MOVE and source disappearance",
+      "pass": true
+    },
+    {
+      "name": "incremental sync includes deletion and destination",
+      "pass": true
+    },
+    {
+      "name": "DELETE synthetic object",
+      "pass": true
+    }
+  ],
+  "exchanges": [
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/login",
+      "status": 200
+    },
+    {
+      "method": "OPTIONS",
+      "path": "/calendars/interop/",
+      "status": 200
+    },
+    {
+      "method": "PROPFIND",
+      "path": "/calendars/interop/",
+      "status": 207
+    },
+    {
+      "method": "PROPFIND",
+      "path": "/principals/interop/",
+      "status": 207
+    },
+    {
+      "method": "MKCALENDAR",
+      "path": "/calendars/interop/simplecal-interop-185dd910-b456-4d83-99b9-e4847467de23/",
+      "status": 201
+    },
+    {
+      "method": "PUT",
+      "path": "/calendars/interop/simplecal-interop-185dd910-b456-4d83-99b9-e4847467de23/3e09c45e-671e-4857-8d55-7ecd0c3b979a.ics",
+      "status": 201
+    },
+    {
+      "method": "GET",
+      "path": "/calendars/interop/simplecal-interop-185dd910-b456-4d83-99b9-e4847467de23/3e09c45e-671e-4857-8d55-7ecd0c3b979a.ics",
+      "status": 200
+    },
+    {
+      "method": "REPORT",
+      "path": "/calendars/interop/simplecal-interop-185dd910-b456-4d83-99b9-e4847467de23/",
+      "status": 207
+    },
+    {
+      "method": "REPORT",
+      "path": "/calendars/interop/simplecal-interop-185dd910-b456-4d83-99b9-e4847467de23/",
+      "status": 207
+    },
+    {
+      "method": "REPORT",
+      "path": "/calendars/interop/simplecal-interop-185dd910-b456-4d83-99b9-e4847467de23/",
+      "status": 207
+    },
+    {
+      "method": "PUT",
+      "path": "/calendars/interop/simplecal-interop-185dd910-b456-4d83-99b9-e4847467de23/3e09c45e-671e-4857-8d55-7ecd0c3b979a.ics",
+      "status": 204
+    },
+    {
+      "method": "PUT",
+      "path": "/calendars/interop/simplecal-interop-185dd910-b456-4d83-99b9-e4847467de23/3e09c45e-671e-4857-8d55-7ecd0c3b979a.ics",
+      "status": 412
+    },
+    {
+      "method": "MOVE",
+      "path": "/calendars/interop/simplecal-interop-185dd910-b456-4d83-99b9-e4847467de23/3e09c45e-671e-4857-8d55-7ecd0c3b979a.ics",
+      "status": 201
+    },
+    {
+      "method": "GET",
+      "path": "/calendars/interop/simplecal-interop-185dd910-b456-4d83-99b9-e4847467de23/3e09c45e-671e-4857-8d55-7ecd0c3b979a.ics",
+      "status": 404
+    },
+    {
+      "method": "GET",
+      "path": "/calendars/interop/simplecal-interop-185dd910-b456-4d83-99b9-e4847467de23/3e09c45e-671e-4857-8d55-7ecd0c3b979a-moved.ics",
+      "status": 200
+    },
+    {
+      "method": "REPORT",
+      "path": "/calendars/interop/simplecal-interop-185dd910-b456-4d83-99b9-e4847467de23/",
+      "status": 207
+    },
+    {
+      "method": "DELETE",
+      "path": "/calendars/interop/simplecal-interop-185dd910-b456-4d83-99b9-e4847467de23/3e09c45e-671e-4857-8d55-7ecd0c3b979a-moved.ics",
+      "status": 204
+    },
+    {
+      "method": "GET",
+      "path": "/calendars/interop/simplecal-interop-185dd910-b456-4d83-99b9-e4847467de23/3e09c45e-671e-4857-8d55-7ecd0c3b979a-moved.ics",
+      "status": 404
+    },
+    {
+      "method": "DELETE",
+      "path": "/calendars/interop/simplecal-interop-185dd910-b456-4d83-99b9-e4847467de23/3e09c45e-671e-4857-8d55-7ecd0c3b979a.ics",
+      "status": 404
+    },
+    {
+      "method": "DELETE",
+      "path": "/calendars/interop/simplecal-interop-185dd910-b456-4d83-99b9-e4847467de23/3e09c45e-671e-4857-8d55-7ecd0c3b979a-moved.ics",
+      "status": 404
+    },
+    {
+      "method": "DELETE",
+      "path": "/calendars/interop/simplecal-interop-185dd910-b456-4d83-99b9-e4847467de23/",
+      "status": 405
+    }
+  ],
+  "cleanup": {
+    "ok": true,
+    "mode": "ephemeral-store-removed"
+  },
+  "pass": true
+}

@@ -91,8 +91,8 @@ async function rest(session, method, pathname, { body } = {}) {
 }
 
 const PROPFIND_DEPTH1 = '<?xml version="1.0"?><D:propfind xmlns:D="DAV:"><D:prop><D:resourcetype/></D:prop></D:propfind>';
-const PROPFIND_COMPONENTS = '<?xml version="1.0"?><D:propfind xmlns:D="DAV:"><D:prop>'
-  + '<D:supported-calendar-component-set/></D:prop></D:propfind>';
+const PROPFIND_COMPONENTS = '<?xml version="1.0"?><D:propfind xmlns:D="DAV:" xmlns:C="urn:ietf:params:xml:ns:caldav"><D:prop>'
+  + '<C:supported-calendar-component-set/></D:prop></D:propfind>';
 
 async function propfindHome() {
   const res = await fetch(`${BASE}/calendars/${USER}/`, {

@@ -1,0 +1,156 @@
+{
+  "started": "2026-10-31T01:40:08.850Z",
+  "node": "v24.20.0",
+  "platform": "win32",
+  "cwd": "C:/Users/yy197/Desktop/SimpleCal/code",
+  "reason": "Rerun original failed files after KV localization, frontend build, manual-disk cache invalidation and sync-token changes; preserve initial backend-regression.json.",
+  "excluded": [
+    {
+      "file": "m39-roundtrip.test.mjs",
+      "reason": "repository data/ical-samples/expected.json fixture absent"
+    }
+  ],
+  "mode": "sequential isolated child per file",
+  "timeoutMs": 90000,
+  "totalFiles": 8,
+  "results": [
+    {
+      "file": "app/test/kv.test.mjs",
+      "exitCode": 0,
+      "signal": null,
+      "timeout": false,
+      "error": null,
+      "durationMs": 3722,
+      "log": "C:\\Users\\yy197\\AppData\\Local\\Temp\\simplecal-backend-regression-logs\\kv.test.mjs.rerun.log",
+      "failureSummary": [
+        "SUMMARY: pass=19 fail=0 total=19"
+      ]
+    },
+    {
+      "file": "app/test/m37-api.test.mjs",
+      "exitCode": 2,
+      "signal": null,
+      "timeout": false,
+      "error": null,
+      "durationMs": 2614,
+      "log": "C:\\Users\\yy197\\AppData\\Local\\Temp\\simplecal-backend-regression-logs\\m37-api.test.mjs.rerun.log",
+      "failureSummary": []
+    },
+    {
+      "file": "app/test/m37-static.test.mjs",
+      "exitCode": 0,
+      "signal": null,
+      "timeout": false,
+      "error": null,
+      "durationMs": 4302,
+      "log": "C:\\Users\\yy197\\AppData\\Local\\Temp\\simplecal-backend-regression-logs\\m37-static.test.mjs.rerun.log",
+      "failureSummary": []
+    },
+    {
+      "file": "app/test/m42-ai-mcp.test.mjs",
+      "exitCode": 0,
+      "signal": null,
+      "timeout": false,
+      "error": null,
+      "durationMs": 1929,
+      "log": "C:\\Users\\yy197\\AppData\\Local\\Temp\\simplecal-backend-regression-logs\\m42-ai-mcp.test.mjs.rerun.log",
+      "failureSummary": [
+        "SUMMARY: pass=87 fail=0"
+      ]
+    },
+    {
+      "file": "app/test/m42-ai-rest.test.mjs",
+      "exitCode": 0,
+      "signal": null,
+      "timeout": false,
+      "error": null,
+      "durationMs": 2051,
+      "log": "C:\\Users\\yy197\\AppData\\Local\\Temp\\simplecal-backend-regression-logs\\m42-ai-rest.test.mjs.rerun.log",
+      "failureSummary": [
+        "SUMMARY: pass=111 fail=0"
+      ]
+    },
+    {
+      "file": "app/test/m9-0214-fallback.test.mjs",
+      "exitCode": 1,
+      "signal": null,
+      "timeout": false,
+      "error": null,
+      "durationMs": 2614,
+      "log": "C:\\Users\\yy197\\AppData\\Local\\Temp\\simplecal-backend-regression-logs\\m9-0214-fallback.test.mjs.rerun.log",
+      "failureSummary": [
+        "[FAIL] SAN 含主机名 | [\"localhost\",\"Yó\",\"fncal.lan.test\",\"127.0.0.1\",\"0:0:0:0:0:0:0:1\",\"198.18.0.1\",\"192.168.0.57\"]",
+        "[FAIL] 访问地址=主机名时证书覆盖判定为 true | expected=true actual=false"
+      ]
+    },
+    {
+      "file": "app/test/protocol-m34.test.mjs",
+      "exitCode": 0,
+      "signal": null,
+      "timeout": false,
+      "error": null,
+      "durationMs": 9540,
+      "log": "C:\\Users\\yy197\\AppData\\Local\\Temp\\simplecal-backend-regression-logs\\protocol-m34.test.mjs.rerun.log",
+      "failureSummary": [
+        "SUMMARY: pass=20 fail=0 total=20"
+      ]
+    },
+    {
+      "file": "app/test/storage.test.mjs",
+      "exitCode": 0,
+      "signal": null,
+      "timeout": false,
+      "error": null,
+      "durationMs": 17892,
+      "log": "C:\\Users\\yy197\\AppData\\Local\\Temp\\simplecal-backend-regression-logs\\storage.test.mjs.rerun.log",
+      "failureSummary": [
+        "SUMMARY: pass=18 fail=0 total=18"
+      ]
+    },
+    {
+      "file": "app/test/m9-0214-fallback.test.mjs",
+      "exitCode": 0,
+      "timeout": false,
+      "reason": "Second rerun after production IDNA SAN normalization and expected hostname normalization.",
+      "log": "C:/Users/yy197/AppData/Local/Temp/simplecal-backend-regression-logs/m9-0214-fallback.test.mjs.rerun2.log",
+      "failureSummary": [
+        "RESULTS: 42/42"
+      ]
+    }
+  ],
+  "summary": {
+    "completed": 8,
+    "passedFiles": 7,
+    "failedFiles": 1,
+    "recordedAttempts": 9
+  },
+  "finished": "2026-10-31T01:42:26.582Z",
+  "combined": {
+    "totalFiles": 55,
+    "passingLatest": 53,
+    "remainingFailures": [
+      {
+        "file": "app/test/m37-api.test.mjs",
+        "exitCode": 2,
+        "reason": "repository data/ical-samples/expected.json fixture absent",
+        "log": "C:\\Users\\yy197\\AppData\\Local\\Temp\\simplecal-backend-regression-logs\\m37-api.test.mjs.rerun.log"
+      },
+      {
+        "file": "app/test/m39-roundtrip.test.mjs",
+        "exitCode": 2,
+        "reason": "repository data/ical-samples/expected.json fixture absent",
+        "log": "C:\\Users\\yy197\\AppData\\Local\\Temp\\simplecal-backend-regression-logs\\m39-roundtrip.test.mjs.log"
+      }
+    ],
+    "note": "Original failures and earlier rerun attempts remain recorded; only failed files were rerun after fixes."
+  },
+  "additionalTests": [
+    {
+      "file": "app/test/source-cache.test.mjs",
+      "exitCode": 0,
+      "testCount": 3,
+      "passed": 3,
+      "reason": "Added after initial55-file run; warmempty/manualcopy, same-size edit/removal, first-response lunarversion, UIDrecreation and calendarepoch regressions."
+    }
+  ]
+}

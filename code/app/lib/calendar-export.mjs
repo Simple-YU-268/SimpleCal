@@ -1,11 +1,10 @@
-import { refreshLunarRdates } from './ical.mjs';
 
 /** Existing SimpleCal export format shared by the HTTP and DAV adapters. */
 export function mergeCalendars(objects) {
   const timezones = new Map();
   const blocks = [];
   for (const object of objects) {
-    const content = refreshLunarRdates(String(object.content || ''));
+    const content = String(object.content || '');
     for (const match of content.match(/BEGIN:VTIMEZONE[\s\S]*?END:VTIMEZONE/g) || []) {
       const tzid = (/^TZID:(.*)$/m.exec(match) || [])[1];
       if (tzid && !timezones.has(tzid.trim())) timezones.set(tzid.trim(), match.replace(/\s+$/, ''));

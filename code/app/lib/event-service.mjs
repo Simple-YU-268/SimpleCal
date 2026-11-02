@@ -4,6 +4,7 @@ import { randomUUID } from 'node:crypto';
 import { eventFromIcs, eventToIcs } from './ical.mjs';
 import { currentContext } from './request-context.mjs';
 import { createParsedObjectCache } from './storage-provider.mjs';
+import { mutateCalendarObject, preserveUnmodeledProperties } from './event-constraints.mjs';
 
 const ID = /^(?!\.{1,2}$)[A-Za-z0-9._-]{1,128}$/;
 const FIELDS = new Set(['title', 'start', 'end', 'allDay', 'location', 'description',
@@ -102,16 +103,18 @@ export function createEventService({ store }) {
     return items.sort((a, b) => a.event.id.localeCompare(b.event.id));
   }
   // Legacy KV upsert preserves its permissive model and return shape.
-  async function putLegacy(calendarId, id, value) {
+  async function putLegacy(calendarId, id, value, headers = {}) {
     identifiers(calendarId, id);
     await calendar(calendarId, true);
     if (!Number.isFinite(Number(value.start)) || !Number.isFinite(Number(value.end))) {
       throw fail(400, 'invalid_value', 'event requires numeric start/end');
     }
-    const current = await store.getEvent(calendarId, `${id}.ics`);
-    let previous = null;
-    try { if (current) previous = await parsedObjects.parse(current.content); } catch { /* legacy tolerance */ }
-    const result = await store.putEvent(calendarId, `${id}.ics`, encode(value, previous, id, false));
+    const result = await mutateCalendarObject({ store, calendarId, file: `${id}.ics`, headers, type: 'vevent',
+      transform: async (current) => {
+        let previous = null;
+        try { if (current) previous = await parsedObjects.parse(current.content); } catch { /* legacy tolerance */ }
+        return { content: preserveUnmodeledProperties(current?.content, encode(value, previous, id, Boolean(current))) };
+      } });
     return { etag: result.etag, created: result.created, calendarId };
   }
   async function mutate(calendarId, id, value, { create = false, remove = false, ifMatch } = {}) {
@@ -119,10 +122,11 @@ export function createEventService({ store }) {
     await calendar(calendarId);
     if (!create && !ifMatch) throw fail(428, 'precondition_required', '修改或删除事件需要 If-Match');
     if (!remove) validate(value, !create);
-    const result = await store.mutateEvent(calendarId, `${id}.ics`, async (current) => {
+    const result = await mutateCalendarObject({ store, calendarId, file: `${id}.ics`, type: 'vevent',
+      headers: create ? {} : { 'if-match': ifMatch }, before: (current) => {
       if (create && current) throw fail(409, 'event_exists', '事件已存在');
       if (!create && (!current || /BEGIN:VTODO/.test(current.content))) throw fail(404, 'event_not_found', '事件不存在');
-      if (!create && ifMatch !== `"${current.etag}"`) throw fail(412, 'conflict', '事件已被修改，请重新读取后再试');
+      }, transform: async (current) => {
       if (remove) return { delete: true };
       const previous = current ? await parsedObjects.parse(current.content) : null;
       const next = { ...previous, ...value, updatedAt: Date.now() };
@@ -137,12 +141,17 @@ export function createEventService({ store }) {
       }
       if (value.recurrence !== undefined) delete next.rruleRaw;
       if (value.reminders !== undefined && value.alarms === undefined) next.alarms = [];
-      return { content: encode(next, previous, id, true) };
-    });
+      return { content: preserveUnmodeledProperties(current?.content, encode(next, previous, id, true)) };
+    } });
     if (result.missingCalendar) throw fail(404, 'calendar_not_found', '日历不存在');
     return remove ? { deleted: result.deleted } : project(result, calendarId, id);
   }
   return { get, list, putLegacy,
+    removeLegacy: (calendarId, id, headers = {}) => {
+      identifiers(calendarId, id);
+      return mutateCalendarObject({ store, calendarId, file: `${id}.ics`, headers,
+        transform: () => ({ delete: true }) });
+    },
     create: (calendarId, value) => mutate(calendarId, randomUUID(), value, { create: true }),
     patch: (calendarId, id, value, ifMatch) => mutate(calendarId, id, value, { ifMatch }),
     remove: (calendarId, id, ifMatch) => mutate(calendarId, id, null, { remove: true, ifMatch }),

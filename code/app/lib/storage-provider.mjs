@@ -5,11 +5,11 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { componentOf, componentsOf, eventFromIcs, taskFromIcs, uidOf } from './ical.mjs';
 
-export const STORAGE_PROVIDER_VERSION = 1;
+export const STORAGE_PROVIDER_VERSION = 2;
 export const STORAGE_PROVIDER_METHODS = Object.freeze([
   'ensureRoot', 'ensureUser', 'listCalendars', 'calendarExists', 'readCalendarMeta',
   'createCalendar', 'listEvents', 'getEvent', 'putEvent', 'deleteEvent',
-  'mutateEvent', 'snapshotEvents', 'ctag', 'syncToken', 'changesSince',
+  'mutateEvent', 'snapshotEvents', 'ctag', 'syncToken', 'changesSince', 'syncPage', 'getEvents', 'queryCandidates',
   'readUserData', 'writeUserData', 'deleteUserData', 'userPaths', 'calendarPaths',
 ]);
 

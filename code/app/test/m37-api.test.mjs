@@ -17,7 +17,7 @@
  */
 
 import { spawn, spawnSync } from 'node:child_process';
-import { promises as fs } from 'node:fs';
+import { promises as fs, existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -226,47 +226,56 @@ async function main() {
       list.status === 200 && (listBody.items || []).length === 2);
 
     /* ---------------- import -> export -> comparator ------------------ */
-    const expected = JSON.parse(await fs.readFile(path.join(DATA, 'expected.json'), 'utf8'));
-    let imported = 0;
-    let exported = 0;
-    let s1Id = '';
-    for (const sample of expected.samples) {
-      const ics = await fs.readFile(path.join(DATA, sample.file), 'utf8');
-      const imp = await fetch(`${BASE}/api/v1/import`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/calendar; charset=utf-8', Cookie: cookieHeader, 'X-CSRF-Token': jar.csrf },
-        body: ics,
-      });
-      const impBody = await imp.json().catch(() => ({}));
-      if (imp.status === 200 && impBody.id) imported += 1;
-      else {
-        record(`${sample.id} 导入`, '200 + id', `${imp.status} ${impBody.code || ''}`, false);
-        continue;
+    // The sample corpus (data/ical-samples) is an opt-in fixture that is not
+    // part of the published tree. Skip the corpus-bound round-trip loudly
+    // instead of aborting the whole HTTP smoke test with a fatal ENOENT.
+    const hasCorpus = existsSync(path.join(DATA, 'expected.json'))
+      && existsSync(path.join(DATA, 'compare_roundtrip.mjs'));
+    if (!hasCorpus) {
+      console.log(`[SKIP] S1–S8 导入→导出往返（缺少样本语料 ${DATA}）`);
+    } else {
+      const expected = JSON.parse(await fs.readFile(path.join(DATA, 'expected.json'), 'utf8'));
+      let imported = 0;
+      let exported = 0;
+      let s1Id = '';
+      for (const sample of expected.samples) {
+        const ics = await fs.readFile(path.join(DATA, sample.file), 'utf8');
+        const imp = await fetch(`${BASE}/api/v1/import`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/calendar; charset=utf-8', Cookie: cookieHeader, 'X-CSRF-Token': jar.csrf },
+          body: ics,
+        });
+        const impBody = await imp.json().catch(() => ({}));
+        if (imp.status === 200 && impBody.id) imported += 1;
+        else {
+          record(`${sample.id} 导入`, '200 + id', `${imp.status} ${impBody.code || ''}`, false);
+          continue;
+        }
+        if (sample.id === 'S1') s1Id = impBody.id;
+        const exp = await fetch(`${BASE}/api/v1/export?uid=${encodeURIComponent(impBody.id)}`, {
+          headers: { Cookie: cookieHeader },
+        });
+        const expText = await exp.text();
+        if (exp.status === 200 && /BEGIN:VCALENDAR/.test(expText)) {
+          await fs.writeFile(path.join(OUT_DIR, `${sample.id}.ics`), expText, 'utf8');
+          exported += 1;
+        }
       }
-      if (sample.id === 'S1') s1Id = impBody.id;
-      const exp = await fetch(`${BASE}/api/v1/export?uid=${encodeURIComponent(impBody.id)}`, {
-        headers: { Cookie: cookieHeader },
-      });
-      const expText = await exp.text();
-      if (exp.status === 200 && /BEGIN:VCALENDAR/.test(expText)) {
-        await fs.writeFile(path.join(OUT_DIR, `${sample.id}.ics`), expText, 'utf8');
-        exported += 1;
-      }
+      record('S1–S8 逐条 POST /api/v1/import -> 200 + id', '8/8 imported', `${imported}/8`, imported === 8);
+      record('S1–S8 GET /api/v1/export?uid=… -> 8 个 .ics', '8/8 exported', `${exported}/8`, exported === 8);
+
+      // "事件可读": the imported S1 is served back by the DAV handler too.
+      const readBack = await fetch(`${BASE}/calendars/admin/default/${s1Id}.ics`, { headers: { Cookie: cookieHeader } });
+      const readBackText = await readBack.text();
+      record('导入的 S1 事件可读（DAV GET -> 200 text/calendar）', '200 + UID',
+        `${readBack.status} ${readBack.headers.get('content-type')}`,
+        readBack.status === 200 && /^text\/calendar/.test(readBack.headers.get('content-type') || '')
+          && /UID:s1-timezone-asia-shanghai@caldav-m3\.9\.dsh\.local/.test(readBackText));
+
+      console.log('\n--- compare_roundtrip.mjs（导出目录，退出码 0 = pass=8 fail=0）---');
+      const compared = spawnSync(process.execPath, [path.join(DATA, 'compare_roundtrip.mjs'), OUT_DIR], { stdio: 'inherit' });
+      record('导入→导出往返：独立比对器 pass=8 fail=0', 'exit=0', `exit=${compared.status}`, compared.status === 0);
     }
-    record('S1–S8 逐条 POST /api/v1/import -> 200 + id', '8/8 imported', `${imported}/8`, imported === 8);
-    record('S1–S8 GET /api/v1/export?uid=… -> 8 个 .ics', '8/8 exported', `${exported}/8`, exported === 8);
-
-    // "事件可读": the imported S1 is served back by the DAV handler too.
-    const readBack = await fetch(`${BASE}/calendars/admin/default/${s1Id}.ics`, { headers: { Cookie: cookieHeader } });
-    const readBackText = await readBack.text();
-    record('导入的 S1 事件可读（DAV GET -> 200 text/calendar）', '200 + UID',
-      `${readBack.status} ${readBack.headers.get('content-type')}`,
-      readBack.status === 200 && /^text\/calendar/.test(readBack.headers.get('content-type') || '')
-        && /UID:s1-timezone-asia-shanghai@caldav-m3\.9\.dsh\.local/.test(readBackText));
-
-    console.log('\n--- compare_roundtrip.mjs（导出目录，退出码 0 = pass=8 fail=0）---');
-    const compared = spawnSync(process.execPath, [path.join(DATA, 'compare_roundtrip.mjs'), OUT_DIR], { stdio: 'inherit' });
-    record('导入→导出往返：独立比对器 pass=8 fail=0', 'exit=0', `exit=${compared.status}`, compared.status === 0);
 
     const badImport = await fetch(`${BASE}/api/v1/import`, {
       method: 'POST',
@@ -278,36 +287,42 @@ async function main() {
       `${badImport.status} ${badImportBody.code}`,
       badImport.status === 400 && badImportBody.code === 'invalid_calendar');
 
-    const merged = await fetch(`${BASE}/api/v1/export`, { headers: { Cookie: cookieHeader } });
-    const mergedText = await merged.text();
-    let mergedCount = 0;
-    try {
-      mergedCount = (await eventsOf(mergedText)).length;
-    } catch {
-      mergedCount = 0;
+    // These three assertions read back the corpus samples imported above, so
+    // they can only run when the sample corpus is present.
+    if (hasCorpus) {
+      const merged = await fetch(`${BASE}/api/v1/export`, { headers: { Cookie: cookieHeader } });
+      const mergedText = await merged.text();
+      let mergedCount = 0;
+      try {
+        mergedCount = (await eventsOf(mergedText)).length;
+      } catch {
+        mergedCount = 0;
+      }
+      record('GET /api/v1/export 合并备份：合法 VCALENDAR + VTIMEZONE', '200 + >=8 VEVENT + TZID:Asia/Shanghai',
+        `${merged.status} events=${mergedCount} tz=${/TZID:Asia\/Shanghai/.test(mergedText)}`,
+        merged.status === 200 && mergedCount >= 8 && /BEGIN:VTIMEZONE/.test(mergedText)
+          && /TZID:Asia\/Shanghai/.test(mergedText) && /^END:VCALENDAR/m.test(mergedText));
+
+      // ---- 0.2.8「导出范围」：from/to 本地日界，含首尾 ----
+      const ranged = await fetch(`${BASE}/api/v1/export?calendar=default&from=2026-12-01&to=2026-12-31`, {
+        headers: { Cookie: cookieHeader },
+      });
+      const rangedText = await ranged.text();
+      record('导出范围：2026-12 只回该月事件（含首尾）', '200 + s6/s8 + 无 s1',
+        `${ranged.status} s6=${/UID:s6-allday/.test(rangedText)} s8=${/UID:s8-unicode/.test(rangedText)} s1=${/UID:s1-timezone/.test(rangedText)}`,
+        ranged.status === 200 && /UID:s6-allday/.test(rangedText) && /UID:s8-unicode/.test(rangedText)
+          && !/UID:s1-timezone/.test(rangedText) && /^END:VCALENDAR/m.test(rangedText));
+
+      const dayOnly = await fetch(`${BASE}/api/v1/export?calendar=default&from=2026-12-25&to=2026-12-25`, {
+        headers: { Cookie: cookieHeader },
+      });
+      const dayOnlyText = await dayOnly.text();
+      record('导出范围：单日含首尾（全天事件 2026-12-25）', '200 + s6',
+        `${dayOnly.status} s6=${/UID:s6-allday/.test(dayOnlyText)}`,
+        dayOnly.status === 200 && /UID:s6-allday/.test(dayOnlyText));
+    } else {
+      console.log('[SKIP] 合并备份 / 导出范围断言（依赖样本语料）');
     }
-    record('GET /api/v1/export 合并备份：合法 VCALENDAR + VTIMEZONE', '200 + >=8 VEVENT + TZID:Asia/Shanghai',
-      `${merged.status} events=${mergedCount} tz=${/TZID:Asia\/Shanghai/.test(mergedText)}`,
-      merged.status === 200 && mergedCount >= 8 && /BEGIN:VTIMEZONE/.test(mergedText)
-        && /TZID:Asia\/Shanghai/.test(mergedText) && /^END:VCALENDAR/m.test(mergedText));
-
-    // ---- 0.2.8「导出范围」：from/to 本地日界，含首尾 ----
-    const ranged = await fetch(`${BASE}/api/v1/export?calendar=default&from=2026-12-01&to=2026-12-31`, {
-      headers: { Cookie: cookieHeader },
-    });
-    const rangedText = await ranged.text();
-    record('导出范围：2026-12 只回该月事件（含首尾）', '200 + s6/s8 + 无 s1',
-      `${ranged.status} s6=${/UID:s6-allday/.test(rangedText)} s8=${/UID:s8-unicode/.test(rangedText)} s1=${/UID:s1-timezone/.test(rangedText)}`,
-      ranged.status === 200 && /UID:s6-allday/.test(rangedText) && /UID:s8-unicode/.test(rangedText)
-        && !/UID:s1-timezone/.test(rangedText) && /^END:VCALENDAR/m.test(rangedText));
-
-    const dayOnly = await fetch(`${BASE}/api/v1/export?calendar=default&from=2026-12-25&to=2026-12-25`, {
-      headers: { Cookie: cookieHeader },
-    });
-    const dayOnlyText = await dayOnly.text();
-    record('导出范围：单日含首尾（全天事件 2026-12-25）', '200 + s6',
-      `${dayOnly.status} s6=${/UID:s6-allday/.test(dayOnlyText)}`,
-      dayOnly.status === 200 && /UID:s6-allday/.test(dayOnlyText));
 
     const emptyRange = await fetch(`${BASE}/api/v1/export?calendar=default&from=2020-01-01&to=2020-12-31`, {
       headers: { Cookie: cookieHeader },

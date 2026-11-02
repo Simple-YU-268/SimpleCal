@@ -35,6 +35,7 @@ import path from 'node:path';
 import { currentContext } from '../lib/request-context.mjs';
 import { commitMove, recoverMoves as recoverMoveIntents } from './move-journal.mjs';
 import { createStorageChangeHub } from '../lib/storage-provider.mjs';
+import { createSyncPages } from './sync-pages.mjs';
 
 export const MAX_OBJECT_BYTES = 1024 * 1024; // 1 MB per object (M3.3 limit)
 export const TOMBSTONE_LIMIT = Math.max(1, Number(process.env.CALDAV_TOMBSTONE_LIMIT || 5000));
@@ -44,8 +45,8 @@ export const LEGACY_DEFAULT_CALENDAR_NAME = '默认日历';
 export const TASKS_CALENDAR_ID = 'tasks';
 export const TASKS_CALENDAR_NAME = '任务';
 export const CALENDAR_TYPES = Object.freeze(['vevent', 'vtodo']);
-const DEFAULT_COLOR = '#3272d9';
-const TASKS_COLOR = '#8a94a6';
+const DEFAULT_COLOR = '#7edbd2';
+const TASKS_COLOR = '#ffd94d';
 // 系统自动创建的日历：只可改名，不可删除（0.2.0 第 2 条拍板）。
 const PROTECTED_CALENDARS = new Set([DEFAULT_CALENDAR_ID, TASKS_CALENDAR_ID]);
 // 软删除的日历在回收站保留多久（之后由启动清理删除）。
@@ -53,7 +54,7 @@ const TRASH_TTL_MS = Math.max(0, Number(process.env.CALDAV_TRASH_TTL_MS || 24 * 
 
 const ID_RE = /^[A-Za-z0-9._-]{1,128}$/;
 const UID_RE = /^[A-Za-z0-9._-]{1,128}$/;
-const SYNC_TOKEN_RE = /^urn:uuid:([^:]+):(\d+)$/;
+const SYNC_TOKEN_RE = /^urn:uuid:([^:]+):(\d+):([0-9a-f-]+)$/;
 
 export function etagOf(content) {
   return createHash('sha256').update(content, 'utf8').digest('hex');
@@ -141,7 +142,7 @@ function assertUid(value) {
   return text;
 }
 
-export function createStore({ root, logger = null }) {
+export function createStore({ root, logger = null, now = Date.now, materializeProjections = true }) {
   const changes = createStorageChangeHub();
   let writeFailure = false;
   const rootDir = path.resolve(root);
@@ -498,6 +499,7 @@ export function createStore({ root, logger = null }) {
     const userId = contextUserId(three ? userIdExplicit : null);
     const cal = assertId('calendarId', three ? calendarArg : userIdExplicit);
     if (isProtectedCalendar(cal)) return { deleted: false, reason: 'protected' };
+    invalidateObjects(userId, cal); projectionChecks.delete(`${userId}/${cal}`);
     if (!(await calendarExists(userId, cal))) return { deleted: false, reason: 'not_found' };
     const stamp = new Date().toISOString().replace(/[:.]/g, '-');
     const name = `${cal}.${stamp}.${randomUUID().slice(0, 8)}`;
@@ -528,6 +530,7 @@ export function createStore({ root, logger = null }) {
     const from = path.join(trashDir(userId), name);
     await assertInsideRoot(from);
     await fs.rename(from, calendarDir(userId, cal));
+    invalidateObjects(userId, cal); projectionChecks.delete(`${userId}/${cal}`);
     logEvent('calendar-restored', { userId, calendarId: cal, trash: name });
     return { restored: true, calendarId: cal };
   }
@@ -566,28 +569,61 @@ export function createStore({ root, logger = null }) {
 
   /* ---------------------------------------------------------------- objects */
 
-  async function listObjects(userIdExplicit, calendarArg) {
+  async function sourceFingerprint(userId, cal) {
+    const names = (await listUids(userId, cal)).sort();
+    const parts = [];
+    for (let offset = 0; offset < names.length; offset += 64) {
+      parts.push(...await Promise.all(names.slice(offset, offset + 64).map(async (name) => {
+        try {
+          const stat = await fs.stat(path.join(objectsDir(userId, cal), `${name}.ics`), { bigint: true });
+          return `${name}:${stat.size}:${stat.mtimeNs}:${stat.ctimeNs}`;
+        } catch { return `${name}:missing`; }
+      })));
+    }
+    return createHash('sha256').update(parts.join('\n')).digest('hex');
+  }
+
+  async function listObjectsRaw(userIdExplicit, calendarArg) {
     const calendarId = calendarArg === undefined ? userIdExplicit : calendarArg;
     const explicitUser = calendarArg === undefined ? null : userIdExplicit;
     const userId = contextUserId(explicitUser);
     const cal = assertId('calendarId', calendarId);
     const dir = objectsDir(userId, cal);
+    const cacheKey = `${userId}/${cal}`;
+    const fingerprint = await sourceFingerprint(userId, cal);
+    if (objectCache.has(cacheKey)) {
+      const cached = objectCache.get(cacheKey);
+      if (cached.fingerprint === fingerprint) return cached.objects.map((o) => ({ ...o, lastModified: new Date(o.lastModified) }));
+      invalidateObjects(userId, cal); projectionChecks.delete(cacheKey);
+    }
     const out = [];
+    let retainedBytes = 0;
     for (const uid of await listUids(userId, cal)) {
       try {
         const [content, stat] = await Promise.all([
           fs.readFile(path.join(dir, `${uid}.ics`), 'utf8'),
           fs.stat(path.join(dir, `${uid}.ics`)),
         ]);
+        retainedBytes += Buffer.byteLength(content) + 256;
+        if (retainedBytes > 32 * 1024 * 1024) throw Object.assign(new Error('collection snapshot byte limit exceeded'), { status: 507 });
         out.push({ uid, file: `${uid}.ics`, content, etag: etagOf(content), lastModified: stat.mtime });
-      } catch {
+      } catch (err) {
+        if (err.status === 507) throw err;
         /* vanished between readdir and read */
       }
     }
-    return out;
+    const bytes = out.reduce((sum, object) => sum + Buffer.byteLength(object.content) + 256, 0);
+    if (bytes <= 32 * 1024 * 1024) {
+      while (cachedBytes + bytes > 32 * 1024 * 1024 && objectCache.size) {
+        const first = objectCache.keys().next().value;
+        cachedBytes -= objectCache.get(first).bytes; objectCache.delete(first);
+      }
+      objectCache.set(cacheKey, { objects: out, bytes, fingerprint }); cachedBytes += bytes;
+    }
+    return out.map((o) => ({ ...o, lastModified: new Date(o.lastModified) }));
   }
 
-  async function getObject(userIdExplicit, calendarArg, uidArg) {
+  async function getObjectRaw(userIdExplicit, calendarArg, uidArg) {
     const three = uidArg !== undefined;
     const calendarId = three ? calendarArg : userIdExplicit;
     const uid = three ? uidArg : calendarArg;
@@ -604,6 +640,121 @@ export function createStore({ root, logger = null }) {
   }
 
   const queues = new Map();
+  const objectCache = new Map();
+  let cachedBytes = 0;
+  function invalidateObjects(userId, cal) {
+    const key = `${userId}/${cal}`;
+    if (objectCache.has(key)) { cachedBytes -= objectCache.get(key).bytes; objectCache.delete(key); }
+  }
+  const syncPages = createSyncPages({ now, writeAtomic });
+  async function syncPage(calendarId, token, limit = 1000) {
+    const userId = contextUserId(null), cal = assertId('calendarId', calendarId);
+    return enqueue(`${userId}/${cal}`, async () => {
+      await listObjectsRaw(userId, cal);
+      await refreshProjectionLocked(userId, cal);
+      const meta = await readMeta(userId, cal);
+      if (!meta) return { error: 'invalid' };
+      return syncPages(path.join(objectsDir(userId, cal), '.sync-pages'), token, limit, async () => {
+        const outcome = await changesSinceRaw(userId, cal, token);
+        if (outcome.error) return outcome;
+        const changes = [];
+        let bytes = 0;
+        for (const change of outcome.changes) {
+          const event = change.deleted ? null : await getObjectRaw(userId, cal, change.uid);
+          bytes += event ? Buffer.byteLength(event.content) : 0;
+          if (bytes > 24 * 1024 * 1024) throw Object.assign(new Error('sync snapshot byte limit exceeded'), { status: 507 });
+          changes.push({ ...change, event });
+        }
+        return { ...outcome, changes };
+      }, meta.syncUuid);
+    });
+  }
+  const projectionChecks = new Map();
+  // Materialize clock-dependent ICS inside the same queue as conditional writes.
+  // Bytes, validators and the existing durable sync journal advance together.
+  async function refreshProjectionLocked(userId, cal) {
+    if (!materializeProjections) return;
+    const { refreshLunarRdates } = await import('../lib/ical.mjs');
+    const instant = now();
+    const key = `${userId}/${cal}`;
+    const date = new Date(instant);
+    const day = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+    let checked = projectionChecks.get(key);
+    if (checked?.day === day) return;
+    const objects = checked ? (await Promise.all([...checked.lunar].map((uid) => getObjectRaw(userId, cal, uid)))).filter(Boolean)
+      : await listObjectsRaw(userId, cal);
+    if (!checked) {
+      checked = { day: null, lunar: new Set() };
+      projectionChecks.set(key, checked);
+      if (projectionChecks.size > 256) projectionChecks.delete(projectionChecks.keys().next().value);
+    }
+    for (const object of objects) {
+      if (/^X-FNCAL-LUNAR-RULE:\s*YEARLY-LUNAR\s*$/im.test(object.content.replace(/\r?\n[ \t]/g, ''))) checked.lunar.add(object.uid);
+      const content = refreshLunarRdates(object.content, instant);
+      if (content !== object.content) await writeObject(userId, cal, object.uid, content, instant);
+    }
+    checked.day = day;
+  }
+  async function getEvents(calendarId, files) {
+    if (!Array.isArray(files) || files.length > 1000) throw Object.assign(new Error('batch limit exceeded'), { status: 413 });
+    const userId = contextUserId(null), cal = assertId('calendarId', calendarId);
+    const names = files.map(assertUid);
+    return enqueue(`${userId}/${cal}`, async () => {
+      await refreshProjectionLocked(userId, cal);
+      const objects = [];
+      let bytes = 0;
+      for (const name of names) {
+        const object = await getObjectRaw(userId, cal, name);
+        bytes += object ? Buffer.byteLength(object.content) : 0;
+        if (bytes > 32 * 1024 * 1024) throw Object.assign(new Error('batch byte limit exceeded'), { status: 507 });
+        objects.push(object);
+      }
+      return objects;
+    });
+  }
+  async function queryCandidates(calendarId, { component, range } = {}) {
+    const objects = await listObjects(calendarId);
+    return objects.filter((object) => {
+      if (component && !new RegExp(`^BEGIN:${component === 'VTODO' ? 'VTODO' : 'VEVENT'}\\s*$`, 'im').test(object.content)) return false;
+      if (!range || component !== 'VEVENT' || /^(RRULE|RDATE|RECURRENCE-ID|DURATION)[;:]/im.test(object.content)) return true;
+      // Only prune provably disjoint UTC intervals. The protocol predicate
+      // evaluates exact semantics for recurrences, TZID and floating times.
+      const start = /^DTSTART:(\d{8}T\d{6}Z)\s*$/im.exec(object.content)?.[1];
+      const end = /^DTEND:(\d{8}T\d{6}Z)\s*$/im.exec(object.content)?.[1];
+      if (!start || !end) return true;
+      const parse = (v) => Date.parse(`${v.slice(0, 4)}-${v.slice(4, 6)}-${v.slice(6, 8)}T${v.slice(9, 11)}:${v.slice(11, 13)}:${v.slice(13, 15)}Z`);
+      const a = parse(start), b = parse(end);
+      if (!Number.isFinite(a) || !Number.isFinite(b) || b <= a) return true;
+      return b > (range.start ?? -Infinity) && a < (range.end ?? Infinity);
+    });
+  }
+  async function listObjects(a, b) {
+    const userId = contextUserId(b === undefined ? null : a);
+    const cal = assertId('calendarId', b === undefined ? a : b);
+    return enqueue(`${userId}/${cal}`, async () => {
+      await listObjectsRaw(userId, cal);
+      await refreshProjectionLocked(userId, cal);
+      return listObjectsRaw(userId, cal);
+    });
+  }
+  async function getObject(a, b, c) {
+    const userId = contextUserId(c === undefined ? null : a);
+    const cal = assertId('calendarId', c === undefined ? a : b);
+    const name = assertUid(c === undefined ? b : c);
+    return enqueue(`${userId}/${cal}`, async () => {
+      await refreshProjectionLocked(userId, cal);
+      let object = await getObjectRaw(userId, cal, name);
+      if (object?.content.includes('YEARLY-LUNAR')) {
+        const { refreshLunarRdates } = await import('../lib/ical.mjs');
+        const content = refreshLunarRdates(object.content, now());
+        if (content !== object.content) {
+          await writeObject(userId, cal, name, content);
+          object = await getObjectRaw(userId, cal, name);
+        }
+      }
+      return object;
+    });
+  }
   function enqueue(key, task) {
     const previous = queues.get(key) || Promise.resolve();
     const guarded = () => {
@@ -641,7 +792,13 @@ export function createStore({ root, logger = null }) {
   }
 
   // Called only while holding this calendar's queue.
-  async function writeObject(userId, cal, name, text) {
+  async function writeObject(userId, cal, name, text, projectionNow = now()) {
+    invalidateObjects(userId, cal);
+    const { refreshLunarRdates } = await import('../lib/ical.mjs');
+    text = refreshLunarRdates(text, projectionNow);
+    if (Buffer.byteLength(text, 'utf8') > MAX_OBJECT_BYTES) {
+      throw Object.assign(new Error('projected object exceeds size limit'), { status: 413, code: 'TOO_LARGE' });
+    }
     const meta = await readMeta(userId, cal);
     const state = await readState(userId, cal);
     const full = path.join(objectsDir(userId, cal), `${name}.ics`);
@@ -654,8 +811,13 @@ export function createStore({ root, logger = null }) {
     state.ctags[name] = nextCtag;
     await saveState(userId, cal, state);
     await saveMeta(userId, cal, meta);
+    const checked = projectionChecks.get(`${userId}/${cal}`);
+    if (checked) {
+      if (/^X-FNCAL-LUNAR-RULE:\s*YEARLY-LUNAR\s*$/im.test(text.replace(/\r?\n[ \t]/g, ''))) checked.lunar.add(name);
+      else checked.lunar.delete(name);
+    }
     changes.emit({ action: existed ? 'update' : 'create', userId, calendarId: cal, id: name, etag: etagOf(text), ctag: nextCtag });
-    return { created: !existed, etag: etagOf(text), ctag: nextCtag };
+    return { created: !existed, etag: etagOf(text), ctag: nextCtag, content: text };
   }
 
   async function deleteObject(userIdExplicit, calendarArg, uidArg) {
@@ -671,6 +833,7 @@ export function createStore({ root, logger = null }) {
   }
 
   async function removeObject(userId, cal, name) {
+    invalidateObjects(userId, cal);
     const meta = await readMeta(userId, cal);
     const state = await readState(userId, cal);
     const full = path.join(objectsDir(userId, cal), `${name}.ics`);
@@ -708,14 +871,15 @@ export function createStore({ root, logger = null }) {
     const name = assertUid(file);
     return enqueue(`${userId}/${cal}`, async () => {
       if (!(await calendarExists(userId, cal))) return { missingCalendar: true };
-      const current = await getObject(userId, cal, name);
+      await refreshProjectionLocked(userId, cal);
+      const current = await getObjectRaw(userId, cal, name);
       const change = await transform(current);
       if (change.delete) return removeObject(userId, cal, name);
       const text = String(change.content);
       if (Buffer.byteLength(text, 'utf8') > MAX_OBJECT_BYTES) {
         throw Object.assign(new Error('事件内容超过 1 MB'), { status: 413, code: 'too_large' });
       }
-      return { ...await writeObject(userId, cal, name, text), created: !current, content: text };
+      return { ...await writeObject(userId, cal, name, text), created: !current };
     });
   }
 
@@ -725,7 +889,9 @@ export function createStore({ root, logger = null }) {
     const cal = assertId('calendarId', calendarId);
     return enqueue(`${userId}/${cal}`, async () => {
       if (!(await calendarExists(userId, cal))) return null;
-      return listObjects(userId, cal);
+      await listObjectsRaw(userId, cal);
+      await refreshProjectionLocked(userId, cal);
+      return listObjectsRaw(userId, cal);
     });
   }
 
@@ -741,14 +907,16 @@ export function createStore({ root, logger = null }) {
     const locked = (index, task) => index === keys.length ? task()
       : enqueue(`${userId}/${keys[index]}`, () => locked(index + 1, task));
     return locked(0, async () => {
+      for (const cal of keys) projectionChecks.delete(`${userId}/${cal}`);
       if (!(await calendarExists(userId, from))) return { missingSource: true };
       if (!(await calendarExists(userId, to))) return { missingTarget: true };
-      const current = await getObject(userId, from, sourceId);
+      for (const cal of keys) await refreshProjectionLocked(userId, cal);
+      const current = await getObjectRaw(userId, from, sourceId);
       if (from === to && (sourceId === targetId
         || (process.platform === 'win32' && sourceId.toLowerCase() === targetId.toLowerCase()))) {
         throw Object.assign(new Error('源和目标相同'), { status: 403, davFailure: true });
       }
-      const target = await getObject(userId, to, targetId);
+      const target = await getObjectRaw(userId, to, targetId);
       await validate(current, target);
       if (!current) return { missingSource: true };
       const records = new Map();
@@ -785,6 +953,7 @@ export function createStore({ root, logger = null }) {
       }
       changes.emit({ action: 'move', userId, calendarId: from, id: sourceId,
         destinationCalendarId: to, destinationId: targetId, etag: current.etag, ctag: origin.meta.ctag });
+      for (const cal of keys) { invalidateObjects(userId, cal); projectionChecks.delete(`${userId}/${cal}`); }
       return { created: !target, etag: current.etag };
     });
   }
@@ -808,6 +977,7 @@ export function createStore({ root, logger = null }) {
       if (patch.visible !== undefined) meta.visible = patch.visible !== false;
       // 0.2.1：CalDAV 权限（'ro' 只读 / 'rw' 读写）。
       if (patch.davAccess !== undefined) meta.davAccess = ['ro', 'hidden'].includes(patch.davAccess) ? patch.davAccess : 'rw';
+      if (patch.shares !== undefined) meta.shares = normalizeShares(patch.shares);
       if (patch.order !== undefined && Number.isFinite(Number(patch.order))) meta.order = Number(patch.order);
       await saveMeta(userId, cal, meta);
       return meta;
@@ -852,6 +1022,8 @@ export function createStore({ root, logger = null }) {
    */
   async function deleteUser(userIdExplicit) {
     const userId = assertId('userId', userIdExplicit);
+    for (const key of [...objectCache.keys()]) if (key.startsWith(`${userId}/`)) invalidateObjects(userId, key.slice(userId.length + 1));
+    for (const key of [...projectionChecks.keys()]) if (key.startsWith(`${userId}/`)) projectionChecks.delete(key);
     await fs.rm(userDir(userId), { recursive: true, force: true });
     await fs.rm(trashDir(userId), { recursive: true, force: true });
     logEvent('user-data-deleted', { userId });
@@ -862,18 +1034,24 @@ export function createStore({ root, logger = null }) {
     const calendarId = calendarArg === undefined ? userIdExplicit : calendarArg;
     const explicitUser = calendarArg === undefined ? null : userIdExplicit;
     const userId = contextUserId(explicitUser);
-    const meta = await readMeta(userId, assertId('calendarId', calendarId));
-    return meta ? Number(meta.ctag || 0) : 0;
+    const cal = assertId('calendarId', calendarId);
+    return enqueue(`${userId}/${cal}`, async () => {
+      await listObjectsRaw(userId, cal);
+      await refreshProjectionLocked(userId, cal);
+      const meta = await readMeta(userId, cal);
+      return meta ? Number(meta.ctag || 0) : 0;
+    });
   }
 
-  const tokenFor = (calendarId, ctagValue) => `urn:uuid:${calendarId}:${ctagValue}`;
+  const tokenFor = (calendarId, ctagValue, epoch) => `urn:uuid:${calendarId}:${ctagValue}:${epoch}`;
 
   async function syncToken(userIdExplicit, calendarArg) {
     const calendarId = calendarArg === undefined ? userIdExplicit : calendarArg;
     const explicitUser = calendarArg === undefined ? null : userIdExplicit;
     const userId = contextUserId(explicitUser);
     const cal = assertId('calendarId', calendarId);
-    return tokenFor(cal, await ctag(userId, cal));
+    const version = await ctag(userId, cal);
+    return tokenFor(cal, version, (await readMeta(userId, cal))?.syncUuid);
   }
 
   /**
@@ -886,21 +1064,29 @@ export function createStore({ root, logger = null }) {
     const token = three ? tokenArg : calendarArg;
     const userId = contextUserId(three ? userIdExplicit : null);
     const cal = assertId('calendarId', calendarId);
+    return enqueue(`${userId}/${cal}`, async () => {
+      await listObjectsRaw(userId, cal);
+      await refreshProjectionLocked(userId, cal);
+      return changesSinceRaw(userId, cal, token);
+    });
+  }
+
+  async function changesSinceRaw(userId, cal, token) {
     const meta = await readMeta(userId, cal);
     if (!meta) return { error: 'invalid' };
 
     const raw = String(token || '').trim();
     if (!raw) {
-      const objects = await listObjects(userId, cal);
+      const objects = await listObjectsRaw(userId, cal);
       return {
-        token: tokenFor(cal, meta.ctag),
+        token: tokenFor(cal, meta.ctag, meta.syncUuid),
         changes: objects.map((o) => ({ uid: o.uid, deleted: false, etag: o.etag })),
       };
     }
 
     const match = SYNC_TOKEN_RE.exec(raw);
     if (!match) return { error: 'invalid' };
-    if (match[1] !== cal) return { error: 'invalid' };
+    if (match[1] !== cal || match[3] !== meta.syncUuid) return { error: 'invalid' };
     const since = Number(match[2]);
     if (!Number.isFinite(since) || since > Number(meta.ctag)) return { error: 'invalid' };
 
@@ -914,12 +1100,16 @@ export function createStore({ root, logger = null }) {
       deleted.add(tombstone.uid);
       changes.push({ uid: tombstone.uid, deleted: true });
     }
-    for (const object of await listObjects(userId, cal)) {
-      if (deleted.has(object.uid)) continue;
+    for (const object of await listObjectsRaw(userId, cal)) {
       if (Number(state.ctags[object.uid] || 0) <= since) continue;
+      if (deleted.has(object.uid)) {
+        for (let index = changes.length - 1; index >= 0; index -= 1) {
+          if (changes[index].uid === object.uid) changes.splice(index, 1);
+        }
+      }
       changes.push({ uid: object.uid, deleted: false, etag: object.etag });
     }
-    return { token: tokenFor(cal, meta.ctag), changes };
+    return { token: tokenFor(cal, meta.ctag, meta.syncUuid), changes };
   }
 
   /* Compatibility names used by the DAV handler (context-bound call shape). */
@@ -977,16 +1167,22 @@ export function createStore({ root, logger = null }) {
     deleteObject,
     listEvents,
     getEvent,
+    getEvents,
+    queryCandidates,
     putEvent,
     deleteEvent,
     mutateEvent,
     snapshotEvents,
     moveEvent,
-    recoverMoves: async () => { const result = await recoverMoveIntents(rootDir); writeFailure = false; return result; },
+    recoverMoves: async () => {
+      const result = await recoverMoveIntents(rootDir); writeFailure = false;
+      objectCache.clear(); cachedBytes = 0; projectionChecks.clear(); return result;
+    },
     subscribeChanges: changes.subscribe,
     ctag,
     syncToken,
     changesSince,
+    syncPage,
     tokenFor,
     readUserData,
     writeUserData,

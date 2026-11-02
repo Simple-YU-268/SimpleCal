@@ -15,7 +15,10 @@
 
 import path from 'node:path';
 
-import { attrsOf, escapeXml, find, findAll, localName, parseXml } from '../lib/xml.mjs';
+import { escapeXml, find as xmlFind } from '../lib/xml.mjs';
+import { NS, parseDavRequest, propertyElement, propertyNamespace, requestedPropertyKeys, direct, utcRange } from './xml-request.mjs';
+import { compileCalendarFilter } from './calendar-filter.mjs';
+import { mutateCalendarObject } from '../lib/event-constraints.mjs';
 import {
   buildFreeBusyBody,
   busyIntervals,
@@ -23,14 +26,13 @@ import {
   expandToIcs,
   isRecurring,
   looksLikeCalendar,
-  matchesTimeRange,
-  parseIcsDate,
-  refreshLunarRdates,
   uidOf,
 } from '../lib/ical.mjs';
 import { challengeHeaders, isMutatingMethod } from '../auth/index.mjs';
 import { currentContext } from '../lib/request-context.mjs';
 import { checkEntityConditions } from './preconditions.mjs';
+import { conditionalRepresentation } from './representation.mjs';
+import { reportHrefPath } from './report-hrefs.mjs';
 import { DAV_HEADER, ALLOW_HEADER, supportedReportSetXml } from './capabilities.mjs';
 import { mergeCalendars } from '../lib/calendar-export.mjs';
 import { etagOf } from '../store/file-store.mjs';
@@ -38,6 +40,8 @@ import { publicHref, pathFromPublicUrl } from '../lib/public-url.mjs';
 
 const SEGMENT_RE = /^[A-Za-z0-9._-]{1,128}$/;
 const RESOURCE_RE = /^[A-Za-z0-9._-]{1,128}\.ics$/i;
+const CAL_ELEMENTS = new Set(['expand', 'time-range', 'comp-filter', 'filter']);
+const find = (node, local) => xmlFind(node, local, CAL_ELEMENTS.has(local) ? NS.CAL : propertyNamespace(local));
 
 /** True when any raw path segment is `.` / `..`, including percent-encoded forms. */
 function hasDotSegments(rawUrl) {
@@ -217,7 +221,6 @@ export function createDavHandler({ store, config, logger, auth }) {
     ],
     event: ['resourcetype', 'getetag', 'getcontenttype', 'getcontentlength', 'getlastmodified', 'displayname'],
   };
-  const KNOWN_PROPS = new Set([...Object.values(BASE_PROPS).flat(), 'calendar-data']);
 
   function resourcetypeXml(kind) {
     if (kind === 'principal') return '<D:resourcetype><D:principal/></D:resourcetype>';
@@ -294,7 +297,7 @@ export function createDavHandler({ store, config, logger, auth }) {
         return '<D:getcontenttype>httpd/unix-directory</D:getcontenttype>';
       case 'getcontentlength':
         return target.kind === 'event' && event
-          ? `<D:getcontentlength>${Buffer.byteLength(refreshLunarRdates(event.content), 'utf8')}</D:getcontentlength>`
+          ? `<D:getcontentlength>${Buffer.byteLength(event.content, 'utf8')}</D:getcontentlength>`
           : null;
       case 'getlastmodified':
         return target.kind === 'event' && event
@@ -318,7 +321,7 @@ export function createDavHandler({ store, config, logger, auth }) {
           : null;
       case 'current-user-privilege-set':
         return ['event', 'calendar', 'home', 'principal'].includes(target.kind)
-          ? privilegeSetXml(extras.writable !== false)
+          ? privilegeSetXml(extras.writable !== false && (!target.calendar || await davAccessOf(target.calendar) === 'rw'))
           : null;
       case 'owner':
         return target.kind === 'calendar'
@@ -345,7 +348,7 @@ export function createDavHandler({ store, config, logger, auth }) {
       case 'calendar-data': {
         if (target.kind !== 'event' || !event) return null;
         // 0.2.12：农历每年重复的 RDATE 列表按当前年份动态重算；展开过的内容不再动。
-        const content = extras.expandedContent || refreshLunarRdates(event.content);
+        const content = extras.expandedContent || event.content;
         return `<C:calendar-data>${escapeXml(content)}</C:calendar-data>`;
       }
       default:
@@ -362,29 +365,23 @@ export function createDavHandler({ store, config, logger, auth }) {
       + '</D:multistatus>';
   }
 
-  function requestedProps(bodyText, kind) {
-    if (!bodyText || !bodyText.trim()) return BASE_PROPS[kind] || BASE_PROPS.event;
-    const doc = parseXml(bodyText);
-    if (find(doc, 'allprop') || find(doc, 'propname')) return BASE_PROPS[kind] || BASE_PROPS.event;
-    const propNode = find(doc, 'prop');
-    if (!propNode) return BASE_PROPS[kind] || BASE_PROPS.event;
-    const names = propNode.children.map((c) => c.local);
-    return names.length ? names : (BASE_PROPS[kind] || BASE_PROPS.event);
+  function requestedProps(doc, kind) {
+    return requestedPropertyKeys(doc, BASE_PROPS[kind] || BASE_PROPS.event);
   }
 
-  async function responseXml(target, requested, { includeChildren = false, event = null, meta = null, ctag = null, expandedContent = null, writable = null } = {}) {
+  async function responseXml(target, requested, { includeChildren = false, event = null, meta = null, ctag = null, expandedContent = null, writable = null, namesOnly = false } = {}) {
     const ok = [];
     const missing = [];
     for (const name of requested) {
       const xml = await renderProp(name, target, { event, meta, ctag, expandedContent, writable });
-      if (xml != null) ok.push(xml);
+      if (xml != null) ok.push(namesOnly ? propertyElement(name) : xml);
       else missing.push(name);
     }
     let body = '<D:response>'
       + `<D:href>${escapeXml(publicHref(config, target.href))}</D:href>`
       + `<D:propstat><D:prop>${ok.join('')}</D:prop><D:status>HTTP/1.1 200 OK</D:status></D:propstat>`;
     if (missing.length) {
-      body += `<D:propstat><D:prop>${missing.map((n) => `<D:${n}/>`).join('')}</D:prop>`
+      body += `<D:propstat><D:prop>${missing.map((n) => propertyElement(n)).join('')}</D:prop>`
         + '<D:status>HTTP/1.1 404 Not Found</D:status></D:propstat>';
     }
     body += '</D:response>';
@@ -402,12 +399,13 @@ export function createDavHandler({ store, config, logger, auth }) {
         ? childMeta
         : (live.kind === 'event' ? await store.readCalendarMeta(live.calendar) : null);
       const childWritable = !childCalendarMeta || childCalendarMeta.davAccess !== 'ro';
-      const shared = requested.filter((n) => KNOWN_PROPS.has(n));
+      const shared = requested;
       childBodies.push(await responseXml(live, shared, {
         meta: childMeta,
         ctag: childCtag,
         event: childEvent,
         writable: childWritable,
+        namesOnly,
       }));
     }
     return body + childBodies.join('');
@@ -495,7 +493,10 @@ export function createDavHandler({ store, config, logger, auth }) {
     }
     const live = await hydrate(target);
     if (live.kind === 'unknown') return send(res, 404, { 'Content-Type': 'text/plain; charset=utf-8' }, 'not found\n');
-    const props = requestedProps(bodyText, live.kind);
+    const doc = parseDavRequest(bodyText, 'PROPFIND');
+    const props = requestedProps(doc, live.kind);
+    const namesOnly = Boolean(doc.children[0] && direct(doc.children[0], 'propname', NS.DAV).length);
+    const event = live.kind === 'event' ? await store.getEvent(live.calendar, live.file) : null;
     const includeChildren = depth === '1'
       && ['root', 'principalRoot', 'principal', 'home', 'calendar'].includes(live.kind);
     const meta = live.kind === 'calendar' ? await store.readCalendarMeta(live.calendar) : null;
@@ -507,25 +508,20 @@ export function createDavHandler({ store, config, logger, auth }) {
     } else if (live.kind === 'calendar') {
       writable = !meta || meta.davAccess !== 'ro';
     }
-    const inner = await responseXml(live, props, { includeChildren, meta, ctag, writable });
+    const inner = await responseXml(live, props, { includeChildren, event, meta, ctag, writable, namesOnly });
     send(res, 207, { 'Content-Type': 'application/xml; charset=utf-8' }, multistatus(inner));
   }
 
-  function reportProps(bodyText, defaults) {
-    const doc = parseXml(bodyText);
-    const propNode = find(doc, 'prop');
-    if (!propNode) return defaults;
-    const names = propNode.children.map((c) => c.local);
-    return names.length ? names : defaults;
+  function reportProps(doc, defaults) {
+    return requestedPropertyKeys(doc, defaults);
   }
 
   function expandRangeOf(doc) {
-    const node = find(doc, 'expand');
+    const prop = direct(doc.children[0], 'prop', NS.DAV)[0];
+    const data = prop && direct(prop, 'calendar-data', NS.CAL)[0];
+    const node = data && direct(data, 'expand', NS.CAL)[0];
     if (!node) return null;
-    const start = parseIcsDate(node.attrs.start);
-    const end = parseIcsDate(node.attrs.end);
-    if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) return null;
-    return { start, end };
+    return utcRange(node, { requiredBoth: true });
   }
 
   async function reportEventResponse(evTarget, event, props, expandRange) {
@@ -538,10 +534,11 @@ export function createDavHandler({ store, config, logger, auth }) {
   }
 
   async function handleReport(req, res, target, bodyText) {
-    const doc = parseXml(bodyText || '');
+    const doc = parseDavRequest(bodyText || '', 'REPORT');
     const rootLocal = doc.children.length ? doc.children[0].local : '';
     const live = await hydrate(target);
 
+    if (live.kind === 'unknown') return send(res, 404, {}, 'not found\n');
     if (rootLocal === 'sync-collection') return handleSyncCollection(req, res, target, doc, bodyText);
     if (rootLocal === 'free-busy-query') return handleFreeBusy(res, live, doc);
     if (rootLocal !== 'calendar-query' && rootLocal !== 'calendar-multiget') {
@@ -549,11 +546,12 @@ export function createDavHandler({ store, config, logger, auth }) {
     }
     if (live.kind === 'unknown') return send(res, 404, { 'Content-Type': 'text/plain; charset=utf-8' }, 'not found\n');
 
-    const props = reportProps(bodyText, ['getetag', 'calendar-data']);
+    const props = reportProps(doc, ['getetag', 'calendar-data']);
     const expandRange = expandRangeOf(doc);
     const responses = [];
 
     if (rootLocal === 'calendar-query') {
+      const matchesFilter = compileCalendarFilter(doc);
       if (live.kind !== 'calendar') {
         if (live.kind === 'home') {
           const calendars = await childrenOf(live);
@@ -568,21 +566,8 @@ export function createDavHandler({ store, config, logger, auth }) {
         }
         return send(res, 403, { 'Content-Type': 'text/plain; charset=utf-8' }, 'REPORT target is not a calendar\n');
       }
-      const timeRangeNode = find(doc, 'time-range');
-      const timeRange = timeRangeNode
-        ? { start: parseIcsDate(timeRangeNode.attrs.start), end: parseIcsDate(timeRangeNode.attrs.end) }
-        : null;
-      const wanted = new Set(
-        findAll(doc, 'comp-filter')
-          .map((n) => String(n.attrs.name || '').toUpperCase())
-          .filter((name) => name && name !== 'VCALENDAR'),
-      );
-      for (const event of await store.listEvents(live.calendar)) {
-        if (wanted.size) {
-          const component = componentOf(event.content) || 'VEVENT';
-          if (!wanted.has(component)) continue;
-        }
-        if (!(await matchesTimeRange(event.content, timeRange || expandRange))) continue;
+      for (const event of await store.queryCandidates(live.calendar, matchesFilter.candidates)) {
+        if (!(await matchesFilter(event.content))) continue;
         const evTarget = {
           kind: 'event',
           username: live.username,
@@ -596,15 +581,27 @@ export function createDavHandler({ store, config, logger, auth }) {
     }
 
     // calendar-multiget
-    const hrefs = findAll(doc, 'href').map((n) => (n.text || '').trim()).filter(Boolean);
+    if (live.kind !== 'calendar') {
+      return send(res, 403, { 'Content-Type': 'application/xml; charset=utf-8' },
+        '<?xml version="1.0" encoding="utf-8"?><D:error xmlns:D="DAV:"><D:supported-report/></D:error>');
+    }
+    const hrefs = direct(doc.children[0], 'href', NS.DAV).map((n) => (n.text || '').trim()).filter(Boolean);
+    const origin = `${req.socket?.encrypted ? 'https' : 'http'}://${req.headers.host || 'localhost'}`;
+    const resolvedHrefs = hrefs.map((href) => {
+      const pathname = reportHrefPath(href, { config, origin, collectionPath: target.href });
+      return pathname ? resolveTarget(pathname) : { kind: 'unknown' };
+    });
+    const valid = resolvedHrefs.filter((picked) => picked.kind === 'event' && picked.username === live.username && picked.calendar === live.calendar);
+    const batch = await store.getEvents(live.calendar, valid.map((picked) => picked.file));
+    const objects = new Map(valid.map((picked, index) => [picked.file, batch[index]]));
     for (const href of hrefs) {
-      const hrefPath = pathFromPublicUrl(config, new URL(href, 'http://localhost'));
+      const hrefPath = reportHrefPath(href, { config, origin, collectionPath: target.href });
       const resolved = hrefPath ? resolveTarget(hrefPath) : { kind: 'unknown' };
-      if (resolved.kind !== 'event') {
+      if (resolved.kind !== 'event' || resolved.username !== live.username || resolved.calendar !== live.calendar) {
         responses.push(`<D:response><D:href>${escapeXml(href)}</D:href><D:status>HTTP/1.1 404 Not Found</D:status></D:response>`);
         continue;
       }
-      const event = await store.getEvent(resolved.calendar, resolved.file);
+      const event = objects.get(resolved.file);
       if (!event) {
         responses.push(`<D:response><D:href>${escapeXml(href)}</D:href><D:status>HTTP/1.1 404 Not Found</D:status></D:response>`);
         continue;
@@ -619,9 +616,8 @@ export function createDavHandler({ store, config, logger, auth }) {
       return send(res, 403, { 'Content-Type': 'application/xml; charset=utf-8' },
         '<?xml version="1.0" encoding="utf-8"?><D:error xmlns:D="DAV:"><D:supported-report/></D:error>');
     }
-    const rangeNode = find(doc, 'time-range');
-    const start = rangeNode ? parseIcsDate(rangeNode.attrs.start) : NaN;
-    const end = rangeNode ? parseIcsDate(rangeNode.attrs.end) : NaN;
+    const rangeNode = direct(doc.children[0], 'time-range', NS.CAL)[0];
+    const { start, end } = rangeNode ? utcRange(rangeNode, { requiredBoth: true }) : {};
     if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) {
       return send(res, 400, { 'Content-Type': 'text/plain; charset=utf-8' },
         'free-busy-query requires a valid time-range\n');
@@ -651,15 +647,17 @@ export function createDavHandler({ store, config, logger, auth }) {
       return send(res, 403, { 'Content-Type': 'application/xml; charset=utf-8' },
         '<?xml version="1.0" encoding="utf-8"?><D:error xmlns:D="DAV:"><D:supported-report/></D:error>');
     }
-    const levelNode = find(doc, 'sync-level');
+    const levelNode = direct(doc.children[0], 'sync-level', NS.DAV)[0];
     const level = levelNode ? levelNode.text.trim().toLowerCase() : '1';
     if (level !== '1' && level !== 'infinite') {
       return send(res, 400, { 'Content-Type': 'text/plain; charset=utf-8' }, `unsupported sync-level "${level}"\n`);
     }
-    const tokenNode = find(doc, 'sync-token');
+    const tokenNode = direct(doc.children[0], 'sync-token', NS.DAV)[0];
     const token = tokenNode ? tokenNode.text.trim() : '';
-    const props = reportProps(bodyText, ['getetag']);
-    const outcome = await store.changesSince(target.calendar, token);
+    const props = reportProps(doc, ['getetag']);
+    const limitNode = direct(doc.children[0], 'limit', NS.DAV)[0];
+    const limit = limitNode ? Number(direct(limitNode, 'nresults', NS.DAV)[0].text.trim()) : 1000;
+    const outcome = await store.syncPage(target.calendar, token, limit);
     if (outcome.error) {
       logAccess({ event: 'sync-token-rejected', calendar: target.calendar, reason: outcome.error });
       return send(res, 403, { 'Content-Type': 'application/xml; charset=utf-8' },
@@ -673,7 +671,7 @@ export function createDavHandler({ store, config, logger, auth }) {
         parts.push(`<D:response><D:href>${escapeXml(href)}</D:href><D:status>HTTP/1.1 404 Not Found</D:status></D:response>`);
         continue;
       }
-      const event = await store.getEvent(target.calendar, file);
+      const event = change.event;
       if (!event) {
         parts.push(`<D:response><D:href>${escapeXml(href)}</D:href><D:status>HTTP/1.1 404 Not Found</D:status></D:response>`);
         continue;
@@ -682,6 +680,7 @@ export function createDavHandler({ store, config, logger, auth }) {
       parts.push(await responseXml(evTarget, props, { event }));
     }
     parts.push(`<D:sync-token>${escapeXml(outcome.token)}</D:sync-token>`);
+    if (outcome.more) parts.push(`<D:response><D:href>${escapeXml(publicHref(config, target.href))}</D:href><D:status>HTTP/1.1 507 Insufficient Storage</D:status><D:error><D:number-of-matches-within-limits/></D:error></D:response>`);
     send(res, 207, { 'Content-Type': 'application/xml; charset=utf-8' }, multistatus(parts.join('')));
   }
 
@@ -695,7 +694,7 @@ export function createDavHandler({ store, config, logger, auth }) {
     let displayName = target.calendar;
     let description = '';
     if (bodyText && bodyText.trim()) {
-      const doc = parseXml(bodyText);
+      const doc = parseDavRequest(bodyText, 'MKCALENDAR');
       const nameNode = find(doc, 'displayname');
       if (nameNode && nameNode.text.trim()) displayName = nameNode.text.trim();
       const descriptionNode = find(doc, 'calendar-description');
@@ -718,7 +717,7 @@ export function createDavHandler({ store, config, logger, auth }) {
     if (!(await store.calendarExists(target.calendar))) {
       return send(res, 404, { 'Content-Type': 'text/plain; charset=utf-8' }, 'not found\n');
     }
-    const doc = parseXml(bodyText || '');
+    const doc = parseDavRequest(bodyText || '', 'PROPPATCH');
     const patch = {};
     const isRemove = Boolean(find(doc, 'remove')) && !find(doc, 'set');
     const rejected = [];
@@ -767,9 +766,15 @@ export function createDavHandler({ store, config, logger, auth }) {
     if (!calendarId) return 'rw';
     try {
       const meta = await store.readCalendarMeta(calendarId);
+      const ctx = currentContext();
+      if (ctx?.actorUserId && ctx.actorUserId !== ctx.userId) {
+        const grant = meta?.shares?.find((entry) => entry.uid === ctx.actorUserId);
+        if (!grant || meta.davAccess === 'hidden') return 'hidden';
+        return grant.perm === 'write' && meta.davAccess !== 'ro' ? 'rw' : 'ro';
+      }
       return meta && ['ro', 'hidden'].includes(meta.davAccess) ? meta.davAccess : 'rw';
     } catch {
-      return 'rw';
+      return currentContext()?.actorUserId ? 'hidden' : 'rw';
     }
   }
 
@@ -819,11 +824,9 @@ export function createDavHandler({ store, config, logger, auth }) {
       return send(res, 403, { 'Content-Type': 'application/xml; charset=utf-8' },
         '<?xml version="1.0" encoding="utf-8"?><D:error xmlns:D="DAV:" xmlns:C="urn:ietf:params:xml:ns:caldav"><C:supported-calendar-component/></D:error>');
     }
-    const result = await store.mutateEvent(target.calendar, target.file, async (existing) => {
-      await assertWritable(target.calendar);
-      assertConditions(req, existing);
-      return { content: bodyText };
-    });
+    const result = await mutateCalendarObject({ store, calendarId: target.calendar, file: target.file,
+      headers: req.headers, type: calendarType, before: () => assertWritable(target.calendar),
+      transform: async () => ({ content: bodyText }) });
     if (result.missingCalendar) return send(res, 409, {}, 'parent calendar does not exist\n');
     const { etag } = result;
     const uid = uidOf(bodyText);
@@ -845,12 +848,15 @@ export function createDavHandler({ store, config, logger, auth }) {
     if (live.kind === 'unknown') return send(res, 404, { 'Content-Type': 'text/plain; charset=utf-8' }, 'not found\n');
     if (live.kind === 'event') {
       const event = await store.getEvent(live.calendar, live.file);
+      if (!event) return send(res, 404, {}, 'not found\n');
       const component = componentOf(event.content) || 'VEVENT';
-      return send(res, 200, {
+      const content = event.content;
+      const representation = conditionalRepresentation(req.headers, {
+        content, etag: event.etag,
         'Content-Type': `text/calendar; charset=utf-8; component=${component}`,
-        ETag: `"${event.etag}"`,
         'Last-Modified': httpDate(event.lastModified),
-      }, refreshLunarRdates(event.content));
+      });
+      return send(res, representation.status, representation.headers, representation.body);
     }
     if (live.kind === 'root') {
       return send(res, 200, { 'Content-Type': 'text/plain; charset=utf-8' },
@@ -864,11 +870,10 @@ export function createDavHandler({ store, config, logger, auth }) {
       const representation = await calendarRepresentation(live.calendar);
       if (representation === null) return send(res, 404, {}, 'not found\n');
       const { content, etag: digest } = representation;
-      const headers = { 'Content-Type': 'text/calendar; charset=utf-8', ETag: `"${digest}"`,
-        'Content-Disposition': `attachment; filename="${live.calendar}.ics"` };
-      const failure = checkEntityConditions(req.headers, { etag: digest }, { read: true });
-      if (failure) return send(res, failure.status, headers, failure.status === 304 ? '' : `${failure.reason}\n`);
-      return send(res, 200, headers, content);
+      const response = conditionalRepresentation(req.headers, { content, etag: digest,
+        'Content-Type': 'text/calendar; charset=utf-8',
+        'Content-Disposition': `attachment; filename="${live.calendar}.ics"` });
+      return send(res, response.status, response.headers, response.body);
     }
     if (live.kind === 'home') {
       if (typeof store.ensureDefaultCalendars === 'function') {
@@ -893,12 +898,11 @@ export function createDavHandler({ store, config, logger, auth }) {
       logAccess({ event: 'read-only-calendar', calendar: target.calendar, method: 'DELETE' });
       return send(res, 403, { 'Content-Type': 'text/plain; charset=utf-8' }, '日历为只读（CalDAV 权限：只读）\n');
     }
-    const result = await store.mutateEvent(target.calendar, target.file, async (existing) => {
-      await assertWritable(target.calendar);
-      assertConditions(req, existing);
-      if (!existing) throw Object.assign(new Error('not found'), { status: 404, davFailure: true });
-      return { delete: true };
-    });
+    const result = await mutateCalendarObject({ store, calendarId: target.calendar, file: target.file,
+      headers: req.headers, before: () => assertWritable(target.calendar), transform: async (existing) => {
+        if (!existing) throw Object.assign(new Error('not found'), { status: 404, davFailure: true });
+        return { delete: true };
+      } });
     if (result.missingCalendar) return send(res, 404, {}, 'not found\n');
     send(res, 204, {});
   }
@@ -1055,14 +1059,20 @@ export function createDavHandler({ store, config, logger, auth }) {
       if (target.username) {
         // 0.2.32（L2）：路径里的用户名严格大小写——PaulCAI 不等于账号 paulcai，404。
         const named = await auth.lookupAccountExact(target.username);
-        if (!named) {
+        if (!named || named.disabled) {
           status = 404;
           return send(res, 404, { 'Content-Type': 'text/plain; charset=utf-8' }, 'unknown principal\n');
         }
         if (account && account.id !== named.id) {
-          status = 403;
-          logger.event('principal-mismatch', { authenticated: account.username, requested: named.username });
-          return send(res, 403, { 'Content-Type': 'text/plain; charset=utf-8' }, 'forbidden: principal mismatch\n');
+          const meta = ['calendar', 'event'].includes(target.kind)
+            ? await store.readCalendarMeta(named.id, target.calendar) : null;
+          const grant = meta?.shares?.find((entry) => entry.uid === account.id);
+          const allowed = ['GET', 'HEAD', 'PROPFIND', 'REPORT', 'PUT', 'DELETE', 'MOVE'].includes(req.method);
+          if (!grant || meta.davAccess === 'hidden' || !allowed
+            || (['PUT', 'DELETE', 'MOVE'].includes(req.method) && grant.perm !== 'write')) {
+            status = 403;
+            return send(res, 403, { 'Content-Type': 'text/plain; charset=utf-8' }, 'forbidden: calendar grant required\n');
+          }
         }
         account = named;
       }
@@ -1070,7 +1080,10 @@ export function createDavHandler({ store, config, logger, auth }) {
       target.username = target.accountUsername || target.username || '';
 
       const requestContext = currentContext();
-      if (requestContext) requestContext.userId = account ? account.id : (config.auth ? null : 'anonymous');
+      if (requestContext) {
+        requestContext.actorUserId = identity.account?.id;
+        requestContext.userId = account ? account.id : (config.auth ? null : 'anonymous');
+      }
 
       if (target.kind === 'unknown') {
         status = 404;
@@ -1106,6 +1119,20 @@ export function createDavHandler({ store, config, logger, auth }) {
           return send(res, 405, { Allow: ALLOW_HEADER }, 'method not allowed\n');
       }
     } catch (err) {
+      if (['invalid_ical', 'component_not_supported'].includes(err?.code)) {
+        err.davError = err.code === 'invalid_ical' ? 'valid-calendar-data' : 'supported-calendar-component';
+        err.errorNamespace = NS.CAL;
+      }
+      if (!res.headersSent && [413, 507].includes(err?.status)) {
+        return send(res, err.status, { 'Content-Type': 'application/xml; charset=utf-8' },
+          '<?xml version="1.0"?><D:error xmlns:D="DAV:"><D:number-of-matches-within-limits/></D:error>');
+      }
+      if (!res.headersSent && (err?.status === 400 || err?.davError)) {
+        status = err.status || 403;
+        if (err.davError) return send(res, status, { 'Content-Type': 'application/xml; charset=utf-8' },
+          `<?xml version="1.0" encoding="utf-8"?><D:error xmlns:D="DAV:" xmlns:E="${escapeXml(err.errorNamespace || NS.CAL)}"><E:${err.davError}/></D:error>`);
+        return send(res, status, { 'Content-Type': 'text/plain; charset=utf-8' }, `${err.message}\n`);
+      }
       if (!res.headersSent && err?.davFailure) {
         return send(res, err.status, { 'Content-Type': 'text/plain; charset=utf-8' }, `${err.message}\n`);
       }

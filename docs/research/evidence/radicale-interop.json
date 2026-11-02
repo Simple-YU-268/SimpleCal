@@ -1,0 +1,160 @@
+{
+  "createdAt": "2026-10-30T15:53:11.718Z",
+  "target": "external-explicit",
+  "platform": "win32",
+  "node": "v24.20.0",
+  "cases": [
+    {
+      "name": "OPTIONS capabilities",
+      "pass": true
+    },
+    {
+      "name": "principal and calendar-home discovery",
+      "pass": true
+    },
+    {
+      "name": "MKCALENDAR synthetic collection",
+      "pass": true
+    },
+    {
+      "name": "PUT create and GET raw data",
+      "pass": true
+    },
+    {
+      "name": "calendar-multiget found and missing",
+      "pass": true
+    },
+    {
+      "name": "calendar-query component/time-range",
+      "pass": true
+    },
+    {
+      "name": "initial sync token",
+      "pass": true
+    },
+    {
+      "name": "conditional update and stale-write rejection",
+      "pass": true
+    },
+    {
+      "name": "MOVE and source disappearance",
+      "pass": true
+    },
+    {
+      "name": "incremental sync includes deletion and destination",
+      "pass": true
+    },
+    {
+      "name": "DELETE synthetic object",
+      "pass": true
+    }
+  ],
+  "exchanges": [
+    {
+      "method": "OPTIONS",
+      "path": "/interop/",
+      "status": 200
+    },
+    {
+      "method": "PROPFIND",
+      "path": "/interop/",
+      "status": 207
+    },
+    {
+      "method": "PROPFIND",
+      "path": "/interop/",
+      "status": 207
+    },
+    {
+      "method": "MKCALENDAR",
+      "path": "/interop/simplecal-interop-72fb5eaf-9348-4f5e-8bfb-35798cfe2076/",
+      "status": 201
+    },
+    {
+      "method": "PUT",
+      "path": "/interop/simplecal-interop-72fb5eaf-9348-4f5e-8bfb-35798cfe2076/405b7f1c-09ba-47b8-9af4-8bba07811344.ics",
+      "status": 201
+    },
+    {
+      "method": "GET",
+      "path": "/interop/simplecal-interop-72fb5eaf-9348-4f5e-8bfb-35798cfe2076/405b7f1c-09ba-47b8-9af4-8bba07811344.ics",
+      "status": 200
+    },
+    {
+      "method": "REPORT",
+      "path": "/interop/simplecal-interop-72fb5eaf-9348-4f5e-8bfb-35798cfe2076/",
+      "status": 207
+    },
+    {
+      "method": "REPORT",
+      "path": "/interop/simplecal-interop-72fb5eaf-9348-4f5e-8bfb-35798cfe2076/",
+      "status": 207
+    },
+    {
+      "method": "REPORT",
+      "path": "/interop/simplecal-interop-72fb5eaf-9348-4f5e-8bfb-35798cfe2076/",
+      "status": 207
+    },
+    {
+      "method": "PUT",
+      "path": "/interop/simplecal-interop-72fb5eaf-9348-4f5e-8bfb-35798cfe2076/405b7f1c-09ba-47b8-9af4-8bba07811344.ics",
+      "status": 204
+    },
+    {
+      "method": "PUT",
+      "path": "/interop/simplecal-interop-72fb5eaf-9348-4f5e-8bfb-35798cfe2076/405b7f1c-09ba-47b8-9af4-8bba07811344.ics",
+      "status": 412
+    },
+    {
+      "method": "MOVE",
+      "path": "/interop/simplecal-interop-72fb5eaf-9348-4f5e-8bfb-35798cfe2076/405b7f1c-09ba-47b8-9af4-8bba07811344.ics",
+      "status": 201
+    },
+    {
+      "method": "GET",
+      "path": "/interop/simplecal-interop-72fb5eaf-9348-4f5e-8bfb-35798cfe2076/405b7f1c-09ba-47b8-9af4-8bba07811344.ics",
+      "status": 404
+    },
+    {
+      "method": "GET",
+      "path": "/interop/simplecal-interop-72fb5eaf-9348-4f5e-8bfb-35798cfe2076/405b7f1c-09ba-47b8-9af4-8bba07811344-moved.ics",
+      "status": 200
+    },
+    {
+      "method": "REPORT",
+      "path": "/interop/simplecal-interop-72fb5eaf-9348-4f5e-8bfb-35798cfe2076/",
+      "status": 207
+    },
+    {
+      "method": "DELETE",
+      "path": "/interop/simplecal-interop-72fb5eaf-9348-4f5e-8bfb-35798cfe2076/405b7f1c-09ba-47b8-9af4-8bba07811344-moved.ics",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/interop/simplecal-interop-72fb5eaf-9348-4f5e-8bfb-35798cfe2076/405b7f1c-09ba-47b8-9af4-8bba07811344-moved.ics",
+      "status": 404
+    },
+    {
+      "method": "DELETE",
+      "path": "/interop/simplecal-interop-72fb5eaf-9348-4f5e-8bfb-35798cfe2076/405b7f1c-09ba-47b8-9af4-8bba07811344.ics",
+      "status": 404
+    },
+    {
+      "method": "DELETE",
+      "path": "/interop/simplecal-interop-72fb5eaf-9348-4f5e-8bfb-35798cfe2076/405b7f1c-09ba-47b8-9af4-8bba07811344-moved.ics",
+      "status": 404
+    },
+    {
+      "method": "DELETE",
+      "path": "/interop/simplecal-interop-72fb5eaf-9348-4f5e-8bfb-35798cfe2076/",
+      "status": 200
+    }
+  ],
+  "cleanup": {
+    "ok": true,
+    "collectionPath": "/interop/simplecal-interop-72fb5eaf-9348-4f5e-8bfb-35798cfe2076/",
+    "status": 200
+  },
+  "pass": true
+}

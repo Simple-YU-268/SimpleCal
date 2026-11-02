@@ -3,10 +3,14 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { createHash, randomUUID } from 'node:crypto';
-import { parseXml, find, findAll, escapeXml } from '../lib/xml.mjs';
+import { find as xmlFind, findAll as xmlFindAll, escapeXml } from '../lib/xml.mjs';
+import { NS, parseDavRequest, propertyKey, propertyElement, propertyNamespace, direct } from './xml-request.mjs';
 import { checkEntityConditions } from './preconditions.mjs';
+import { conditionalRepresentation } from './representation.mjs';
+import { reportHrefPath } from './report-hrefs.mjs';
+import { createSyncPages } from '../store/sync-pages.mjs';
 import { challengeHeaders } from '../auth/index.mjs';
-import { publicHref, pathFromPublicUrl } from '../lib/public-url.mjs';
+import { publicHref } from '../lib/public-url.mjs';
 
 const ID = /^(?!\.{1,2}$)[A-Za-z0-9._-]{1,128}$/;
 const FILE = /^(?!\.{1,2}$)[A-Za-z0-9._-]{1,128}\.vcf$/i;
@@ -24,6 +28,10 @@ const tag = (book) => `urn:uuid:${book.epoch}:${book.seq}`;
 const statusLine = (status) => `HTTP/1.1 ${status} ${status === 200 ? 'OK' : status === 404 ? 'Not Found' : 'Forbidden'}`;
 const cardError = (name) => `<?xml version="1.0"?><D:error ${NAMESPACES}><A:${name}/></D:error>`;
 const davError = (name) => `<?xml version="1.0"?><D:error ${NAMESPACES}><D:${name}/></D:error>`;
+const CARD_ELEMENTS = new Set(['filter', 'prop-filter', 'param-filter', 'text-match', 'is-not-defined', 'addressbook']);
+const namespaceOf = (local) => CARD_ELEMENTS.has(local) ? NS.CARD : local === 'calendar' ? NS.CAL : propertyNamespace(local, true);
+const find = (node, local) => xmlFind(node, local, namespaceOf(local));
+const findAll = (node, local) => xmlFindAll(node, local, namespaceOf(local));
 
 export function validateVcard(content) {
   const lines = String(content).replace(/\r\n/g, '\n').replace(/\n[ \t]/g, '').split('\n').filter(Boolean);
@@ -64,24 +72,30 @@ async function readBody(req, limit = MAX_CARD) {
   return Buffer.concat(chunks).toString('utf8');
 }
 
-function xmlTree(text) {
+function xmlTree(text, method) {
   if (/<!DOCTYPE|<!ENTITY/i.test(text)) throw error(400, '不接受 XML DTD 或自定义实体');
-  if (!text.trim()) return null;
   try {
-    const tree = parseXml(text);
-    if (tree.children.length !== 1) throw new Error('root');
+    const tree = parseDavRequest(text, method, { carddav: true });
     return tree;
-  } catch { throw error(400, 'XML 无效'); }
+  } catch (err) {
+    if (err.davError) throw error(err.status, err.message,
+      err.errorNamespace === NS.DAV ? davError(err.davError) : cardError(err.davError));
+    throw error(400, 'XML 无效');
+  }
 }
 
 function requestedProperties(tree) {
-  const prop = tree && find(tree, 'prop');
-  if (!prop || (tree && find(tree, 'allprop'))) return null;
-  return prop.children.map((node) => node.local);
+  const root = tree?.children[0];
+  const prop = root && direct(root, 'prop', NS.DAV)[0];
+  if (!prop) {
+    const include = root && direct(root, 'include', NS.DAV)[0];
+    return include ? { include: include.children.map((node) => propertyKey(node, true)) } : null;
+  }
+  return prop.children.map((node) => propertyKey(node, true));
 }
 
 function queryPredicate(tree) {
-  const filter = find(tree, 'filter');
+  const filter = direct(tree.children[0], 'filter', NS.CARD)[0];
   if (!filter) return () => true;
   const matchMode = filter.attrs.test || 'anyof';
   if (!['anyof', 'allof'].includes(matchMode)) throw error(403, '筛选器不受支持', cardError('supported-filter'));
@@ -121,6 +135,11 @@ function queryPredicate(tree) {
 }
 
 export function createCardDavHandler({ auth, config, logger = { event() {}, access() {} } }) {
+  const syncPages = createSyncPages({ writeAtomic: async (file, value) => {
+    const temporary = `${file}.${randomUUID()}.tmp`;
+    try { await fs.writeFile(temporary, value, { mode: 0o600 }); await fs.rename(temporary, file); }
+    finally { await fs.unlink(temporary).catch(() => {}); }
+  } });
   const prefix = config.davPrefix || '';
   const base = `${prefix}/addressbooks`;
   const root = path.resolve(config.varDir, 'addressbooks');
@@ -248,7 +267,8 @@ export function createCardDavHandler({ auth, config, logger = { event() {}, acce
       getcontentlength: String(Buffer.byteLength(record.content)), getlastmodified: new Date(record.modified).toUTCString(),
       'address-data': escapeXml(record.content) });
     const ok = [], missing = [];
-    for (const name of requested || standard) {
+    for (const name of requested?.include ? [...standard, ...requested.include] : requested || standard) {
+      if (typeof name !== 'string') { missing.push(propertyElement(name, true)); continue; }
       const ns = ['addressbook-home-set', 'addressbook-description', 'supported-address-data', 'max-resource-size', 'address-data'].includes(name) ? 'A'
         : name === 'getctag' ? 'CS' : 'D';
       const empty = `<${ns}:${name}/>`;
@@ -287,7 +307,7 @@ export function createCardDavHandler({ auth, config, logger = { event() {}, acce
       await ensureDefault(userId);
       if (!METHODS.includes(req.method)) { send(req, res, 405, { Allow: METHODS.join(', ') }); return true; }
       const body = ['MKCOL', 'PROPFIND', 'PROPPATCH', 'REPORT', 'PUT'].includes(req.method) ? await readBody(req) : '';
-      const tree = req.method !== 'PUT' ? xmlTree(body) : null;
+      const tree = ['MKCOL', 'PROPFIND', 'PROPPATCH', 'REPORT'].includes(req.method) ? xmlTree(body, req.method) : null;
       if (req.method === 'MKCOL') {
         if (target.kind !== 'book') throw error(405, 'MKCOL 需要通讯录集合路径');
         if (!tree || !find(tree, 'addressbook') || !find(tree, 'collection')) throw error(403, '需要 addressbook 集合类型', davError('valid-resourcetype'));
@@ -306,7 +326,7 @@ export function createCardDavHandler({ auth, config, logger = { event() {}, acce
           const depth = req.headers.depth ?? '1';
           if (!['0', '1'].includes(depth)) throw error(403, '仅支持 Depth 0 或 1', davError('propfind-finite-depth'));
           const requested = requestedProperties(tree);
-          const entries = [responseXml(target, null, null, requested, Boolean(tree && find(tree, 'propname')))];
+          const entries = [responseXml(target, null, null, requested, Boolean(tree.children[0] && direct(tree.children[0], 'propname', NS.DAV).length))];
           if (depth === '1') for (const book of await listBooks(userId)) entries.push(responseXml({ ...target, kind: 'book', bookId: book.id }, book, null, requested));
           multistatus(req, res, entries); return true;
         }
@@ -344,18 +364,17 @@ export function createCardDavHandler({ auth, config, logger = { event() {}, acce
         if (['GET', 'HEAD'].includes(req.method)) {
           const content = record ? record.content : Object.keys(book.records).sort().map((file) => book.records[file].content.trimEnd() + '\r\n').join('');
           const etag = record ? record.etag : digest(content);
-          const failure = checkEntityConditions(req.headers, { etag }, { read: true });
-          const headers = { 'Content-Type': 'text/vcard; charset=utf-8', ETag: `"${etag}"`,
-            ...(record ? { 'Last-Modified': new Date(record.modified).toUTCString() } : { 'Content-Disposition': `attachment; filename="${book.id}.vcf"` }) };
-          if (failure) send(req, res, failure.status, headers, failure.status === 304 ? '' : failure.reason);
-          else send(req, res, 200, headers, content);
+          const response = conditionalRepresentation(req.headers, { content, etag,
+            'Content-Type': 'text/vcard; charset=utf-8',
+            ...(record ? { 'Last-Modified': new Date(record.modified).toUTCString() } : { 'Content-Disposition': `attachment; filename="${book.id}.vcf"` }) });
+          send(req, res, response.status, response.headers, response.body);
           return;
         }
         if (req.method === 'PROPFIND') {
           const depth = req.headers.depth ?? '1';
           if (!['0', '1'].includes(depth)) throw error(403, '仅支持 Depth 0 或 1', davError('propfind-finite-depth'));
           const requested = requestedProperties(tree);
-          const propname = Boolean(tree && find(tree, 'propname'));
+          const propname = Boolean(tree.children[0] && direct(tree.children[0], 'propname', NS.DAV).length);
           const entries = [responseXml(target, book, record, requested, propname)];
           if (target.kind === 'book' && depth === '1') for (const file of Object.keys(book.records).sort()) {
             entries.push(responseXml({ ...target, kind: 'card', file }, book, book.records[file], requested, propname));
@@ -367,7 +386,8 @@ export function createCardDavHandler({ auth, config, logger = { event() {}, acce
           const set = find(tree, 'set'), remove = find(tree, 'remove');
           const updates = [...(set ? findAll(set, 'prop').flatMap((node) => node.children).map((node) => ({ node, remove: false })) : []),
             ...(remove ? findAll(remove, 'prop').flatMap((node) => node.children).map((node) => ({ node, remove: true })) : [])];
-          if (!updates.length || updates.some(({ node }) => !['displayname', 'addressbook-description'].includes(node.local))) throw error(403, '只允许更新名称与描述', davError('cannot-modify-protected-property'));
+          if (!updates.length || updates.some(({ node }) => !['displayname', 'addressbook-description'].includes(node.local)
+            || node.namespaceURI !== propertyNamespace(node.local, true))) throw error(403, '只允许更新名称与描述', davError('cannot-modify-protected-property'));
           for (const { node, remove: erase } of updates) {
             const value = erase ? '' : node.text;
             if (value.length > (node.local === 'displayname' ? 255 : 2000)) throw error(400, '属性过长');
@@ -379,11 +399,11 @@ export function createCardDavHandler({ auth, config, logger = { event() {}, acce
         if (req.method !== 'REPORT' || target.kind !== 'book' || !tree) throw error(405, '方法不支持');
         const report = tree.children[0];
         const requested = requestedProperties(tree) || ['getetag', 'address-data'];
-        const addressData = find(tree, 'address-data');
+        const prop = direct(tree.children[0], 'prop', NS.DAV)[0];
+        const addressData = prop && direct(prop, 'address-data', NS.CARD)[0];
         if (addressData && (addressData.children.length || (addressData.attrs['content-type'] && addressData.attrs['content-type'] !== 'text/vcard') || addressData.attrs.version)) {
           throw error(403, '本轮不支持 vCard 投影或版本转换', cardError('supported-address-data'));
         }
-        if (find(tree, 'limit')) throw error(403, '本轮不支持报告分页', davError('number-of-matches-within-limits'));
         const entries = [];
         if (report.local === 'addressbook-query') {
           const matches = queryPredicate(tree);
@@ -392,14 +412,11 @@ export function createCardDavHandler({ auth, config, logger = { event() {}, acce
             if (matches(validateVcard(card.content))) entries.push(responseXml({ ...target, kind: 'card', file }, book, card, requested));
           }
         } else if (report.local === 'addressbook-multiget') {
-          for (const node of findAll(tree, 'href')) {
+          for (const node of direct(tree.children[0], 'href', NS.DAV)) {
             let picked;
             try {
-              const pickedUrl = new URL(node.text, url.origin);
-              const publicOrigin = config.publicBaseUrl ? new URL(config.publicBaseUrl).origin : null;
-              if (![url.origin, publicOrigin].includes(pickedUrl.origin) || pickedUrl.username || pickedUrl.password
-                || pickedUrl.search || pickedUrl.hash) throw new Error('outside');
-              const pickedPath = pathFromPublicUrl(config, pickedUrl);
+              const pickedPath = reportHrefPath(node.text, { config, origin: url.origin,
+                collectionPath: `${base}/${encodeURIComponent(target.username)}/${encodeURIComponent(target.bookId)}/` });
               if (!pickedPath || !owns(pickedPath)) throw new Error('outside');
               picked = targetOf(pickedPath);
             } catch { entries.push(notFoundXml(node.text)); continue; }
@@ -407,24 +424,34 @@ export function createCardDavHandler({ auth, config, logger = { event() {}, acce
             else entries.push(responseXml(picked, book, book.records[picked.file], requested));
           }
         } else if (report.local === 'sync-collection') {
-          const level = find(tree, 'sync-level')?.text;
+          const level = direct(tree.children[0], 'sync-level', NS.DAV)[0]?.text.trim();
           if (level && level !== '1') throw error(403, '仅支持 sync-level 1', davError('sync-traversal-supported'));
-          const token = find(tree, 'sync-token')?.text || '';
+          const token = direct(tree.children[0], 'sync-token', NS.DAV)[0]?.text.trim() || '';
+          const limitNode = direct(tree.children[0], 'limit', NS.DAV)[0];
+          const limit = limitNode ? Number(direct(limitNode, 'nresults', NS.DAV)[0].text.trim()) : 1000;
+          const outcome = await syncPages(path.join(await userDirectory(userId), `.sync-pages-${book.id}`), token, limit, async () => {
           let since = -1;
           if (token) {
             const tokenMatch = /^urn:uuid:([0-9a-f-]+):(\d+)$/.exec(token);
             since = tokenMatch ? Number(tokenMatch[2]) : NaN;
             if (!tokenMatch || tokenMatch[1] !== book.epoch || !Number.isSafeInteger(since) || since > book.seq || since < book.floor) {
-              throw error(403, '同步令牌过期或无效', davError('valid-sync-token'));
+              return { error: 'invalid' };
             }
           }
-          for (const file of Object.keys(book.records).sort()) if (book.records[file].seq > since) {
-            entries.push(responseXml({ ...target, kind: 'card', file }, book, book.records[file], requested));
-          }
+          const changes = [];
+          for (const file of Object.keys(book.records).sort()) if (book.records[file].seq > since) changes.push({ uid: file, record: book.records[file] });
           if (since >= 0) for (const file of new Set(book.tombstones.filter((entry) => entry.seq > since && !book.records[entry.file]).map((entry) => entry.file))) {
-            entries.push(notFoundXml(objectHref(target.username, target.bookId, file)));
+            changes.push({ uid: file, deleted: true });
           }
-          multistatus(req, res, entries, tag(book)); return;
+          return { token: tag(book), changes };
+          }, book.epoch);
+          if (outcome.error) throw error(403, '同步令牌过期或无效', davError('valid-sync-token'));
+          for (const change of outcome.changes) {
+            if (change.deleted) entries.push(notFoundXml(objectHref(target.username, target.bookId, change.uid)));
+            else entries.push(responseXml({ ...target, kind: 'card', file: change.uid }, book, change.record, requested));
+          }
+          if (outcome.more) entries.push(`<D:response><D:href>${escapeXml(href(target))}</D:href><D:status>HTTP/1.1 507 Insufficient Storage</D:status><D:error><D:number-of-matches-within-limits/></D:error></D:response>`);
+          multistatus(req, res, entries, outcome.token); return;
         } else throw error(403, '报告不支持', davError('supported-report'));
         multistatus(req, res, entries);
       });

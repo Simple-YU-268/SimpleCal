@@ -1,0 +1,691 @@
+{
+  "started": "2026-10-30T15:59:39.636Z",
+  "node": "v24.20.0",
+  "platform": "win32",
+  "cwd": "C:/Users/yy197/Desktop/SimpleCal/code",
+  "mode": "sequential isolated child per file",
+  "timeoutMs": 90000,
+  "totalFiles": 55,
+  "results": [
+    {
+      "file": "app/test/auth.test.mjs",
+      "exitCode": 0,
+      "signal": null,
+      "timeout": false,
+      "error": null,
+      "durationMs": 7985,
+      "log": "C:\\Users\\yy197\\AppData\\Local\\Temp\\simplecal-backend-regression-logs\\auth.test.mjs.log",
+      "failureSummary": [
+        "SUMMARY: pass=24 fail=0 total=24"
+      ]
+    },
+    {
+      "file": "app/test/calendar-filter.test.mjs",
+      "exitCode": 0,
+      "signal": null,
+      "timeout": false,
+      "error": null,
+      "durationMs": 440,
+      "log": "C:\\Users\\yy197\\AppData\\Local\\Temp\\simplecal-backend-regression-logs\\calendar-filter.test.mjs.log",
+      "failureSummary": [
+        "ℹ fail 0"
+      ]
+    },
+    {
+      "file": "app/test/calendar-scheduling.test.mjs",
+      "exitCode": 0,
+      "signal": null,
+      "timeout": false,
+      "error": null,
+      "durationMs": 773,
+      "log": "C:\\Users\\yy197\\AppData\\Local\\Temp\\simplecal-backend-regression-logs\\calendar-scheduling.test.mjs.log",
+      "failureSummary": [
+        "ℹ fail 0"
+      ]
+    },
+    {
+      "file": "app/test/carddav.test.mjs",
+      "exitCode": 0,
+      "signal": null,
+      "timeout": false,
+      "error": null,
+      "durationMs": 4765,
+      "log": "C:\\Users\\yy197\\AppData\\Local\\Temp\\simplecal-backend-regression-logs\\carddav.test.mjs.log",
+      "failureSummary": [
+        "ℹ fail 0"
+      ]
+    },
+    {
+      "file": "app/test/collaboration-api.test.mjs",
+      "exitCode": 0,
+      "signal": null,
+      "timeout": false,
+      "error": null,
+      "durationMs": 698,
+      "log": "C:\\Users\\yy197\\AppData\\Local\\Temp\\simplecal-backend-regression-logs\\collaboration-api.test.mjs.log",
+      "failureSummary": [
+        "ℹ fail 0"
+      ]
+    },
+    {
+      "file": "app/test/collaboration-mounted.test.mjs",
+      "exitCode": 0,
+      "signal": null,
+      "timeout": false,
+      "error": null,
+      "durationMs": 4082,
+      "log": "C:\\Users\\yy197\\AppData\\Local\\Temp\\simplecal-backend-regression-logs\\collaboration-mounted.test.mjs.log",
+      "failureSummary": [
+        "ℹ fail 0"
+      ]
+    },
+    {
+      "file": "app/test/dav-move.test.mjs",
+      "exitCode": 0,
+      "signal": null,
+      "timeout": false,
+      "error": null,
+      "durationMs": 3481,
+      "log": "C:\\Users\\yy197\\AppData\\Local\\Temp\\simplecal-backend-regression-logs\\dav-move.test.mjs.log",
+      "failureSummary": [
+        "ℹ fail 0"
+      ]
+    },
+    {
+      "file": "app/test/dav-protocol.test.mjs",
+      "exitCode": 0,
+      "signal": null,
+      "timeout": false,
+      "error": null,
+      "durationMs": 2849,
+      "log": "C:\\Users\\yy197\\AppData\\Local\\Temp\\simplecal-backend-regression-logs\\dav-protocol.test.mjs.log",
+      "failureSummary": [
+        "ℹ fail 0"
+      ]
+    },
+    {
+      "file": "app/test/dav-query-contract.test.mjs",
+      "exitCode": 0,
+      "signal": null,
+      "timeout": false,
+      "error": null,
+      "durationMs": 8373,
+      "log": "C:\\Users\\yy197\\AppData\\Local\\Temp\\simplecal-backend-regression-logs\\dav-query-contract.test.mjs.log",
+      "failureSummary": [
+        "ℹ fail 0"
+      ]
+    },
+    {
+      "file": "app/test/dav-read-contract.test.mjs",
+      "exitCode": 0,
+      "signal": null,
+      "timeout": false,
+      "error": null,
+      "durationMs": 4505,
+      "log": "C:\\Users\\yy197\\AppData\\Local\\Temp\\simplecal-backend-regression-logs\\dav-read-contract.test.mjs.log",
+      "failureSummary": [
+        "ℹ fail 0"
+      ]
+    },
+    {
+      "file": "app/test/dav-xml-boundaries.test.mjs",
+      "exitCode": 0,
+      "signal": null,
+      "timeout": false,
+      "error": null,
+      "durationMs": 4286,
+      "log": "C:\\Users\\yy197\\AppData\\Local\\Temp\\simplecal-backend-regression-logs\\dav-xml-boundaries.test.mjs.log",
+      "failureSummary": [
+        "ℹ fail 0"
+      ]
+    },
+    {
+      "file": "app/test/event-domain.test.mjs",
+      "exitCode": 0,
+      "signal": null,
+      "timeout": false,
+      "error": null,
+      "durationMs": 1968,
+      "log": "C:\\Users\\yy197\\AppData\\Local\\Temp\\simplecal-backend-regression-logs\\event-domain.test.mjs.log",
+      "failureSummary": [
+        "ℹ fail 0"
+      ]
+    },
+    {
+      "file": "app/test/events-api.test.mjs",
+      "exitCode": 0,
+      "signal": null,
+      "timeout": false,
+      "error": null,
+      "durationMs": 12610,
+      "log": "C:\\Users\\yy197\\AppData\\Local\\Temp\\simplecal-backend-regression-logs\\events-api.test.mjs.log",
+      "failureSummary": [
+        "ℹ fail 0"
+      ]
+    },
+    {
+      "file": "app/test/kv.test.mjs",
+      "exitCode": 1,
+      "signal": null,
+      "timeout": false,
+      "error": null,
+      "durationMs": 10338,
+      "log": "C:\\Users\\yy197\\AppData\\Local\\Temp\\simplecal-backend-regression-logs\\kv.test.mjs.log",
+      "failureSummary": [
+        "[FAIL] PUT stale If-Match -> 412 {code:conflict} + 中文 message | expected=412 conflict actual=412 conflict message",
+        "SUMMARY: pass=18 fail=1 total=19"
+      ]
+    },
+    {
+      "file": "app/test/lifecycle.test.mjs",
+      "exitCode": 0,
+      "signal": null,
+      "timeout": false,
+      "error": null,
+      "durationMs": 1443,
+      "log": "C:\\Users\\yy197\\AppData\\Local\\Temp\\simplecal-backend-regression-logs\\lifecycle.test.mjs.log",
+      "failureSummary": [
+        "SUMMARY: pass=5 fail=0 total=5"
+      ]
+    },
+    {
+      "file": "app/test/lunar-sync-version.test.mjs",
+      "exitCode": 0,
+      "signal": null,
+      "timeout": false,
+      "error": null,
+      "durationMs": 7443,
+      "log": "C:\\Users\\yy197\\AppData\\Local\\Temp\\simplecal-backend-regression-logs\\lunar-sync-version.test.mjs.log",
+      "failureSummary": [
+        "ℹ fail 0"
+      ]
+    },
+    {
+      "file": "app/test/m36.test.mjs",
+      "exitCode": 0,
+      "signal": null,
+      "timeout": false,
+      "error": null,
+      "durationMs": 30280,
+      "log": "C:\\Users\\yy197\\AppData\\Local\\Temp\\simplecal-backend-regression-logs\\m36.test.mjs.log",
+      "failureSummary": []
+    },
+    {
+      "file": "app/test/m37-api.test.mjs",
+      "exitCode": 2,
+      "signal": null,
+      "timeout": false,
+      "error": null,
+      "durationMs": 4129,
+      "log": "C:\\Users\\yy197\\AppData\\Local\\Temp\\simplecal-backend-regression-logs\\m37-api.test.mjs.log",
+      "failureSummary": [
+        "[FAIL] If-Match 过期 -> 412 {code:conflict} + 中文 message | expected=412 conflict + 中文 actual=412 conflict If-Match did not match the current resource",
+        "[FAIL] GET /不存在 -> index.html | expected=200 text/html + SimpleCal actual=401 text/plain; charset=utf-8"
+      ]
+    },
+    {
+      "file": "app/test/m37-static.test.mjs",
+      "exitCode": 2,
+      "signal": null,
+      "timeout": false,
+      "error": null,
+      "durationMs": 5392,
+      "log": "C:\\Users\\yy197\\AppData\\Local\\Temp\\simplecal-backend-regression-logs\\m37-static.test.mjs.log",
+      "failureSummary": [
+        "[FAIL] web 目录发现：无 env 时回落 ../web/dist | expected=C:\\Users\\yy197\\Desktop\\SimpleCal\\code\\web\\dist actual=null",
+        "[FAIL] CALDAV_WEB_DIR 无效时仍回落开发态 | expected=C:\\Users\\yy197\\Desktop\\SimpleCal\\code\\web\\dist actual=null",
+        "[FAIL] GET / -> 200 text/html | expected=200 text/html actual=401 text/plain; charset=utf-8",
+        "[FAIL] GET / 含「SimpleCal」 | expected=title/名称存在 actual=false",
+        "[FAIL] index.html Cache-Control: no-cache | expected=no-cache actual=null",
+        "[FAIL] CSP 含 default-src/script-src/style-src/connect-src | expected=default-src 'self'; script-src 'self'; … actual=",
+        "[FAIL] 默认 CSP frame-ancestors 收回为 self（type=url 不需要被嵌入） | expected=frame-ancestors 'self' actual=false",
+        "[FAIL] 安全头 nosniff + no-referrer | expected=nosniff + no-referrer actual=nosniff + same-origin",
+        "[FAIL] CSP script-src 无 unsafe-inline（外链脚本） | expected='self'（无 unsafe-inline） actual=",
+        "[FAIL] index.html 无内联可执行脚本（改外链） | expected=0 个内联 script actual=0 个 + prepaint=false",
+        "[FAIL] GET /theme-prepaint.js -> 200 text/javascript + no-cache | expected=200 text/javascript + no-cache actual=401 text/plain; charset=utf-8 null"
+      ]
+    },
+    {
+      "file": "app/test/m39-e2e.test.mjs",
+      "exitCode": 0,
+      "signal": null,
+      "timeout": false,
+      "error": null,
+      "durationMs": 7330,
+      "log": "C:\\Users\\yy197\\AppData\\Local\\Temp\\simplecal-backend-regression-logs\\m39-e2e.test.mjs.log",
+      "failureSummary": []
+    },
+    {
+      "file": "app/test/m39-roundtrip.test.mjs",
+      "exitCode": 2,
+      "signal": null,
+      "timeout": false,
+      "error": null,
+      "durationMs": 296,
+      "log": "C:\\Users\\yy197\\AppData\\Local\\Temp\\simplecal-backend-regression-logs\\m39-roundtrip.test.mjs.log",
+      "failureSummary": []
+    },
+    {
+      "file": "app/test/m4-accounts.test.mjs",
+      "exitCode": 0,
+      "signal": null,
+      "timeout": false,
+      "error": null,
+      "durationMs": 23861,
+      "log": "C:\\Users\\yy197\\AppData\\Local\\Temp\\simplecal-backend-regression-logs\\m4-accounts.test.mjs.log",
+      "failureSummary": [
+        "SUMMARY: pass=61 fail=0"
+      ]
+    },
+    {
+      "file": "app/test/m4-gateway.test.mjs",
+      "exitCode": 0,
+      "signal": null,
+      "timeout": false,
+      "error": null,
+      "durationMs": 2100,
+      "log": "C:\\Users\\yy197\\AppData\\Local\\Temp\\simplecal-backend-regression-logs\\m4-gateway.test.mjs.log",
+      "failureSummary": [
+        "SUMMARY: pass=3 fail=0 skipped=unix-socket(win32)"
+      ]
+    },
+    {
+      "file": "app/test/m4-password.test.mjs",
+      "exitCode": 0,
+      "signal": null,
+      "timeout": false,
+      "error": null,
+      "durationMs": 329,
+      "log": "C:\\Users\\yy197\\AppData\\Local\\Temp\\simplecal-backend-regression-logs\\m4-password.test.mjs.log",
+      "failureSummary": [
+        "SUMMARY: pass=29 fail=0"
+      ]
+    },
+    {
+      "file": "app/test/m4-port-e2e.test.mjs",
+      "exitCode": 0,
+      "signal": null,
+      "timeout": false,
+      "error": null,
+      "durationMs": 3114,
+      "log": "C:\\Users\\yy197\\AppData\\Local\\Temp\\simplecal-backend-regression-logs\\m4-port-e2e.test.mjs.log",
+      "failureSummary": [
+        "SUMMARY: pass=8 fail=0"
+      ]
+    },
+    {
+      "file": "app/test/m4-port.test.mjs",
+      "exitCode": 0,
+      "signal": null,
+      "timeout": false,
+      "error": null,
+      "durationMs": 402,
+      "log": "C:\\Users\\yy197\\AppData\\Local\\Temp\\simplecal-backend-regression-logs\\m4-port.test.mjs.log",
+      "failureSummary": [
+        "SUMMARY: pass=63 fail=0"
+      ]
+    },
+    {
+      "file": "app/test/m40-0237-security.test.mjs",
+      "exitCode": 0,
+      "signal": null,
+      "timeout": false,
+      "error": null,
+      "durationMs": 2098,
+      "log": "C:\\Users\\yy197\\AppData\\Local\\Temp\\simplecal-backend-regression-logs\\m40-0237-security.test.mjs.log",
+      "failureSummary": [
+        "SUMMARY: pass=59 fail=0 total=59"
+      ]
+    },
+    {
+      "file": "app/test/m41-0242-options.test.mjs",
+      "exitCode": 0,
+      "signal": null,
+      "timeout": false,
+      "error": null,
+      "durationMs": 814,
+      "log": "C:\\Users\\yy197\\AppData\\Local\\Temp\\simplecal-backend-regression-logs\\m41-0242-options.test.mjs.log",
+      "failureSummary": [
+        "SUMMARY: pass=20 fail=0 checks=20"
+      ]
+    },
+    {
+      "file": "app/test/m42-ai-api.test.mjs",
+      "exitCode": 0,
+      "signal": null,
+      "timeout": false,
+      "error": null,
+      "durationMs": 2286,
+      "log": "C:\\Users\\yy197\\AppData\\Local\\Temp\\simplecal-backend-regression-logs\\m42-ai-api.test.mjs.log",
+      "failureSummary": [
+        "SUMMARY: pass=76 fail=0"
+      ]
+    },
+    {
+      "file": "app/test/m42-ai-data.test.mjs",
+      "exitCode": 0,
+      "signal": null,
+      "timeout": false,
+      "error": null,
+      "durationMs": 1048,
+      "log": "C:\\Users\\yy197\\AppData\\Local\\Temp\\simplecal-backend-regression-logs\\m42-ai-data.test.mjs.log",
+      "failureSummary": [
+        "SUMMARY: pass=107 fail=0"
+      ]
+    },
+    {
+      "file": "app/test/m42-ai-mcp.test.mjs",
+      "exitCode": 1,
+      "signal": null,
+      "timeout": false,
+      "error": null,
+      "durationMs": 2609,
+      "log": "C:\\Users\\yy197\\AppData\\Local\\Temp\\simplecal-backend-regression-logs\\m42-ai-mcp.test.mjs.log",
+      "failureSummary": [
+        "[FAIL] MCP 事件列表 2 条 | expected=2 actual=0",
+        "SUMMARY: pass=86 fail=1"
+      ]
+    },
+    {
+      "file": "app/test/m42-ai-rest.test.mjs",
+      "exitCode": 1,
+      "signal": null,
+      "timeout": false,
+      "error": null,
+      "durationMs": 2248,
+      "log": "C:\\Users\\yy197\\AppData\\Local\\Temp\\simplecal-backend-regression-logs\\m42-ai-rest.test.mjs.log",
+      "failureSummary": [
+        "[FAIL] 只回窗内可见事件 | expected=ai-both,ai-in actual=",
+        "[FAIL] 窗内子范围只回该段（ai-in 在 +1 天、被 from 排除；ai-both 在 +2 天） | expected=ai-both actual=",
+        "[FAIL] freebusy 有忙区间 | expected=true actual=false",
+        "SUMMARY: pass=108 fail=3"
+      ]
+    },
+    {
+      "file": "app/test/m5-clear.test.mjs",
+      "exitCode": 0,
+      "signal": null,
+      "timeout": false,
+      "error": null,
+      "durationMs": 3054,
+      "log": "C:\\Users\\yy197\\AppData\\Local\\Temp\\simplecal-backend-regression-logs\\m5-clear.test.mjs.log",
+      "failureSummary": [
+        "SUMMARY: pass=12 fail=0"
+      ]
+    },
+    {
+      "file": "app/test/m5-davaccess.test.mjs",
+      "exitCode": 0,
+      "signal": null,
+      "timeout": false,
+      "error": null,
+      "durationMs": 10285,
+      "log": "C:\\Users\\yy197\\AppData\\Local\\Temp\\simplecal-backend-regression-logs\\m5-davaccess.test.mjs.log",
+      "failureSummary": [
+        "SUMMARY: pass=24 fail=0"
+      ]
+    },
+    {
+      "file": "app/test/m5-defaults.test.mjs",
+      "exitCode": 0,
+      "signal": null,
+      "timeout": false,
+      "error": null,
+      "durationMs": 13056,
+      "log": "C:\\Users\\yy197\\AppData\\Local\\Temp\\simplecal-backend-regression-logs\\m5-defaults.test.mjs.log",
+      "failureSummary": [
+        "SUMMARY: pass=32 fail=0"
+      ]
+    },
+    {
+      "file": "app/test/m5-multical.test.mjs",
+      "exitCode": 0,
+      "signal": null,
+      "timeout": false,
+      "error": null,
+      "durationMs": 17908,
+      "log": "C:\\Users\\yy197\\AppData\\Local\\Temp\\simplecal-backend-regression-logs\\m5-multical.test.mjs.log",
+      "failureSummary": [
+        "SUMMARY: pass=79 fail=0 total=79"
+      ]
+    },
+    {
+      "file": "app/test/m5-reconcile.test.mjs",
+      "exitCode": 0,
+      "signal": null,
+      "timeout": false,
+      "error": null,
+      "durationMs": 7391,
+      "log": "C:\\Users\\yy197\\AppData\\Local\\Temp\\simplecal-backend-regression-logs\\m5-reconcile.test.mjs.log",
+      "failureSummary": [
+        "SUMMARY: pass=18 fail=0"
+      ]
+    },
+    {
+      "file": "app/test/m6-reconcile-heal.test.mjs",
+      "exitCode": 0,
+      "signal": null,
+      "timeout": false,
+      "error": null,
+      "durationMs": 10803,
+      "log": "C:\\Users\\yy197\\AppData\\Local\\Temp\\simplecal-backend-regression-logs\\m6-reconcile-heal.test.mjs.log",
+      "failureSummary": [
+        "SUMMARY: pass=24 fail=0"
+      ]
+    },
+    {
+      "file": "app/test/m7-0210-dav.test.mjs",
+      "exitCode": 0,
+      "signal": null,
+      "timeout": false,
+      "error": null,
+      "durationMs": 8784,
+      "log": "C:\\Users\\yy197\\AppData\\Local\\Temp\\simplecal-backend-regression-logs\\m7-0210-dav.test.mjs.log",
+      "failureSummary": [
+        "SUMMARY: pass=18 fail=0"
+      ]
+    },
+    {
+      "file": "app/test/m8-0212-lunar.test.mjs",
+      "exitCode": 0,
+      "signal": null,
+      "timeout": false,
+      "error": null,
+      "durationMs": 277,
+      "log": "C:\\Users\\yy197\\AppData\\Local\\Temp\\simplecal-backend-regression-logs\\m8-0212-lunar.test.mjs.log",
+      "failureSummary": [
+        "SUMMARY: pass=33 fail=0 total=33"
+      ]
+    },
+    {
+      "file": "app/test/m9-0213-crypto.test.mjs",
+      "exitCode": 0,
+      "signal": null,
+      "timeout": false,
+      "error": null,
+      "durationMs": 354,
+      "log": "C:\\Users\\yy197\\AppData\\Local\\Temp\\simplecal-backend-regression-logs\\m9-0213-crypto.test.mjs.log",
+      "failureSummary": [
+        "SUMMARY: pass=51 fail=0 total=51"
+      ]
+    },
+    {
+      "file": "app/test/m9-0213-http.test.mjs",
+      "exitCode": 0,
+      "signal": null,
+      "timeout": false,
+      "error": null,
+      "durationMs": 6960,
+      "log": "C:\\Users\\yy197\\AppData\\Local\\Temp\\simplecal-backend-regression-logs\\m9-0213-http.test.mjs.log",
+      "failureSummary": [
+        "SUMMARY: pass=62 fail=0 total=62"
+      ]
+    },
+    {
+      "file": "app/test/m9-0213-security.test.mjs",
+      "exitCode": 0,
+      "signal": null,
+      "timeout": false,
+      "error": null,
+      "durationMs": 2569,
+      "log": "C:\\Users\\yy197\\AppData\\Local\\Temp\\simplecal-backend-regression-logs\\m9-0213-security.test.mjs.log",
+      "failureSummary": [
+        "SUMMARY: pass=161 fail=0 total=161"
+      ]
+    },
+    {
+      "file": "app/test/m9-0214-fallback.test.mjs",
+      "exitCode": 1,
+      "signal": null,
+      "timeout": false,
+      "error": null,
+      "durationMs": 4065,
+      "log": "C:\\Users\\yy197\\AppData\\Local\\Temp\\simplecal-backend-regression-logs\\m9-0214-fallback.test.mjs.log",
+      "failureSummary": [
+        "[FAIL] SAN 含主机名 | [\"localhost\",\"\\\"Y\\\\u00f3\\\"\",\"fncal.lan.test\",\"127.0.0.1\",\"0:0:0:0:0:0:0:1\",\"198.18.0.1\",\"192.168.0.57\"]",
+        "[FAIL] 访问地址=主机名时证书覆盖判定为 true | expected=true actual=false",
+        "[FAIL] 403 带 X-SimpleCal-Https-Port | expected=52662 actual=null"
+      ]
+    },
+    {
+      "file": "app/test/m9-0232-hardening.test.mjs",
+      "exitCode": 0,
+      "signal": null,
+      "timeout": false,
+      "error": null,
+      "durationMs": 4729,
+      "log": "C:\\Users\\yy197\\AppData\\Local\\Temp\\simplecal-backend-regression-logs\\m9-0232-hardening.test.mjs.log",
+      "failureSummary": []
+    },
+    {
+      "file": "app/test/move-recovery.test.mjs",
+      "exitCode": 0,
+      "signal": null,
+      "timeout": false,
+      "error": null,
+      "durationMs": 2402,
+      "log": "C:\\Users\\yy197\\AppData\\Local\\Temp\\simplecal-backend-regression-logs\\move-recovery.test.mjs.log",
+      "failureSummary": [
+        "ℹ fail 0"
+      ]
+    },
+    {
+      "file": "app/test/protocol-m34.test.mjs",
+      "exitCode": 1,
+      "signal": null,
+      "timeout": false,
+      "error": null,
+      "durationMs": 14151,
+      "log": "C:\\Users\\yy197\\AppData\\Local\\Temp\\simplecal-backend-regression-logs\\protocol-m34.test.mjs.log",
+      "failureSummary": [
+        "[FAIL] PUT free-busy fixtures | expected=201 actual=403",
+        "[FAIL] P14 all-day event is busy for the whole day | expected=20261119T160000Z/20261120T160000Z actual=",
+        "[FAIL] P14 timed event is busy | expected=20261121T090000Z/20261121T100000Z actual=missing",
+        "SUMMARY: pass=17 fail=3 total=20"
+      ]
+    },
+    {
+      "file": "app/test/public-url.test.mjs",
+      "exitCode": 0,
+      "signal": null,
+      "timeout": false,
+      "error": null,
+      "durationMs": 1578,
+      "log": "C:\\Users\\yy197\\AppData\\Local\\Temp\\simplecal-backend-regression-logs\\public-url.test.mjs.log",
+      "failureSummary": [
+        "ℹ fail 0"
+      ]
+    },
+    {
+      "file": "app/test/server-deployment.test.mjs",
+      "exitCode": 0,
+      "signal": null,
+      "timeout": false,
+      "error": null,
+      "durationMs": 5534,
+      "log": "C:\\Users\\yy197\\AppData\\Local\\Temp\\simplecal-backend-regression-logs\\server-deployment.test.mjs.log",
+      "failureSummary": [
+        "ℹ fail 0"
+      ]
+    },
+    {
+      "file": "app/test/shares.test.mjs",
+      "exitCode": 0,
+      "signal": null,
+      "timeout": false,
+      "error": null,
+      "durationMs": 1756,
+      "log": "C:\\Users\\yy197\\AppData\\Local\\Temp\\simplecal-backend-regression-logs\\shares.test.mjs.log",
+      "failureSummary": [
+        "ℹ fail 0"
+      ]
+    },
+    {
+      "file": "app/test/storage-provider.test.mjs",
+      "exitCode": 0,
+      "signal": null,
+      "timeout": false,
+      "error": null,
+      "durationMs": 340,
+      "log": "C:\\Users\\yy197\\AppData\\Local\\Temp\\simplecal-backend-regression-logs\\storage-provider.test.mjs.log",
+      "failureSummary": [
+        "ℹ fail 0"
+      ]
+    },
+    {
+      "file": "app/test/storage.test.mjs",
+      "exitCode": 1,
+      "signal": null,
+      "timeout": false,
+      "error": null,
+      "durationMs": 21804,
+      "log": "C:\\Users\\yy197\\AppData\\Local\\Temp\\simplecal-backend-regression-logs\\storage.test.mjs.log",
+      "failureSummary": [
+        "[FAIL] 10 concurrent PUTs serialised | expected=all 2xx + ctag +10 + meta valid actual=ok=true ctag NaN->NaN meta=true",
+        "SUMMARY: pass=17 fail=1 total=18"
+      ]
+    },
+    {
+      "file": "app/test/sync-pages-http.test.mjs",
+      "exitCode": 0,
+      "signal": null,
+      "timeout": false,
+      "error": null,
+      "durationMs": 2399,
+      "log": "C:\\Users\\yy197\\AppData\\Local\\Temp\\simplecal-backend-regression-logs\\sync-pages-http.test.mjs.log",
+      "failureSummary": [
+        "ℹ fail 0"
+      ]
+    },
+    {
+      "file": "app/test/sync-pages.test.mjs",
+      "exitCode": 0,
+      "signal": null,
+      "timeout": false,
+      "error": null,
+      "durationMs": 525,
+      "log": "C:\\Users\\yy197\\AppData\\Local\\Temp\\simplecal-backend-regression-logs\\sync-pages.test.mjs.log",
+      "failureSummary": [
+        "ℹ fail 0"
+      ]
+    },
+    {
+      "file": "app/test/xml.test.mjs",
+      "exitCode": 0,
+      "signal": null,
+      "timeout": false,
+      "error": null,
+      "durationMs": 338,
+      "log": "C:\\Users\\yy197\\AppData\\Local\\Temp\\simplecal-backend-regression-logs\\xml.test.mjs.log",
+      "failureSummary": [
+        "ℹ fail 0"
+      ]
+    }
+  ],
+  "summary": {
+    "completed": 55,
+    "passedFiles": 46,
+    "failedFiles": 9
+  },
+  "finished": "2026-10-30T16:04:45.203Z"
+}

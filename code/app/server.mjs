@@ -29,6 +29,7 @@ import { createStore } from './store/file-store.mjs';
 import { assertStorageProvider } from './lib/storage-provider.mjs';
 import { createDavHandler } from './dav/handler.mjs';
 import { createCardDavHandler } from './dav/carddav.mjs';
+import { createCollaborationApi } from './api/collaboration.mjs';
 import { createApiHandler } from './api/index.mjs';
 import { createKvApi } from './api/kv.mjs';
 import { createEventService } from './lib/event-service.mjs';
@@ -324,7 +325,7 @@ async function bootstrapAdmin({ config, accounts, logger }) {
 
 export async function createApp(
   config = resolveConfig(),
-  { logger = createLogger({ file: config.logFile }), skipAutoReconcile = false, readOnly = false } = {},
+  { logger = createLogger({ file: config.logFile }), skipAutoReconcile = false, readOnly = false, now = Date.now } = {},
 ) {
   await fs.mkdir(path.dirname(config.logFile), { recursive: true });
 
@@ -334,7 +335,7 @@ export async function createApp(
 
   // M3.3: per-user calendar store. The request context (lib/request-context.mjs)
   // carries the authenticated user id to the store on every request.
-  const store = assertStorageProvider(createStore({ root: config.calendarsDir, logger }));
+  const store = assertStorageProvider(createStore({ root: config.calendarsDir, logger, now, materializeProjections: !readOnly }));
   await store.ensureRoot();
   if (!readOnly && typeof store.recoverMoves === 'function') {
     const recovery = await store.recoverMoves();
@@ -440,6 +441,7 @@ export async function createApp(
 
   const davHandler = createDavHandler({ store, config, logger, auth });
   const cardDavHandler = createCardDavHandler({ config, logger, auth });
+  const collaborationApi = createCollaborationApi({ store, auth, accounts, now });
   const eventService = createEventService({ store });
   const kvApi = createKvApi({ store, events: eventService });
   const eventsApi = createEventsApi({ events: eventService });
@@ -744,6 +746,9 @@ export async function createApp(
 
     if (sharesApi.owns(pathname)) {
       return guarded(() => sharesApi.handle(req, res), 'shares');
+    }
+    if (collaborationApi.owns(pathname)) {
+      return guarded(() => collaborationApi.handle(req, res), 'collaboration');
     }
 
     if (pathname.startsWith('/api/')) {
