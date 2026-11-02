@@ -38,8 +38,8 @@ cd code/web && npm ci && npm run build
 cd ../..
 node code/scripts/stamp-version.mjs
 node code/scripts/assemble.mjs
-node code/build/make-fpk.mjs --out dist/SimpleCal-0.3.4.fpk
-node code/build/verify-fpk.mjs dist/SimpleCal-0.3.4.fpk 0.3.4 --port-entry --url-entry
+node code/build/make-fpk.mjs --out dist/SimpleCal-0.4.0.fpk
+node code/build/verify-fpk.mjs dist/SimpleCal-0.4.0.fpk 0.4.0 --port-entry --url-entry
 ```
 
 装配会复制后端与前端、核对 manifest 和桌面入口，并检查图标。正式 Linux 包构建也可使用

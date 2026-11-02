@@ -11,7 +11,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-2f5e9e.svg)](LICENSE)
 [![Node.js](https://img.shields.io/badge/Node.js-22.12%2B-43853d.svg)](SERVER.md)
 [![Self Hosted](https://img.shields.io/badge/Self--hosted-5965db.svg)](#快速开始)
-[![Version](https://img.shields.io/badge/Version-0.3.4-2f5e9e.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-0.4.0-3b54c4.svg)](CHANGELOG.md)
 
 [快速开始](#快速开始) · [客户端连接](#客户端连接) · [AI 接入](#ai-接入) · [部署文档](SERVER.md) · [反馈问题](https://github.com/Simple-YU-268/SimpleCal/issues)
 
@@ -56,19 +56,19 @@ cd ../..
 node code/scripts/build-server.mjs
 ```
 
-构建完成后，进入 `dist/SimpleCal-server-0.3.4/`，选择对应系统的启动方式。
+构建完成后，进入 `dist/SimpleCal-server-0.4.0/`，选择对应系统的启动方式。
 
 **Linux / macOS**
 
 ```bash
-cd dist/SimpleCal-server-0.3.4
+cd dist/SimpleCal-server-0.4.0
 CALDAV_DATA_DIR="$HOME/.local/share/simplecal" CALDAV_PORT=5280 node server/server.mjs
 ```
 
 **Windows PowerShell**
 
 ```powershell
-cd dist/SimpleCal-server-0.3.4
+cd dist/SimpleCal-server-0.4.0
 $env:CALDAV_DATA_DIR = "$env:LOCALAPPDATA/SimpleCal"
 $env:CALDAV_PORT = '5280'
 node server/server.mjs
@@ -212,3 +212,7 @@ SimpleCal 基于开源项目 **[FnCal](https://github.com/PaulCAI1593/FnCal)** �
 [GitHub](https://github.com/Simple-YU-268/SimpleCal) · [问题反馈](https://github.com/Simple-YU-268/SimpleCal/issues)
 
 </div>
+
+### Design workflow
+
+The independent SimpleCal redesign uses the [Impeccable](https://github.com/pbakaus/impeccable) workflow (reference commit `df3a4abe7d0840d5f60324812c432e00b66a4e75`). See [DESIGN.md](DESIGN.md) for the visual system and [brand documentation](docs/SIMPLECAL_BRAND.md) for original logo assets and packaging. TickTick's information hierarchy and Apple's Liquid Glass material informed the interaction direction; their trademarks and graphic assets are not included.
