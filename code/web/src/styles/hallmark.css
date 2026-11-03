@@ -1,0 +1,176 @@
+/* Hallmark | shape: app screen | genre: modern-minimal | theme: brand | redesign: full | v2.0.0 */
+/* pre-emit critique: P4 H4 E4 S4 R4 V3 | weakest: V; retain familiar calendar navigation for repeated use. */
+/* Hallmark · waive 39b · mini calendar uses compact date buttons in a seven-column grid · preserve calendar picker geometry; date targets exceed WCAG 24px minimum and other compact row actions have enclosing row spacing. */
+:root {
+  --workbench-max: 1760px;
+  --workbench-rail: 224px;
+  --workbench-tasks: 288px;
+  --workbench-radius: 8px;
+}
+html, body { overflow-x: clip; }
+.app { letter-spacing: 0; }
+.app :is(button, input, select, textarea, a, [tabindex]):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.brand-name, .header__title, .mini__title, .side-calendars__title,
+.mini__dow, .month__dow-cell, .taskbar__title, .auth-card__title {
+  letter-spacing: 0;
+  text-transform: none;
+}
+.header__title { overflow-wrap: break-word; min-width: 0; }
+.mini__title { min-height: 32px; }
+.app button:active:not(:disabled) { filter: brightness(0.96); }
+.mini__dow { font-size: 12px; }
+.month__dow-cell { font-size: 12px; font-weight: 500; }
+.sidebar__create { border-radius: var(--workbench-radius); box-shadow: none; }
+.cal-row { min-height: 40px; }
+.side-calendars__title { font-size: 13px; }
+.month__daynum { font-variant-numeric: tabular-nums; }
+.month__cell.is-today .month__daynum { box-shadow: none; }
+.month__cell.is-today { background: var(--surface); }
+.auth-card { width: min(430px, 100%); box-shadow: none; }
+.modal { border-radius: var(--workbench-radius); background: var(--surface); }
+.modal__title { font-size: 20px; font-weight: 600; letter-spacing: 0; }
+.modal__head { padding: var(--sp-5) var(--sp-5) var(--sp-4); }
+.modal__foot { border-top: 1px solid var(--border); padding: var(--sp-4) var(--sp-5); }
+.modal :is(button, input, select, textarea, a, [tabindex], [role='radiogroup']):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.modal :is(.input, .select, .btn, .segmented) { border-radius: var(--workbench-radius); }
+.modal :is(.input, .select, .textarea, .editor__date-btn, .cal-select__trigger) { border-color: var(--gray-400); }
+.modal .swatches:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+.settings-modal :is(.settings__label, .settings__tabs button) { font-weight: 600; }
+.modal--editor .modal__body { padding-inline: var(--sp-5); }
+.modal--editor .field__label { color: var(--text-2); font-weight: 500; }
+.settings-modal { width: 100%; max-width: 760px; }
+.settings-modal .settings__pages { min-width: 0; padding-inline: var(--sp-1); }
+.settings-modal .settings__page { padding-top: 0; }
+.settings-modal .settings__row { gap: var(--sp-4); padding-block: var(--sp-3); }
+.settings-modal .settings__hint { line-height: 1.5; }
+.settings-modal .settings__foot {
+  padding: var(--sp-3) var(--sp-5);
+  background: var(--surface-2);
+  gap: var(--sp-3);
+}
+.settings-modal .settings__actions { margin-top: 0; }
+.taskbar__filters { align-self: stretch; }
+.taskbar__filters button { flex: 1; }
+.task-row { border-radius: 0; }
+.task-row__title { font-weight: 500; line-height: 1.5; }
+.task-row__meta { line-height: 1.5; }
+@media (min-width: 701px) {
+  .settings-modal .settings__body {
+    display: grid;
+    grid-template-columns: 132px minmax(0, 1fr);
+    align-items: start;
+    gap: var(--sp-5);
+    padding: var(--sp-2) var(--sp-5) var(--sp-5);
+  }
+  .settings-modal .settings__tabs {
+    flex-direction: column;
+    align-items: stretch;
+    border: 0;
+    padding: 0;
+    gap: var(--sp-1);
+    overflow: visible;
+    background: transparent;
+  }
+  .settings-modal .settings__tabs button {
+    text-align: left;
+    justify-content: flex-start;
+    padding-inline: var(--sp-3);
+    min-height: 44px;
+  }
+  .settings-modal .settings__row { grid-template-columns: minmax(100px, .55fr) minmax(0, 1fr); }
+}
+@media (max-width: 700px) {
+  .settings-modal { max-width: 560px; }
+  .settings-modal .settings__body { padding-inline: var(--sp-4); }
+  .settings-modal .settings__foot { flex-direction: column; align-items: stretch; gap: var(--sp-2); }
+  .settings-modal .settings__about { text-align: left; align-items: flex-start; }
+  .settings-modal .settings__hint { font-size: 12px; }
+  .settings-modal .settings__accents { gap: var(--sp-2); }
+  .settings-modal .settings__accents .swatch { width: 32px; height: 32px; flex: 0 0 32px; }
+}
+@media (min-width: 901px) {
+  .app {
+    width: 100%;
+    max-width: var(--workbench-max);
+    height: 100%;
+    margin: 0 auto;
+    gap: 0;
+    grid-template-rows: 72px minmax(0, 1fr);
+    grid-template-columns: var(--workbench-rail) minmax(0, 1fr);
+    background: var(--surface);
+  }
+  .app.has-taskbar { grid-template-columns: var(--workbench-rail) minmax(0, 1fr) var(--workbench-tasks); }
+  .header {
+    border: 0;
+    border-bottom: 1px solid var(--border);
+    border-radius: 0;
+    background: var(--surface);
+    box-shadow: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    padding-inline: var(--sp-5);
+    gap: var(--sp-4);
+  }
+  .header__brand { min-width: 188px; }
+  .header__title { font-size: 22px; font-weight: 650; }
+  .header__nav { gap: var(--sp-3); }
+  .main {
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    background: var(--surface);
+  }
+  .sidebar {
+    border: 0;
+    border-right: 1px solid var(--border);
+    border-radius: 0;
+    box-shadow: none;
+    background: var(--surface-2);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    padding: var(--sp-5) var(--sp-3) 0;
+    gap: var(--sp-5);
+  }
+  .sidebar::after { display: none; }
+  .taskbar {
+    border: 0;
+    border-left: 1px solid var(--border);
+    border-radius: 0;
+    box-shadow: none;
+    background: var(--surface-2);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    padding: var(--sp-5) var(--sp-4);
+  }
+  .mini { padding: 0; }
+  .month__dow { min-height: 44px; background: var(--surface); }
+  .month__daynum { font-size: 16px; }
+  .month__lunar { font-size: 12px; }
+  .month__grid .chip { min-height: 24px; border-radius: 4px; font-weight: 500; }
+  .segmented { border-radius: var(--workbench-radius); box-shadow: none; }
+  .segmented button { border-radius: 6px; }
+}
+@media (min-width: 901px) and (max-width: 1199px) {
+  :root { --workbench-rail: 200px; }
+  .header__brand { min-width: 156px; }
+  .header { gap: var(--sp-2); padding-inline: var(--sp-3); }
+  .header__nav { gap: var(--sp-2); }
+}
+@media (max-width: 520px) {
+  .header__title { font-size: 20px; font-weight: 650; }
+  .header { border-bottom: 1px solid var(--border); }
+  .month__dow { min-height: 36px; }
+  .month__dow-cell { font-size: 12px; }
+  .month__daynum { font-size: 14px; }
+  .month__grid .chip { border-radius: 4px; }
+  .mobile-nav { background: var(--surface); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .app :is(button, input, select, textarea, a) { scroll-behavior: auto; }
+}

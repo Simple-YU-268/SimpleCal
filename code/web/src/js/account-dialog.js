@@ -810,6 +810,10 @@ export function openAccountDialog({
     { id: 'shortcuts', label: t('settings.tab.shortcuts'), page: shortcutsPage },
   ];
   const tabbar = el('div', { class: 'segmented settings__tabs', role: 'tablist', 'aria-label': t('settings.title') });
+  const verticalTabs = window.matchMedia?.('(min-width: 701px)');
+  const syncTabOrientation = () => tabbar.setAttribute('aria-orientation', verticalTabs?.matches ? 'vertical' : 'horizontal');
+  syncTabOrientation();
+  verticalTabs?.addEventListener?.('change', syncTabOrientation);
   const tabButtons = tabs.map((tabDef) => {
     const btn = el('button', {
       type: 'button',
@@ -855,8 +859,8 @@ export function openAccountDialog({
     const i = tabButtons.indexOf(document.activeElement);
     if (i < 0) return;
     let next = i;
-    if (e.key === 'ArrowRight') next = (i + 1) % tabs.length;
-    else if (e.key === 'ArrowLeft') next = (i - 1 + tabs.length) % tabs.length;
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') next = (i + 1) % tabs.length;
+    else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') next = (i - 1 + tabs.length) % tabs.length;
     else if (e.key === 'Home') next = 0;
     else if (e.key === 'End') next = tabs.length - 1;
     else return;
@@ -983,7 +987,10 @@ export function openAccountDialog({
     }
   }
   document.addEventListener('keydown', onEscGuard, true);
-  const removeEscGuard = () => document.removeEventListener('keydown', onEscGuard, true);
+  const removeEscGuard = () => {
+    document.removeEventListener('keydown', onEscGuard, true);
+    verticalTabs?.removeEventListener?.('change', syncTabOrientation);
+  };
   closeDialog = mountDialog(dialog, removeEscGuard);
   selectTab(tab);
   void refreshSyncStatus();

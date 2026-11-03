@@ -1,0 +1,11 @@
+{
+  "scanned": "2026-11-03",
+  "findings": {
+    "fonts": "System sans; DESIGN.md typography",
+    "palette": "Existing indigo and calendar colors; src/styles/tokens.css",
+    "framework": "Vanilla JavaScript and Vite; code/web/package.json",
+    "surface": "Month-first planning application"
+  },
+  "preserve": ["Brand", "Calendar colors", "Business wiring", "Mobile navigation"],
+  "introduce": ["Continuous desktop workspace", "Consistent focus", "Untracked labels"]
+}

@@ -1,0 +1,16 @@
+[
+  {
+    "date": "2026-11-03",
+    "mode": "redesign",
+    "depth": "full",
+    "scope": "app",
+    "theme": "brand",
+    "shape": "app screen",
+    "entry": "code/web/src/styles/hallmark.css",
+    "signature": "Month calendar as the primary work surface; settings with a desktop category rail",
+    "followUp": "Settings and event editor: 0 FAIL, 1 WARN (four retained font weights), 1 WAIVED; 121 tests passed, 12 modal viewport checks passed",
+    "waived": ["39b"],
+    "review": "in-thread",
+    "prompt": "Audit and improve SimpleCal using Nutlope/hallmark"
+  }
+]

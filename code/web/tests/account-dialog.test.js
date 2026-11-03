@@ -125,6 +125,11 @@ describe('设置对话框', () => {
     tabs[1].dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
     expect(tabs[2].getAttribute('aria-selected')).toBe('true');
     expect(dialog.querySelector('#settings-page-account').hidden).toBe(false);
+    tabs[2].dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true }));
+    expect(document.activeElement).toBe(tabs[1]);
+    expect(tabs[1].getAttribute('aria-selected')).toBe('true');
+    tabs[1].dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
+    expect(document.activeElement).toBe(tabs[2]);
   });
 
   it('一般页：不再显示默认提醒项（#16 提醒已移除）', () => {

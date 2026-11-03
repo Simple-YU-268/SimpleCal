@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>SimpleCal design preview</title></head>
+<body><div id="app"></div><script type="module">
+import './src/styles/tokens.css';
+import './src/styles/base.css';
+import './src/styles/layout.css';
+import './src/styles/views.css';
+import './src/styles/calendar.css';
+import './src/styles/motion.css';
+import './src/styles/renewal.css';
+import './src/styles/hallmark.css';
+import {createStore} from './src/js/store.js';
+import {createApp} from './src/js/app.js';
+const values = new Map();
+const kv = {get: async k=>values.get(k), set:async(k,v)=>values.set(k,v),del:async k=>values.delete(k),list:async()=>[]};
+const store=createStore(kv); await store.load();
+await store.saveSettings({theme:new URLSearchParams(location.search).get('theme') || 'light',view:'month'});
+const now=new Date();
+for(const [offset,title,color] of [[0,'产品设计评审','blue'],[2,'整理本周计划','green'],[5,'阅读与记录','purple'],[8,'项目进度同步','blue'],[12,'周末出行','orange'],[17,'准备月度回顾','green']]) {
+ const start=new Date(now.getFullYear(),now.getMonth(),3+offset,10);
+ await store.saveEvent({title,start:+start,end:+start+3600000,color,calendarId:'default'});
+}
+for(const title of ['完成设计方案','整理会议记录','准备下周计划']) await store.saveTask({title,calendarId:'tasks'});
+createApp(document.getElementById('app'),{store,user:{username:'preview',displayName:'设计预览',role:'admin'}});
+if(new URLSearchParams(location.search).get('panel')==='settings') {
+ const {openAccountDialog}=await import('./src/js/account-dialog.js');
+ openAccountDialog({store,user:{username:'preview',displayName:'设计预览'},version:'preview'});
+}
+if(new URLSearchParams(location.search).get('panel')==='editor') {
+ const {createEventModal}=await import('./src/js/modal.js');
+ createEventModal({store,user:{username:'preview'}}).openNew({start:Date.now(),end:Date.now()+3600000});
+}
+</script></body></html>

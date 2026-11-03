@@ -97,6 +97,7 @@ export function customColorSwatch(current, onPick) {
     class: 'cal-custom-color__input',
     type: 'color',
     value: initial,
+    tabindex: '-1',
     'aria-label': label,
   });
   input.addEventListener('input', () => onPick(input.value));

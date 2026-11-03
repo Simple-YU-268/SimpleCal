@@ -20,6 +20,7 @@ import './styles/offline.css';
 import './styles/calendar.css';
 import './styles/motion.css';
 import './styles/renewal.css';
+import './styles/hallmark.css';
 
 import { el, clear } from './js/dom.js';
 import { icon } from './js/icons.js';

@@ -49,6 +49,15 @@ components:
 ---
 
 ## Overview
+
+### Hallmark workspace update (2026-11-03)
+
+The desktop shell now uses a continuous workspace with hairline boundaries,
+an opaque toolbar, neutral navigation rail and unframed calendar content.
+This supersedes the floating-window geometry below. Preserve the indigo brand,
+calendar colors and mobile navigation. The shell is capped at 1760px, uses a
+224px navigation rail and a 288px task pane, and consumes existing theme tokens.
+See `docs/UI_HALLMARK_AUDIT.md` for evidence and remaining legacy CSS findings.
 SimpleCal is an independent, self-hosted planning workspace. The month calendar is the visual anchor; navigation stays quiet on the left and tasks remain available on the right. The user's selected palette and month-first layout take precedence over exploratory concept seeds.
 
 The interface follows the macOS Calendar and TimeTree pattern: a quiet neutral workspace, one paper-like calendar surface, and a single tinted color per event. Material is used only where it earns its place — chrome is glassy and the content is flat.

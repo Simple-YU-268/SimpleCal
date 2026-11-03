@@ -1,0 +1,9 @@
+shots/
+before/
+before.json
+before.txt
+compare.html
+tools/
+*.png
+verify.cjs
+*.log
