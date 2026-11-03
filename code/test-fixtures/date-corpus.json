@@ -3,6 +3,27 @@
   "zones": ["UTC", "Asia/Shanghai", "America/New_York"],
   "cases": [
     {
+      "id": "new-york-monthly-last-sunday", "description": "Last Sunday derives its ordinal in the source zone", "timezone": "America/New_York",
+      "lines": ["DTSTART;TZID=America/New_York:20260927T230000", "DTEND;TZID=America/New_York:20260928T000000", "RRULE:FREQ=MONTHLY;COUNT=3;BYDAY=-1SU"],
+      "expected": ["2026-09-28T03:00:00.000Z", "2026-10-26T03:00:00.000Z", "2026-11-30T04:00:00.000Z"]
+    },
+    {
+      "id": "new-york-daily-until", "description": "Daily source wall time and inclusive UTC UNTIL across DST", "timezone": "America/New_York",
+      "lines": ["DTSTART;TZID=America/New_York:20260307T090000", "DTEND;TZID=America/New_York:20260307T100000", "RRULE:FREQ=DAILY;UNTIL=20260309T130000Z"],
+      "expected": ["2026-03-07T14:00:00.000Z", "2026-03-08T13:00:00.000Z", "2026-03-09T13:00:00.000Z"]
+    },
+    {
+      "id": "new-york-exceptions", "description": "Source-zone exceptions retain exact keys after DST", "timezone": "America/New_York",
+      "lines": ["DTSTART;TZID=America/New_York:20260301T090000", "DTEND;TZID=America/New_York:20260301T100000", "RRULE:FREQ=WEEKLY;COUNT=4", "EXDATE;TZID=America/New_York:20260308T090000"],
+      "override": ["RECURRENCE-ID;TZID=America/New_York:20260315T090000", "DTSTART;TZID=America/New_York:20260316T110000", "DTEND;TZID=America/New_York:20260316T120000"],
+      "expected": ["2026-03-01T14:00:00.000Z", "2026-03-16T15:00:00.000Z", "2026-03-22T13:00:00.000Z"]
+    },
+    {
+      "id": "new-york-weekday-cross-date", "description": "Source Sunday remains Sunday when Shanghai sees Monday", "timezone": "America/New_York",
+      "lines": ["DTSTART;TZID=America/New_York:20260301T230000", "DTEND;TZID=America/New_York:20260302T000000", "RRULE:FREQ=WEEKLY;COUNT=3;BYDAY=SU;WKST=MO"],
+      "expected": ["2026-03-02T04:00:00.000Z", "2026-03-09T03:00:00.000Z", "2026-03-16T03:00:00.000Z"]
+    },
+    {
       "id": "utc-weekday-cross-viewer-date", "description": "UTC Sunday stays Sunday even when Shanghai sees Monday",
       "lines": ["DTSTART:20260301T230000Z", "DTEND:20260302T000000Z", "RRULE:FREQ=WEEKLY;COUNT=3;BYDAY=SU;WKST=MO"],
       "expected": ["2026-03-01T23:00:00.000Z", "2026-03-08T23:00:00.000Z", "2026-03-15T23:00:00.000Z"]
@@ -63,14 +84,12 @@
     {
       "id": "new-york-spring", "description": "09:00 New York stays at 09:00 after spring DST", "timezone": "America/New_York",
       "lines": ["DTSTART;TZID=America/New_York:20260301T090000", "DTEND;TZID=America/New_York:20260301T100000", "RRULE:FREQ=WEEKLY;COUNT=3"],
-      "expected": ["2026-03-01T14:00:00.000Z", "2026-03-08T13:00:00.000Z", "2026-03-15T13:00:00.000Z"],
-      "knownDifference": {"UTC": {"issue": "source-zone-dst", "shiftMinutes": [0, 60, 60]}, "Asia/Shanghai": {"issue": "source-zone-dst", "shiftMinutes": [0, 60, 60]}}
+      "expected": ["2026-03-01T14:00:00.000Z", "2026-03-08T13:00:00.000Z", "2026-03-15T13:00:00.000Z"]
     },
     {
       "id": "new-york-fall", "description": "09:00 New York stays at 09:00 after fall DST", "timezone": "America/New_York",
       "lines": ["DTSTART;TZID=America/New_York:20261025T090000", "DTEND;TZID=America/New_York:20261025T100000", "RRULE:FREQ=WEEKLY;COUNT=3"],
-      "expected": ["2026-10-25T13:00:00.000Z", "2026-11-01T14:00:00.000Z", "2026-11-08T14:00:00.000Z"],
-      "knownDifference": {"UTC": {"issue": "source-zone-dst", "shiftMinutes": [0, -60, -60]}, "Asia/Shanghai": {"issue": "source-zone-dst", "shiftMinutes": [0, -60, -60]}}
+      "expected": ["2026-10-25T13:00:00.000Z", "2026-11-01T14:00:00.000Z", "2026-11-08T14:00:00.000Z"]
     },
     {
       "id": "utc-across-host-dst", "description": "UTC recurrence must not inherit the viewer's DST",

@@ -41,6 +41,7 @@ import {
 // （《M2-架构方案》§4.2：uidDomain 可配置，默认 caldav.local）。
 const PRODID = '-//SimpleCal//SimpleCal Calendar//ZH';
 export const UID_DOMAIN = 'caldav.local';
+import { wallDate, recurrenceZone } from '../../../app/vendor/ical/utc-recurrence.js';
 const ICS_WEEKDAYS = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'];
 
 // RSVP participation status, app <-> RFC 5545 PARTSTAT.
@@ -140,9 +141,11 @@ function writeEvent(lines, ev, stamp, tzid, sequence, status, alarms, recurrence
 
 function emitVevent(lines, ev, { uid, stamp, tzid, sequence, status, alarms, recurrenceId, recurrenceRange, isOverride, masterAllDay }) {
   // DATE values (all-day) are zone-less; only DATE-TIMEs carry the TZID.
-  const utcSeries = ev.recurrence?.timezone === 'UTC' || ev.recurrenceTimezone === 'UTC';
-  const timed = utcSeries ? fmtUTC : fmtLocal;
-  const tzp = !utcSeries && tzid ? `;TZID=${tzid}` : '';
+  const sourceZone = recurrenceZone(ev.recurrence?.timezone || ev.recurrenceTimezone);
+  const utcSeries = sourceZone === 'UTC';
+  const timed = sourceZone ? (ms) => utcSeries ? fmtUTC(ms) : fmtUTC(wallDate(ms, sourceZone).getTime()).replace(/Z$/, '') : fmtLocal;
+  const outputZone = sourceZone || tzid;
+  const tzp = !utcSeries && outputZone ? `;TZID=${outputZone}` : '';
   lines.push('BEGIN:VEVENT');
   lines.push(`UID:${uid}`);
   lines.push(`DTSTAMP:${stamp}`);
@@ -337,8 +340,8 @@ function buildRRule(ev, tzid) {
   }
   if (norm.freq === 'monthly') {
     if (norm.monthlyMode === 'weekday') {
-      const date = new Date(ev.start);
-      const { nth, weekday } = norm.timezone === 'UTC'
+      const date = norm.timezone ? wallDate(ev.start, norm.timezone) : new Date(ev.start);
+      const { nth, weekday } = norm.timezone
         ? { nth: Math.ceil(date.getUTCDate() / 7), weekday: date.getUTCDay() }
         : nthWeekdayInfo(date);
       // An explicit ordinal (-1 = last) overrides the one derived from the
@@ -346,14 +349,14 @@ function buildRRule(ev, tzid) {
       const n = norm.monthlyNth != null ? norm.monthlyNth : nth;
       parts.push(`BYDAY=${n}${ICS_WEEKDAYS[weekday]}`);
     } else {
-      parts.push(`BYMONTHDAY=${norm.timezone === 'UTC' ? new Date(ev.start).getUTCDate() : new Date(ev.start).getDate()}`);
+      parts.push(`BYMONTHDAY=${norm.timezone ? wallDate(ev.start, norm.timezone).getUTCDate() : new Date(ev.start).getDate()}`);
     }
   }
   if (norm.count != null) parts.push(`COUNT=${norm.count}`);
   else if (norm.until != null) {
     // RFC 5545 §3.3.10: with a zoned DTSTART, UNTIL MUST be in UTC.
     parts.push(
-      `UNTIL=${ev.allDay ? fmtDate(norm.until) : tzid || norm.timezone === 'UTC' ? fmtUTC(norm.until) : fmtLocal(norm.until)}`,
+      `UNTIL=${ev.allDay ? fmtDate(norm.until) : tzid || norm.timezone ? fmtUTC(norm.until) : fmtLocal(norm.until)}`,
     );
   }
   return parts.join(';');
@@ -468,12 +471,11 @@ export function parseICS(text) {
         // written as a DATE-TIME (non-conformant for a DATE master, but real
         // exporters do it) must name that day, not an instant that matches no
         // occurrence — the override would be dropped on the floor. Same
-        // treatment UNTIL already gets (see parseRRule). A timed zoned series
-        // matches by calendar-day distance instead (see exceptionSlotMs).
-        const masterStart = propOf(g.master, 'DTSTART');
+        // treatment UNTIL already gets (see parseRRule). Timed series use
+        // the exception's true instant, matching source-zone expansion.
         const rid = ev.allDay
           ? parseDateTime(ridProp ? { value: ridProp.value, params: 'VALUE=DATE' } : ridProp).ms
-          : exceptionSlotMs(ridProp, sourceZoneOf(masterStart), masterStart, ev.start);
+          : parseDateTime(ridProp).ms;
         // A cancelled occurrence of a live series is an exception date, which
         // is what this app's own export writes for one (EXDATE); other
         // producers spell the same thing as a RECURRENCE-ID block with
@@ -674,31 +676,9 @@ function blockToEvent(b) {
   if (rrule) {
     const rule = parseRRule(rrule, allDay, dtStart.value);
     if (rule) {
-      if (!allDay && sourceZoneOf(dtStart) === 'UTC') rule.timezone = 'UTC';
-      // BYDAY names weekdays in the DTSTART's OWN zone. Converting a Z/TZID
-      // DTSTART to the local instant can land on the adjacent local calendar
-      // day (a Monday 16:00Z standup is Tuesday 04:00 in Auckland), and the
-      // recurrence engine expands byWeekday against LOCAL days — unrotated,
-      // the whole series lands a week off its true instants, the first real
-      // occurrence vanishes, and every EXDATE / RECURRENCE-ID stops matching.
-      // Rotate the list by the day the conversion crossed. Floating and
-      // same-day conversions yield rot 0 (no change).
-      if (
-        rule.timezone !== 'UTC' && rule.freq === 'weekly' &&
-        Array.isArray(rule.byWeekday) &&
-        rule.byWeekday.length &&
-        Number.isFinite(ev.start) &&
-        !allDay
-      ) {
-        const rot = (new Date(ev.start).getDay() - weekdayOfDigits(dtStart.value) + 7) % 7;
-        if (rot) {
-          rule.byWeekday = rule.byWeekday.map((d) => (d + rot) % 7).sort((a, b) => a - b);
-          // WKST anchors which week each BYDAY day falls in; rotate it with the
-          // days (interval >= 2 only, where parseRRule sets it) or the whole
-          // series lands a week off — real occurrences vanish, phantoms appear.
-          if (rule.wkst != null) rule.wkst = (rule.wkst + rot) % 7;
-        }
-      }
+      if (!allDay && sourceZoneOf(dtStart)) rule.timezone = sourceZoneOf(dtStart);
+      // BYDAY and WKST stay in the source calendar, even when the viewer
+      // sees the initial instant on an adjacent local date.
       // The engine holds a count of at most 999; a bigger COUNT was silently
       // truncated there — and re-exported as COUNT=999, corrupting the file on
       // a round trip. A count is a date in disguise: find the occurrence it
@@ -711,14 +691,13 @@ function blockToEvent(b) {
       }
       ev.recurrence = rule;
       const exdates = [];
-      const srcTz = allDay ? '' : sourceZoneOf(dtStart);
       for (const p of propsOf(b, 'EXDATE')) {
         for (const token of p.value.split(',')) {
           // Force DATE parsing for an all-day series so a DATE-TIME EXDATE
           // names the local day it cancels, not an instant no occurrence has
           // (which left the cancelled day on the calendar).
           const prop = { value: token.trim(), params: allDay ? 'VALUE=DATE' : p.params };
-          const ms = allDay ? parseDateTime(prop).ms : exceptionSlotMs(prop, srcTz, dtStart, ev.start);
+          const ms = parseDateTime(prop).ms;
           if (Number.isFinite(ms)) exdates.push(ms);
         }
       }
@@ -1001,29 +980,7 @@ function parseDateTime(prop) {
   return { ms: new Date(y, mo, d, h, mi, s).getTime(), dateOnly: false };
 }
 
-/** A zone-free calendar-day index of yyyymmdd digits (days since the epoch of
- *  that calendar date), so two dates can be subtracted in whole days. */
-function dayIndexOfDigits(value) {
-  const v = String(value).trim();
-  return Math.round(Date.UTC(Number(v.slice(0, 4)), Number(v.slice(4, 6)) - 1, Number(v.slice(6, 8))) / MS_PER_DAY);
-}
-
-/** The calendar date of an instant in `tz`, as yyyymmdd digits. */
-function digitsInZone(ms, tz) {
-  const parts = new Intl.DateTimeFormat('en-US', {
-    timeZone: tz,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).formatToParts(new Date(ms));
-  const get = (t) => parts.find((p) => p.type === t)?.value || '';
-  return `${get('year')}${get('month')}${get('day')}`;
-}
-
-/**
- * The zone a timed series' DTSTART is written in: its TZID, 'UTC' for a Z
- * value, or '' for a floating one.
- */
+/** Source TZID, UTC for a Z value, or empty for floating time. */
 function sourceZoneOf(dtStart) {
   if (!dtStart || !dtStart.value) return '';
   const tzid = tzidOf(dtStart.params);
@@ -1031,28 +988,6 @@ function sourceZoneOf(dtStart) {
   return /[zZ]$/.test(dtStart.value.trim()) ? 'UTC' : '';
 }
 
-/**
- * The recurrence id — the engine's slot — that an EXDATE / RECURRENCE-ID names
- * on a timed series.
- *
- * The engine repeats the master's LOCAL wall clock by calendar day. The true
- * instant of a zoned exception equals that wall clock only while the file's
- * zone and the browser's are the same distance apart as they were at DTSTART;
- * where their clock changes fall on different dates (Berlin's three weeks after
- * New York's), the two differ by an hour for those weeks — the cancelled
- * occurrence came back and the edited one lost its edit. So match the way the
- * engine schedules: the exception's calendar-day distance from DTSTART, in the
- * file's own zone, carried onto the master's local start. A floating series
- * has no zone to disagree with and keeps the plain instant.
- */
-function exceptionSlotMs(prop, srcTz, dtStart, startMs) {
-  const parsed = parseDateTime(prop);
-  if (srcTz === 'UTC') return parsed.ms;
-  if (!Number.isFinite(parsed.ms) || !srcTz || !Number.isFinite(startMs)) return parsed.ms;
-  const day = parsed.dateOnly ? dayIndexOfDigits(prop.value) : dayIndexOfDigits(digitsInZone(parsed.ms, srcTz));
-  const delta = day - dayIndexOfDigits(dtStart.value);
-  return addDays(new Date(startMs), delta).getTime();
-}
 
 /** Weekday (0-6) of the literal yyyymmdd digits of an iCal DATE/DATE-TIME
  *  value — i.e. the weekday of that calendar date in the value's OWN zone

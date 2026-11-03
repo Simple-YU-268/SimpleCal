@@ -15,6 +15,7 @@
 // here (DTSTART/DUE only — enough for RFC 4791 time-range filtering).
 
 import { randomUUID } from 'node:crypto';
+import { wallDate, recurrenceZone } from '../vendor/ical/utc-recurrence.js';
 
 import { uidOf } from '../store/file-store.mjs';
 import {
@@ -593,8 +594,10 @@ function rruleText(record) {
       .filter(Boolean);
     if (days.length) parts.push(`BYDAY=${days.join(',')}`);
   } else if (freq === 'monthly' && rule.monthlyMode === 'weekday') {
-    const start = new Date(Number.isFinite(record.start) ? record.start : Date.now());
-    const utc = rule.timezone === 'UTC';
+    const instant = Number.isFinite(record.start) ? record.start : Date.now();
+    const zone = recurrenceZone(rule.timezone);
+    const start = zone ? wallDate(instant, zone) : new Date(instant);
+    const utc = Boolean(zone);
     const nth = rule.monthlyNth != null && Number.isFinite(Number(rule.monthlyNth))
       ? Number(rule.monthlyNth)
       : Math.ceil((utc ? start.getUTCDate() : start.getDate()) / 7);
@@ -759,7 +762,8 @@ export function eventToIcs(event = {}, options = {}) {
   const end = Number.isFinite(event.end) ? event.end
     : (allDay ? start : start + 60 * 60 * 1000);
 
-  const masterTz = allDay ? null : (event.timezone === undefined || event.timezone === null ? 'UTC' : event.timezone);
+  const masterTz = allDay ? null : (recurrenceZone(event.recurrence?.timezone)
+    || (event.timezone === undefined || event.timezone === null ? 'UTC' : event.timezone));
   const endTz = allDay ? null : (event.endTimezone || masterTz);
   const header = ['BEGIN:VCALENDAR', 'VERSION:2.0', `PRODID:${PRODID}`, 'CALSCALE:GREGORIAN'];
   const usableZones = pushVtimezones(header, [masterTz, endTz], start, log);

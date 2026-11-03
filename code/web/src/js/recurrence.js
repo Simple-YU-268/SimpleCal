@@ -44,7 +44,7 @@ import {
 } from './date-utils.js';
 import { t } from '../i18n/index.js';
 
-import { utcPeriodStarts, utcPeriodIndex } from '../../../app/vendor/ical/utc-recurrence.js';
+import { zonedPeriodStarts, zonedPeriodIndex, recurrenceZone, wallDate } from '../../../app/vendor/ical/utc-recurrence.js';
 
 export const FREQS = ['daily', 'weekly', 'monthly', 'yearly'];
 export const WEEKDAY_PRESET = [1, 2, 3, 4, 5];
@@ -75,6 +75,7 @@ export function normalizeRecurrence(input, startMs) {
   if (!FREQS.includes(input.freq)) return null;
   const start = new Date(startMs);
   const freq = input.freq;
+  const timezone = recurrenceZone(input.timezone);
 
   let interval = Math.round(Number(input.interval));
   if (!Number.isFinite(interval) || interval < 1) interval = 1;
@@ -89,7 +90,7 @@ export function normalizeRecurrence(input, startMs) {
         .map((n) => Math.trunc(Number(n)))
         .filter((n) => Number.isInteger(n) && n >= 0 && n <= 6),
     );
-    if (set.size === 0) set.add(input.timezone === 'UTC' ? start.getUTCDay() : start.getDay());
+    if (set.size === 0) set.add(timezone ? wallDate(startMs, timezone).getUTCDay() : start.getDay());
     byWeekday = [...set].sort((a, b) => a - b);
     const w = Math.trunc(Number(input.wkst));
     wkst = Number.isInteger(w) && w >= 0 && w <= 6 ? w : 0;
@@ -122,7 +123,7 @@ export function normalizeRecurrence(input, startMs) {
   }
 
   return { freq, interval, byWeekday, wkst, monthlyMode, monthlyNth, count, until,
-    ...(input.timezone === 'UTC' ? { timezone: 'UTC' } : {}) };
+    ...(timezone ? { timezone } : {}) };
 }
 
 /* ---- Weekday / month helpers ------------------------------------------ */
@@ -166,7 +167,7 @@ function lastWeekdayDate(year, month, weekday) {
  * that month/year (e.g. the 31st, or Feb 29), none.
  */
 function periodStarts(rule, startDate, p) {
-  if (rule.timezone === 'UTC') return utcPeriodStarts(rule, startDate, p);
+  if (rule.timezone) return zonedPeriodStarts(rule, startDate, p);
   const h = startDate.getHours();
   const min = startDate.getMinutes();
   // Preserve the start's seconds/ms too: daily/weekly carry them for free via
@@ -239,7 +240,7 @@ function periodStarts(rule, startDate, p) {
 
 /** Approximate period index whose occurrences land near `targetMs` (for jump-ahead). */
 function periodIndexFor(rule, startDate, targetMs) {
-  if (rule.timezone === 'UTC') return utcPeriodIndex(rule, startDate, targetMs);
+  if (rule.timezone) return zonedPeriodIndex(rule, startDate, targetMs);
   const target = new Date(targetMs);
   let idx;
   if (rule.freq === 'daily') {
@@ -407,7 +408,7 @@ function buildOccurrence(master, recurrenceId, override, dur) {
   return {
     id: `${master.id}::${recurrenceId}`,
     seriesId: master.id,
-    ...(master.recurrence?.timezone === 'UTC' ? { recurrenceTimezone: 'UTC' } : {}),
+    ...(master.recurrence?.timezone ? { recurrenceTimezone: master.recurrence.timezone } : {}),
     recurrenceId,
     title: pick('title'),
     description: pick('description'),

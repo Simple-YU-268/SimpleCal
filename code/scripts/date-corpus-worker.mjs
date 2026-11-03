@@ -1,6 +1,7 @@
 // Independent processes keep TZ changes away from the application and test runner.
 import { readFileSync } from 'node:fs';
 import assert from 'node:assert/strict';
+import { eventFromIcs, eventToIcs } from '../app/lib/ical.mjs';
 import ICAL from '../web/node_modules/ical.js/dist/ical.js';
 import { parseICS as webParse, toICS as webExport } from '../web/src/js/ics.js';
 import { expandOccurrences as webExpand } from '../web/src/js/recurrence.js';
@@ -58,13 +59,19 @@ for (const fixture of corpus.cases) {
     const master = parse(text)[0];
     implementations[name] = expand(master, from, to)
       .map((o) => fixture.dateOnly ? civil(o.start) : new Date(o.start).toISOString()).sort();
-    if (master.recurrence?.timezone === 'UTC') {
+    if (master.recurrence?.timezone) {
       const serialize = name === 'web' ? webExport : serverExport;
       const roundtrip = parse(serialize([master]))[0];
-      assert.equal(roundtrip.recurrence.timezone, 'UTC');
+      assert.equal(roundtrip.recurrence.timezone, master.recurrence.timezone);
       assert.deepEqual(expand(roundtrip, from, to).map((o) => new Date(o.start).toISOString()).sort(),
-        implementations[name], `${name}: ${fixture.id}: UTC export must preserve instance keys`);
+        implementations[name], `${name}: ${fixture.id}: source-zone export must preserve instance keys`);
     }
+  }
+  if (!fixture.dateOnly) {
+    const model = await eventFromIcs(text);
+    const restored = serverParse(eventToIcs(model))[0];
+    assert.deepEqual(serverExpand(restored, from, to).map((o) => new Date(o.start).toISOString()).sort(),
+      implementations.server, `${fixture.id}: backend model export preserves zoned instances`);
   }
   observations.push({ id: fixture.id, expected, oracle, ...implementations, oracleDifference: fixture.oracleDifference || null, knownDifference: fixture.knownDifference?.[process.env.TZ] || null });
 }

@@ -1,4 +1,38 @@
 // Shared by the server and browser. Floating series keep local arithmetic.
+import { isValidTimeZone, zonedTimeToUTC } from './date-utils.js';
+
+const formatters = new Map();
+export function recurrenceZone(value) {
+  return typeof value === 'string' && isValidTimeZone(value) ? value : null;
+}
+
+// Represent source-zone wall digits in UTC solely for calendar arithmetic.
+export function wallDate(ms, zone) {
+  if (zone === 'UTC') return new Date(ms);
+  let formatter = formatters.get(zone);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat('en-US', { timeZone: zone, hourCycle: 'h23',
+      year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    if (formatters.size >= 64) formatters.clear();
+    formatters.set(zone, formatter);
+  }
+  const parts = formatter.formatToParts(new Date(ms));
+  const get = (name) => Number(parts.find((part) => part.type === name).value);
+  return new Date(Date.UTC(get('year'), get('month') - 1, get('day'), get('hour'), get('minute'), get('second'),
+    new Date(ms).getUTCMilliseconds()));
+}
+
+export function zonedPeriodStarts(rule, start, period) {
+  if (rule.timezone === 'UTC') return utcPeriodStarts(rule, start, period);
+  return utcPeriodStarts(rule, wallDate(start.getTime(), rule.timezone), period).map((date) =>
+    new Date(zonedTimeToUTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(),
+      date.getUTCHours(), date.getUTCMinutes(), date.getUTCSeconds(), rule.timezone) + date.getUTCMilliseconds()));
+}
+
+export function zonedPeriodIndex(rule, start, targetMs) {
+  return utcPeriodIndex(rule, wallDate(start.getTime(), rule.timezone), wallDate(targetMs, rule.timezone).getTime());
+}
+
 export function utcPeriodStarts(rule, start, period) {
   const y = start.getUTCFullYear();
   const m = start.getUTCMonth();
