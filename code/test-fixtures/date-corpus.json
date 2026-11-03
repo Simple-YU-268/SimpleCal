@@ -3,6 +3,17 @@
   "zones": ["UTC", "Asia/Shanghai", "America/New_York"],
   "cases": [
     {
+      "id": "utc-weekday-cross-viewer-date", "description": "UTC Sunday stays Sunday even when Shanghai sees Monday",
+      "lines": ["DTSTART:20260301T230000Z", "DTEND:20260302T000000Z", "RRULE:FREQ=WEEKLY;COUNT=3;BYDAY=SU;WKST=MO"],
+      "expected": ["2026-03-01T23:00:00.000Z", "2026-03-08T23:00:00.000Z", "2026-03-15T23:00:00.000Z"]
+    },
+    {
+      "id": "utc-exceptions-across-dst", "description": "UTC exclusions and moved slots retain exact keys across host DST",
+      "lines": ["DTSTART:20260301T090000Z", "DTEND:20260301T100000Z", "RRULE:FREQ=WEEKLY;COUNT=4", "EXDATE:20260308T090000Z"],
+      "override": ["RECURRENCE-ID:20260315T090000Z", "DTSTART:20260316T130000Z", "DTEND:20260316T140000Z"],
+      "expected": ["2026-03-01T09:00:00.000Z", "2026-03-16T13:00:00.000Z", "2026-03-22T09:00:00.000Z"]
+    },
+    {
       "id": "utc-daily-count", "description": "COUNT includes DTSTART",
       "lines": ["DTSTART:20260105T090000Z", "DTEND:20260105T100000Z", "RRULE:FREQ=DAILY;COUNT=3"],
       "expected": ["2026-01-05T09:00:00.000Z", "2026-01-06T09:00:00.000Z", "2026-01-07T09:00:00.000Z"]
@@ -26,8 +37,7 @@
     {
       "id": "month-end-skip", "description": "Months without day 31 are skipped, not clamped",
       "lines": ["DTSTART:20260131T090000Z", "DTEND:20260131T100000Z", "RRULE:FREQ=MONTHLY;COUNT=3"],
-      "expected": ["2026-01-31T09:00:00.000Z", "2026-03-31T09:00:00.000Z", "2026-05-31T09:00:00.000Z"],
-      "knownDifference": {"America/New_York": {"issue": "utc-series-host-dst", "shiftMinutes": [0, -60, -60]}}
+      "expected": ["2026-01-31T09:00:00.000Z", "2026-03-31T09:00:00.000Z", "2026-05-31T09:00:00.000Z"]
     },
     {
       "id": "leap-day-skip", "description": "Non-leap years do not manufacture a February 28 occurrence",
@@ -65,8 +75,7 @@
     {
       "id": "utc-across-host-dst", "description": "UTC recurrence must not inherit the viewer's DST",
       "lines": ["DTSTART:20260301T090000Z", "DTEND:20260301T100000Z", "RRULE:FREQ=WEEKLY;COUNT=3"],
-      "expected": ["2026-03-01T09:00:00.000Z", "2026-03-08T09:00:00.000Z", "2026-03-15T09:00:00.000Z"],
-      "knownDifference": {"America/New_York": {"issue": "utc-series-host-dst", "shiftMinutes": [0, -60, -60]}}
+      "expected": ["2026-03-01T09:00:00.000Z", "2026-03-08T09:00:00.000Z", "2026-03-15T09:00:00.000Z"]
     }
   ]
 }

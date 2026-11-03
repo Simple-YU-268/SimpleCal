@@ -594,10 +594,11 @@ function rruleText(record) {
     if (days.length) parts.push(`BYDAY=${days.join(',')}`);
   } else if (freq === 'monthly' && rule.monthlyMode === 'weekday') {
     const start = new Date(Number.isFinite(record.start) ? record.start : Date.now());
+    const utc = rule.timezone === 'UTC';
     const nth = rule.monthlyNth != null && Number.isFinite(Number(rule.monthlyNth))
       ? Number(rule.monthlyNth)
-      : Math.ceil(start.getDate() / 7);
-    parts.push(`BYDAY=${nth}${WEEKDAY_TOKENS[start.getDay()]}`);
+      : Math.ceil((utc ? start.getUTCDate() : start.getDate()) / 7);
+    parts.push(`BYDAY=${nth}${WEEKDAY_TOKENS[utc ? start.getUTCDay() : start.getDay()]}`);
   }
   if (rule.count != null && Number.isFinite(Number(rule.count))) {
     parts.push(`COUNT=${Math.trunc(Number(rule.count))}`);

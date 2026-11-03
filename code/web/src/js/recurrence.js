@@ -44,6 +44,8 @@ import {
 } from './date-utils.js';
 import { t } from '../i18n/index.js';
 
+import { utcPeriodStarts, utcPeriodIndex } from '../../../app/vendor/ical/utc-recurrence.js';
+
 export const FREQS = ['daily', 'weekly', 'monthly', 'yearly'];
 export const WEEKDAY_PRESET = [1, 2, 3, 4, 5];
 const ORDINALS = ['一', '二', '三', '四', '五'];
@@ -87,7 +89,7 @@ export function normalizeRecurrence(input, startMs) {
         .map((n) => Math.trunc(Number(n)))
         .filter((n) => Number.isInteger(n) && n >= 0 && n <= 6),
     );
-    if (set.size === 0) set.add(start.getDay());
+    if (set.size === 0) set.add(input.timezone === 'UTC' ? start.getUTCDay() : start.getDay());
     byWeekday = [...set].sort((a, b) => a - b);
     const w = Math.trunc(Number(input.wkst));
     wkst = Number.isInteger(w) && w >= 0 && w <= 6 ? w : 0;
@@ -119,7 +121,8 @@ export function normalizeRecurrence(input, startMs) {
     if (Number.isFinite(u)) until = u;
   }
 
-  return { freq, interval, byWeekday, wkst, monthlyMode, monthlyNth, count, until };
+  return { freq, interval, byWeekday, wkst, monthlyMode, monthlyNth, count, until,
+    ...(input.timezone === 'UTC' ? { timezone: 'UTC' } : {}) };
 }
 
 /* ---- Weekday / month helpers ------------------------------------------ */
@@ -163,6 +166,7 @@ function lastWeekdayDate(year, month, weekday) {
  * that month/year (e.g. the 31st, or Feb 29), none.
  */
 function periodStarts(rule, startDate, p) {
+  if (rule.timezone === 'UTC') return utcPeriodStarts(rule, startDate, p);
   const h = startDate.getHours();
   const min = startDate.getMinutes();
   // Preserve the start's seconds/ms too: daily/weekly carry them for free via
@@ -235,6 +239,7 @@ function periodStarts(rule, startDate, p) {
 
 /** Approximate period index whose occurrences land near `targetMs` (for jump-ahead). */
 function periodIndexFor(rule, startDate, targetMs) {
+  if (rule.timezone === 'UTC') return utcPeriodIndex(rule, startDate, targetMs);
   const target = new Date(targetMs);
   let idx;
   if (rule.freq === 'daily') {
@@ -402,6 +407,7 @@ function buildOccurrence(master, recurrenceId, override, dur) {
   return {
     id: `${master.id}::${recurrenceId}`,
     seriesId: master.id,
+    ...(master.recurrence?.timezone === 'UTC' ? { recurrenceTimezone: 'UTC' } : {}),
     recurrenceId,
     title: pick('title'),
     description: pick('description'),

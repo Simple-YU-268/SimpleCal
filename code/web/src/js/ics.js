@@ -140,7 +140,9 @@ function writeEvent(lines, ev, stamp, tzid, sequence, status, alarms, recurrence
 
 function emitVevent(lines, ev, { uid, stamp, tzid, sequence, status, alarms, recurrenceId, recurrenceRange, isOverride, masterAllDay }) {
   // DATE values (all-day) are zone-less; only DATE-TIMEs carry the TZID.
-  const tzp = tzid ? `;TZID=${tzid}` : '';
+  const utcSeries = ev.recurrence?.timezone === 'UTC' || ev.recurrenceTimezone === 'UTC';
+  const timed = utcSeries ? fmtUTC : fmtLocal;
+  const tzp = !utcSeries && tzid ? `;TZID=${tzid}` : '';
   lines.push('BEGIN:VEVENT');
   lines.push(`UID:${uid}`);
   lines.push(`DTSTAMP:${stamp}`);
@@ -154,7 +156,7 @@ function emitVevent(lines, ev, { uid, stamp, tzid, sequence, status, alarms, rec
     // to a bare DATE, or the id no longer matches on re-import).
     const ridAllDay = masterAllDay != null ? masterAllDay : ev.allDay;
     const range = recurrenceRange ? `;RANGE=${recurrenceRange}` : '';
-    lines.push(ridAllDay ? `RECURRENCE-ID;VALUE=DATE${range}:${fmtDate(recurrenceId)}` : `RECURRENCE-ID${tzp}${range}:${fmtLocal(recurrenceId)}`);
+    lines.push(ridAllDay ? `RECURRENCE-ID;VALUE=DATE${range}:${fmtDate(recurrenceId)}` : `RECURRENCE-ID${tzp}${range}:${timed(recurrenceId)}`);
   }
 
   // A recurring master's DTSTART must itself be an occurrence: RFC 5545
@@ -186,8 +188,8 @@ function emitVevent(lines, ev, { uid, stamp, tzid, sequence, status, alarms, rec
     // DTEND is exclusive for DATE values: the day after the last covered day.
     lines.push(`DTEND;VALUE=DATE:${fmtDate(addDays(startOfDay(new Date(end)), 1).getTime())}`);
   } else {
-    lines.push(`DTSTART${tzp}:${fmtLocal(start)}`);
-    lines.push(`DTEND${tzp}:${fmtLocal(end)}`);
+    lines.push(`DTSTART${tzp}:${timed(start)}`);
+    lines.push(`DTEND${tzp}:${timed(end)}`);
   }
 
   lines.push(`SUMMARY:${escapeText(ev.title || '')}`);
@@ -238,7 +240,7 @@ function emitVevent(lines, ev, { uid, stamp, tzid, sequence, status, alarms, rec
       lines.push(
         ev.allDay
           ? `EXDATE;VALUE=DATE:${ex.map(fmtDate).join(',')}`
-          : `EXDATE${tzp}:${ex.map(fmtLocal).join(',')}`,
+          : `EXDATE${tzp}:${ex.map(timed).join(',')}`,
       );
     }
   }
@@ -335,20 +337,23 @@ function buildRRule(ev, tzid) {
   }
   if (norm.freq === 'monthly') {
     if (norm.monthlyMode === 'weekday') {
-      const { nth, weekday } = nthWeekdayInfo(new Date(ev.start));
+      const date = new Date(ev.start);
+      const { nth, weekday } = norm.timezone === 'UTC'
+        ? { nth: Math.ceil(date.getUTCDate() / 7), weekday: date.getUTCDay() }
+        : nthWeekdayInfo(date);
       // An explicit ordinal (-1 = last) overrides the one derived from the
       // start date, so "last Friday" round-trips as BYDAY=-1FR.
       const n = norm.monthlyNth != null ? norm.monthlyNth : nth;
       parts.push(`BYDAY=${n}${ICS_WEEKDAYS[weekday]}`);
     } else {
-      parts.push(`BYMONTHDAY=${new Date(ev.start).getDate()}`);
+      parts.push(`BYMONTHDAY=${norm.timezone === 'UTC' ? new Date(ev.start).getUTCDate() : new Date(ev.start).getDate()}`);
     }
   }
   if (norm.count != null) parts.push(`COUNT=${norm.count}`);
   else if (norm.until != null) {
     // RFC 5545 §3.3.10: with a zoned DTSTART, UNTIL MUST be in UTC.
     parts.push(
-      `UNTIL=${ev.allDay ? fmtDate(norm.until) : tzid ? fmtUTC(norm.until) : fmtLocal(norm.until)}`,
+      `UNTIL=${ev.allDay ? fmtDate(norm.until) : tzid || norm.timezone === 'UTC' ? fmtUTC(norm.until) : fmtLocal(norm.until)}`,
     );
   }
   return parts.join(';');
@@ -669,6 +674,7 @@ function blockToEvent(b) {
   if (rrule) {
     const rule = parseRRule(rrule, allDay, dtStart.value);
     if (rule) {
+      if (!allDay && sourceZoneOf(dtStart) === 'UTC') rule.timezone = 'UTC';
       // BYDAY names weekdays in the DTSTART's OWN zone. Converting a Z/TZID
       // DTSTART to the local instant can land on the adjacent local calendar
       // day (a Monday 16:00Z standup is Tuesday 04:00 in Auckland), and the
@@ -678,7 +684,7 @@ function blockToEvent(b) {
       // Rotate the list by the day the conversion crossed. Floating and
       // same-day conversions yield rot 0 (no change).
       if (
-        rule.freq === 'weekly' &&
+        rule.timezone !== 'UTC' && rule.freq === 'weekly' &&
         Array.isArray(rule.byWeekday) &&
         rule.byWeekday.length &&
         Number.isFinite(ev.start) &&
@@ -1041,6 +1047,7 @@ function sourceZoneOf(dtStart) {
  */
 function exceptionSlotMs(prop, srcTz, dtStart, startMs) {
   const parsed = parseDateTime(prop);
+  if (srcTz === 'UTC') return parsed.ms;
   if (!Number.isFinite(parsed.ms) || !srcTz || !Number.isFinite(startMs)) return parsed.ms;
   const day = parsed.dateOnly ? dayIndexOfDigits(prop.value) : dayIndexOfDigits(digitsInZone(parsed.ms, srcTz));
   const delta = day - dayIndexOfDigits(dtStart.value);
