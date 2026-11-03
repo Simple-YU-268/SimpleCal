@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "zones": ["UTC", "Asia/Shanghai", "America/New_York"],
+  "cases": [
+    {
+      "id": "utc-daily-count", "description": "COUNT includes DTSTART",
+      "lines": ["DTSTART:20260105T090000Z", "DTEND:20260105T100000Z", "RRULE:FREQ=DAILY;COUNT=3"],
+      "expected": ["2026-01-05T09:00:00.000Z", "2026-01-06T09:00:00.000Z", "2026-01-07T09:00:00.000Z"]
+    },
+    {
+      "id": "until-inclusive", "description": "UTC UNTIL includes the matching final instant",
+      "lines": ["DTSTART:20260105T090000Z", "DTEND:20260105T100000Z", "RRULE:FREQ=DAILY;UNTIL=20260107T090000Z"],
+      "expected": ["2026-01-05T09:00:00.000Z", "2026-01-06T09:00:00.000Z", "2026-01-07T09:00:00.000Z"]
+    },
+    {
+      "id": "exdate-consumes-count", "description": "An excluded slot still consumes COUNT",
+      "lines": ["DTSTART:20260105T090000Z", "DTEND:20260105T100000Z", "RRULE:FREQ=DAILY;COUNT=3", "EXDATE:20260106T090000Z"],
+      "expected": ["2026-01-05T09:00:00.000Z", "2026-01-07T09:00:00.000Z"]
+    },
+    {
+      "id": "moved-instance", "description": "A moved RECURRENCE-ID replaces its original slot",
+      "lines": ["DTSTART:20260105T090000Z", "DTEND:20260105T100000Z", "RRULE:FREQ=DAILY;COUNT=3"],
+      "override": ["RECURRENCE-ID:20260106T090000Z", "DTSTART:20260108T130000Z", "DTEND:20260108T140000Z"],
+      "expected": ["2026-01-05T09:00:00.000Z", "2026-01-07T09:00:00.000Z", "2026-01-08T13:00:00.000Z"]
+    },
+    {
+      "id": "month-end-skip", "description": "Months without day 31 are skipped, not clamped",
+      "lines": ["DTSTART:20260131T090000Z", "DTEND:20260131T100000Z", "RRULE:FREQ=MONTHLY;COUNT=3"],
+      "expected": ["2026-01-31T09:00:00.000Z", "2026-03-31T09:00:00.000Z", "2026-05-31T09:00:00.000Z"],
+      "knownDifference": {"America/New_York": {"issue": "utc-series-host-dst", "shiftMinutes": [0, -60, -60]}}
+    },
+    {
+      "id": "leap-day-skip", "description": "Non-leap years do not manufacture a February 28 occurrence",
+      "lines": ["DTSTART:20240229T090000Z", "DTEND:20240229T100000Z", "RRULE:FREQ=YEARLY;COUNT=3"],
+      "expected": ["2024-02-29T09:00:00.000Z", "2028-02-29T09:00:00.000Z", "2032-02-29T09:00:00.000Z"],
+      "oracleDifference": {"issue": "icaljs-yearly-leap-rollover", "actual": ["2024-02-29T09:00:00.000Z", "2025-03-01T09:00:00.000Z", "2026-03-01T09:00:00.000Z"]}
+    },
+    {
+      "id": "wkst-monday", "description": "RFC 5545 biweekly TU/SU example with WKST=MO",
+      "lines": ["DTSTART:19970805T090000Z", "DTEND:19970805T100000Z", "RRULE:FREQ=WEEKLY;INTERVAL=2;COUNT=4;BYDAY=TU,SU;WKST=MO"],
+      "expected": ["1997-08-05T09:00:00.000Z", "1997-08-10T09:00:00.000Z", "1997-08-19T09:00:00.000Z", "1997-08-24T09:00:00.000Z"]
+    },
+    {
+      "id": "wkst-sunday", "description": "Changing WKST changes biweekly parity",
+      "lines": ["DTSTART:19970805T090000Z", "DTEND:19970805T100000Z", "RRULE:FREQ=WEEKLY;INTERVAL=2;COUNT=4;BYDAY=TU,SU;WKST=SU"],
+      "expected": ["1997-08-05T09:00:00.000Z", "1997-08-17T09:00:00.000Z", "1997-08-19T09:00:00.000Z", "1997-08-31T09:00:00.000Z"]
+    },
+    {
+      "id": "all-day-dst", "description": "DATE instances retain their civil date through spring DST", "dateOnly": true,
+      "lines": ["DTSTART;VALUE=DATE:20260307", "DTEND;VALUE=DATE:20260308", "RRULE:FREQ=DAILY;COUNT=3"],
+      "expected": ["2026-03-07", "2026-03-08", "2026-03-09"]
+    },
+    {
+      "id": "new-york-spring", "description": "09:00 New York stays at 09:00 after spring DST", "timezone": "America/New_York",
+      "lines": ["DTSTART;TZID=America/New_York:20260301T090000", "DTEND;TZID=America/New_York:20260301T100000", "RRULE:FREQ=WEEKLY;COUNT=3"],
+      "expected": ["2026-03-01T14:00:00.000Z", "2026-03-08T13:00:00.000Z", "2026-03-15T13:00:00.000Z"],
+      "knownDifference": {"UTC": {"issue": "source-zone-dst", "shiftMinutes": [0, 60, 60]}, "Asia/Shanghai": {"issue": "source-zone-dst", "shiftMinutes": [0, 60, 60]}}
+    },
+    {
+      "id": "new-york-fall", "description": "09:00 New York stays at 09:00 after fall DST", "timezone": "America/New_York",
+      "lines": ["DTSTART;TZID=America/New_York:20261025T090000", "DTEND;TZID=America/New_York:20261025T100000", "RRULE:FREQ=WEEKLY;COUNT=3"],
+      "expected": ["2026-10-25T13:00:00.000Z", "2026-11-01T14:00:00.000Z", "2026-11-08T14:00:00.000Z"],
+      "knownDifference": {"UTC": {"issue": "source-zone-dst", "shiftMinutes": [0, -60, -60]}, "Asia/Shanghai": {"issue": "source-zone-dst", "shiftMinutes": [0, -60, -60]}}
+    },
+    {
+      "id": "utc-across-host-dst", "description": "UTC recurrence must not inherit the viewer's DST",
+      "lines": ["DTSTART:20260301T090000Z", "DTEND:20260301T100000Z", "RRULE:FREQ=WEEKLY;COUNT=3"],
+      "expected": ["2026-03-01T09:00:00.000Z", "2026-03-08T09:00:00.000Z", "2026-03-15T09:00:00.000Z"],
+      "knownDifference": {"America/New_York": {"issue": "utc-series-host-dst", "shiftMinutes": [0, -60, -60]}}
+    }
+  ]
+}

@@ -1196,9 +1196,12 @@ export async function expandToIcs(text, { start, end }) {
           'BEGIN:VEVENT',
           icsLine('UID', uid),
           icsLine('DTSTAMP', formatUtc(Date.now())),
-          ev.allDay ? `DTSTART;VALUE=DATE:${formatDateUtc(occ.start)}` : icsLine('DTSTART', formatUtc(occ.start)),
-          ev.allDay ? `DTEND;VALUE=DATE:${formatDateUtc(occ.end)}` : icsLine('DTEND', formatUtc(occ.end)),
-          icsLine('RECURRENCE-ID', formatUtc(Number(occ.recurrenceId))),
+          // The parser models DATEs as local calendar days, with an inclusive
+          // end-of-day. Restore the original DATE and exclusive DTEND on wire;
+          // converting either boundary to UTC shifts it in non-UTC zones.
+          ev.allDay ? `DTSTART;VALUE=DATE:${localDateDigits(occ.start)}` : icsLine('DTSTART', formatUtc(occ.start)),
+          ev.allDay ? `DTEND;VALUE=DATE:${addDaysToDateDigits(localDateDigits(occ.end), 1)}` : icsLine('DTEND', formatUtc(occ.end)),
+          ev.allDay ? `RECURRENCE-ID;VALUE=DATE:${localDateDigits(Number(occ.recurrenceId))}` : icsLine('RECURRENCE-ID', formatUtc(Number(occ.recurrenceId))),
           icsLine('SUMMARY', escapeIcsText(occ.title || '')),
           'END:VEVENT',
         );
@@ -1211,8 +1214,8 @@ export async function expandToIcs(text, { start, end }) {
       'BEGIN:VEVENT',
       icsLine('UID', uid),
       icsLine('DTSTAMP', formatUtc(Date.now())),
-      ev.allDay ? `DTSTART;VALUE=DATE:${formatDateUtc(ev.start)}` : icsLine('DTSTART', formatUtc(ev.start)),
-      ev.allDay ? `DTEND;VALUE=DATE:${formatDateUtc(ev.end)}` : icsLine('DTEND', formatUtc(ev.end)),
+      ev.allDay ? `DTSTART;VALUE=DATE:${localDateDigits(ev.start)}` : icsLine('DTSTART', formatUtc(ev.start)),
+      ev.allDay ? `DTEND;VALUE=DATE:${addDaysToDateDigits(localDateDigits(ev.end), 1)}` : icsLine('DTEND', formatUtc(ev.end)),
       icsLine('SUMMARY', escapeIcsText(ev.title || '')),
       'END:VEVENT',
     );

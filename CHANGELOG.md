@@ -2,6 +2,14 @@
 
 ## 0.5.0（开发中）— 客户端兼容
 
+- 修复 CalDAV 全天事件展开输出的日期偏移、结束日期和 RECURRENCE-ID 类型。
+- 建立前后端共享日期语料，以 ical.js 2.2.1 做差异测试；夏令时和参考库闰日
+  差异明确记录并持续检查，尚未完成跨时区重复事件适配。见 `docs/DATE_COMPATIBILITY.md`。
+
+- 修复 DAV 全天展开：保留当地日期、恢复排他 DTEND，重复实例使用 DATE 类型的 RECURRENCE-ID。
+  上海与纽约子进程回归覆盖跨夏令时多日事件、EXDATE 和定时事件。
+- 新增三时区共享日期语料和独立参考库差异测试（`npm --prefix code/web run test:dates`）。
+  102 个检查通过，15 个已知差异显式 TODO；严格日期验收尚未通过，详见 `docs/DATE_COMPATIBILITY.md`。
 - **修复：真实 CalDAV 客户端写不进事件**。事件 UID 的字符集原先只允许
   `[A-Za-z0-9._-]`，而 Apple Calendar（`…@apple`）、Thunderbird（`…@mozilla.org`）、
   DAVx5 生成的 UID 都带域后缀，`PUT` 会直接拿到 `400 invalid resource path`——

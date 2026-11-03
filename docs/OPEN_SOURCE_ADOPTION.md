@@ -23,6 +23,12 @@
 
 All browser dependencies are bundled locally; no runtime CDN is used.
 
+Date compatibility uses ical.js 2.2.1 (MPL-2.0) as a development-only
+reference for full ICS recurrence, exclusions and overridden instances.
+It is not shipped in the application bundle. The shared corpus also checks
+fixed expected dates: a leap-day deviation in the reference library is tracked
+separately rather than accepted as the expected result. See `docs/DATE_COMPATIBILITY.md`.
+
 ## Remaining work, in order
 
 1. Production worker fixture now verifies two-version activation, a missing
@@ -48,6 +54,12 @@ All browser dependencies are bundled locally; no runtime CDN is used.
 4. Compare recurrence against a standard implementation using a shared corpus:
    DST, all-day dates, WKST, EXDATE, overridden instances and lunar recurrence.
    Do not replace the stored recurrence representation without compatibility tests.
+   The first 12 fixtures now run across three host zones against both product
+   implementations and pinned development-only ical.js 2.2.1 (MPL-2.0).
+   There are 12 product timezone TODOs and three reference-library leap-day TODOs;
+   this is a characterized baseline, not completed conformance. DAV all-day
+   expansion is fixed. See `docs/DATE_COMPATIBILITY.md` for strict acceptance
+   and the decision to retain the current runtime engine. Lunar fixtures remain separate work.
 5. Confirm the Apple Calendar, Thunderbird, DAVx5 and Google Calendar rows of
    `docs/DAV_CLIENT_MATRIX.md` on real clients; the automated suite covers the
    protocol behaviour, not the client UI.
