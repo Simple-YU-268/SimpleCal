@@ -2,6 +2,30 @@
 
 ## 0.5.0（开发中）— 客户端兼容
 
+- **修复：新增的共享日期算术模块把生产构建打挂了**。上一轮把重复规则的日期算术
+  抽成 `code/app/vendor/ical/utc-recurrence.js`，前端直接
+  `import '../../../app/vendor/ical/utc-recurrence.js'`。但 Docker 的前端阶段只
+  `COPY code/web/`，e2e 的「两次真实构建」夹具也只复制前端树——跨目录 import 会让
+  这两处构建当场 `Module not found`。改成仓库既有的「单一源 + 生成物」做法：
+  `code/shared/utc-recurrence.mjs` 是唯一源，生成
+  `code/app/vendor/ical/utc-recurrence.js` 与 `code/web/src/js/utc-recurrence.js`，
+  由 `code/scripts/sync-utc-recurrence.mjs` 维护（`--check` 只检查）。
+- 新增 `code/web/tests/web-tree-self-contained.test.js`：前端源码里的相对 import
+  不得越出 `code/web/src`，且必须指向真实文件。这类跨目录 import 以后会在单元
+  测试这一层被挡住，而不是等到跑完整构建才发现。
+- 日期算术的生成物漂移即测试失败：`code/app/test/utc-recurrence-shared.test.mjs`
+  与 `code/scripts/date-corpus.test.mjs` 都会断言前后端两份生成物与共享源一致，
+  另核对两棵树里 `date-utils.js` 的时区换算行为一致。
+- **日期严格验收现在可以通过**。判定口径从「所有 TODO 都算失败」改成
+  「产品（Web 与后端）不得有未解释的差异」：产品差异在严格模式下依然拦发布，
+  参考库 `ical.js` 自身的闰日滚动差异始终记 TODO（项目已决定不采用它的语义），
+  由「参考库差异」用例逐项锁死实际结果。改口径前，严格模式永远因为那 3 个
+  参考库差异而失败，等于没有闸门；改之后用注入过的产品差异验证过——
+  普通模式是 `# TODO`，严格模式是真实失败并让退出码变成 1。
+- 修掉 `code/scripts/sync-lunar.mjs --check` 的误报：Windows 上 `core.autocrlf=true`
+  会把检出的文件写成 CRLF，逐字节比对把「没改过」报成漂移。现在比对前统一折成 LF。
+- 记下后端用例的正确跑法：从 `code` 目录跑、串行跑（端口写死，并行会互相抢占）。
+
 - 具名时区重复事件按来源时区展开，纽约春秋换季后保留当地时间；星期、排除日期、
   单次改期及导出回读一致。18 组语料的产品比较全部通过，仅余参考库的 3 个闰日差异。
 

@@ -16,10 +16,10 @@
 ```powershell
 npm --prefix code/web ci
 npm --prefix code/web run test:dates
-node --test code/app/test/ical-expand-date.test.mjs
+cd code; node --test app/test/ical-expand-date.test.mjs
 ```
 
-当前结果：165 个检查，162 通过、3 个参考库 TODO、0 个产品日期差异。
+当前结果：167 个检查，164 通过、3 个参考库 TODO、0 个产品日期差异。
 具名时区与 UTC 系列均检查导出后重新解析、展开的实例保持一致，另检查后端模型导出。
 **3 个参考库 TODO 不能计作参考实现兼容通过**。
 若已知问题被修好，偏差守卫会失败，要求删除对应标记并启用正常比较。
@@ -32,7 +32,17 @@ npm --prefix code/web run test:dates
 Remove-Item Env:SIMPLECAL_DATES_STRICT
 ```
 
-严格模式取消全部 TODO 豁免，当前预期退出 1，仅报告参考库的 3 个闰日失败。
+严格模式当前**退出 0**：产品（web/server）已经没有日期差异。
+严格模式的判定口径是「产品不得有未解释的差异」，因此：
+
+- 产品差异（`knownDifference`）在严格模式下一律变成失败，拦住发布；
+- 参考库自身的差异（`oracleDifference`）始终记 TODO，由「参考库差异」用例逐项锁死
+  实际结果，永远不算作兼容通过。
+
+参考库那 3 个闰日差异按项目决定**不采用** ical.js 的语义（见下），所以让它们继续
+拦住发布会使这道闸门永远无法变绿；改成「闸门只管产品」之后，严格模式才是可用的
+发布判据。用一组注入过的产品差异验证过：普通模式下该项是 `# TODO`，
+严格模式下是真实失败并让退出码变成 1。
 
 ## 本轮已修复：DAV 全天展开
 
@@ -67,6 +77,44 @@ UTC 系列的宿主夏令时偏移已修复：显式 UTC 规则保留 `recurrenc
 
 因此保留 `ical.js` 为**开发期比较工具**，固定版本，不替换运行期展开器，也不把它的输出当成
 无条件正确答案。后续迁移需先补偿参考库差异，并验证数据与实例键兼容。
+
+## 前后端共用的日期算术
+
+重复规则的日期算术（UTC 序列与具名来源时区）只有一份源：
+`code/shared/utc-recurrence.mjs`。前端与后端各留一份**生成物**：
+
+| 源 | 生成物 |
+| --- | --- |
+| `code/shared/utc-recurrence.mjs` | `code/app/vendor/ical/utc-recurrence.js` |
+| `code/shared/utc-recurrence.mjs` | `code/web/src/js/utc-recurrence.js` |
+
+```powershell
+cd code; node scripts/sync-utc-recurrence.mjs            # 写入
+cd code; node scripts/sync-utc-recurrence.mjs --check    # 只检查，漂移时 exit 1
+```
+
+不能改成前端直接 `import` 后端那份：Docker 的前端阶段只 `COPY code/web/`，
+e2e 的「两次真实构建」夹具也只复制前端树，跨目录 import 会让这两处构建当场失败。
+生成物带 AUTO-GENERATED 头，`code/web/tests/web-tree-self-contained.test.js`、
+`code/app/test/utc-recurrence-shared.test.mjs` 与 `code/scripts/date-corpus.test.mjs`
+都会断言生成物与源一致，漂移即测试失败。
+
+生成物里的 `./date-utils.js` 指向各自树里的同名文件，两处的 `isValidTimeZone` /
+`zonedTimeToUTC` 必须行为一致——日期语料另有一项断言逐个时区核对这两个函数。
+
+## 跑测试的方式
+
+后端用例要从 `code` 目录跑（AI 与迁移用例会把临时目录放在 `code/build-tmp` 下，
+从仓库根目录跑会被直接拒绝），并且**串行**执行：这些用例各自起一个后端进程，
+端口是写死的（5287–5299 等），并行会互相抢占端口，看起来像随机失败。
+
+```powershell
+cd code; node --test --test-concurrency=1 app/test/*.test.mjs
+```
+
+端口被别的进程占住时，症状是某个 DAV 用例拿到 `200` 而不是 `207`——那是别人的
+服务在应答，不是产品坏了。用例都支持环境变量改端口，例如
+`$env:CALDAV_M34_PORT='5294'`。
 
 ## 覆盖边界
 

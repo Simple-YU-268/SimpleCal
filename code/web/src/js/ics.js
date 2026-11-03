@@ -41,7 +41,7 @@ import {
 // （《M2-架构方案》§4.2：uidDomain 可配置，默认 caldav.local）。
 const PRODID = '-//SimpleCal//SimpleCal Calendar//ZH';
 export const UID_DOMAIN = 'caldav.local';
-import { wallDate, recurrenceZone } from '../../../app/vendor/ical/utc-recurrence.js';
+import { wallDate, recurrenceZone } from './utc-recurrence.js';
 const ICS_WEEKDAYS = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'];
 
 // RSVP participation status, app <-> RFC 5545 PARTSTAT.

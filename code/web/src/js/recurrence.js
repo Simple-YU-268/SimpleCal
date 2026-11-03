@@ -44,7 +44,7 @@ import {
 } from './date-utils.js';
 import { t } from '../i18n/index.js';
 
-import { zonedPeriodStarts, zonedPeriodIndex, recurrenceZone, wallDate } from '../../../app/vendor/ical/utc-recurrence.js';
+import { zonedPeriodStarts, zonedPeriodIndex, recurrenceZone, wallDate } from './utc-recurrence.js';
 
 export const FREQS = ['daily', 'weekly', 'monthly', 'yearly'];
 export const WEEKDAY_PRESET = [1, 2, 3, 4, 5];
