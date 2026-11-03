@@ -8,6 +8,12 @@
 - Playwright Test (Apache-2.0): desktop and mobile Chromium settings checks.
   Run `npm run test:e2e` from `code/web`. Currently uses installed Edge;
   this is not a physical iPhone or WebKit test.
+- tsdav (MIT): a third-party CalDAV client used as the "external client" side of
+  the interoperability suite in `code/web/e2e/dav-client.spec.js`. It discovers
+  calendars, lists objects, and does a standard `If-Match` update and delete, so
+  the assertions check that Web and DAV act on the *same* object rather than
+  that one implementation agrees with itself. Development dependency only —
+  it ships in no runtime bundle.
 - Floating UI DOM (MIT): date-picker positioning, viewport collision handling,
   and scroll/resize tracking. Cleanup runs when the picker closes.
 - Docker Compose (Apache-2.0) plus plain Bash for the health-gated production
@@ -36,10 +42,15 @@ All browser dependencies are bundled locally; no runtime CDN is used.
    `e2e/real-backend.spec.js` covers login, event creation, a reload read-back
    (including a server-side check of the stored event), renaming, deletion and
    sign-out on desktop and mobile.
+   The CalDAV side is covered too: `e2e/dav-client.spec.js` drives the same
+   backend through tsdav and asserts both directions agree.
 3. Extend Floating UI to other popovers after keyboard/focus regression checks.
 4. Compare recurrence against a standard implementation using a shared corpus:
    DST, all-day dates, WKST, EXDATE, overridden instances and lunar recurrence.
    Do not replace the stored recurrence representation without compatibility tests.
+5. Confirm the Apple Calendar, Thunderbird, DAVx5 and Google Calendar rows of
+   `docs/DAV_CLIENT_MATRIX.md` on real clients; the automated suite covers the
+   protocol behaviour, not the client UI.
 
 ## Dependency security
 

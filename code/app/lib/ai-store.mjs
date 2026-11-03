@@ -20,6 +20,7 @@ import { randomUUID } from 'node:crypto';
 
 import { hashSecret, randomToken, verifySecretHash } from '../security/tokens.mjs';
 import { runWithContext } from './request-context.mjs';
+import { UID_RE } from './identifiers.mjs';
 import {
   DEFAULT_FIELD_MASK,
   DEFAULT_FUTURE_DAYS,
@@ -51,8 +52,6 @@ export const RATE_LIMIT_WINDOW_MS = 60 * 1000;
 
 const LABEL_MAX = 80;
 const NOTE_MAX = 500;
-const UID_RE = /^[A-Za-z0-9._@-]{1,200}$/;
-
 export function mintToken() {
   // simplecal_ai_ + 32 字符 base64url（randomToken(24) 正好 32 个字符）。
   return `${AI_TOKEN_PREFIX}${randomToken(24)}`;

@@ -36,9 +36,15 @@
 | vitest | ^4.1.10 | MIT | 单元测试 |
 | jsdom | ^29.1.1 | MIT | 测试 DOM 环境 |
 | @vitest/coverage-v8 | ^4.1.10 | MIT | 覆盖率（可选） |
+| @playwright/test | ^1.64.1 | Apache-2.0 | 端到端测试 |
+| tsdav | ^2.5.0 | MIT | 端到端测试里的第三方 CalDAV 客户端 |
 
 这些依赖只存在于构建/测试阶段，不进入运行期产物；运行期前端没有任何
 npm 依赖、没有 CDN、没有第三方脚本。
+
+其中 `tsdav` 只用于 `e2e/dav-client.spec.js`：它扮演"外部客户端"这一侧，
+验证 Web 与 DAV 操作的是同一个对象（详见 `docs/DAV_CLIENT_MATRIX.md`）。
+它是开发期依赖，不随运行包分发。
 
 ## 3. 图标与图片
 

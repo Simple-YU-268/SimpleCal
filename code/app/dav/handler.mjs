@@ -37,9 +37,9 @@ import { DAV_HEADER, ALLOW_HEADER, supportedReportSetXml } from './capabilities.
 import { mergeCalendars } from '../lib/calendar-export.mjs';
 import { etagOf } from '../store/file-store.mjs';
 import { publicHref, pathFromPublicUrl } from '../lib/public-url.mjs';
+import { RESOURCE_RE } from '../lib/identifiers.mjs';
 
 const SEGMENT_RE = /^[A-Za-z0-9._-]{1,128}$/;
-const RESOURCE_RE = /^[A-Za-z0-9._-]{1,128}\.ics$/i;
 const CAL_ELEMENTS = new Set(['expand', 'time-range', 'comp-filter', 'filter']);
 const find = (node, local) => xmlFind(node, local, CAL_ELEMENTS.has(local) ? NS.CAL : propertyNamespace(local));
 

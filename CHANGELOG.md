@@ -1,5 +1,24 @@
 # 变更记录
 
+## 0.5.0（开发中）— 客户端兼容
+
+- **修复：真实 CalDAV 客户端写不进事件**。事件 UID 的字符集原先只允许
+  `[A-Za-z0-9._-]`，而 Apple Calendar（`…@apple`）、Thunderbird（`…@mozilla.org`）、
+  DAVx5 生成的 UID 都带域后缀，`PUT` 会直接拿到 `400 invalid resource path`——
+  等于把这些客户端挡在门外。字符集统一收敛到 `code/app/lib/identifiers.mjs`，
+  放宽为 `^[A-Za-z0-9._@-]{1,128}$`。
+- UID 字符集原先散在 5 个文件里各写一遍，是这个缺陷的根因；现在只有一处定义。
+  顺带修掉一处历史不一致：AI 侧以前允许 255 位 UID，可存储层只收 128，
+  超长 UID 会先通过 AI 校验、再在落盘时被拒。
+- 放宽字符集**没有**削弱目录穿越防护：`/`、`\`、控制字符与 Windows 保留字符依旧
+  不在集合内，路径穿越用例照常被拒。
+- 新增 `code/app/test/dav-uid-interop.test.mjs`：DAV 写入带域后缀的 UID → Web 侧
+  读到同一个对象 → 反向也成立 → 路径穿越仍然被拒。
+- 新增 `code/web/e2e/dav-client.spec.js`（引入 tsdav 作为第三方客户端）：Web 建事件
+  → tsdav 读到并改写 → Web 刷新后看到新标题 → tsdav 删除 → Web 刷新后看不到。
+- 新增 `docs/DAV_CLIENT_MATRIX.md`：记录各客户端的 UID 形态、验证方式与复现步骤，
+  人工验证项明确标注为待确认。
+
 ## 0.4.4 — 部署可靠性与跨构建升级验证（2026-11-02）
 
 - 新增 `deploy/upgrade.sh`：先构建、再校验镜像版本、只切换应用服务；生产 Compose、

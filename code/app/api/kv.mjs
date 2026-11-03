@@ -31,14 +31,16 @@ import { eventFromIcs, taskFromIcs, taskToIcs } from '../lib/ical.mjs';
 import { createEventService } from '../lib/event-service.mjs';
 import { normalizeSettings } from '../lib/settings.mjs';
 import { currentContext } from '../lib/request-context.mjs';
+import {
+  KV_KEY_RE as KEY_RE,
+  KV_CAL_KEY_RE as CAL_KEY_RE,
+  KV_LEGACY_EVT_RE as LEGACY_EVT_RE,
+  KV_LEGACY_TASK_RE as LEGACY_TASK_RE,
+} from '../lib/identifiers.mjs';
 
 const DEFAULT_CALENDAR = 'default';
 const TASKS_CALENDAR = 'tasks';
-const KEY_RE = /^[A-Za-z0-9:._-]{1,256}$/;
-const CAL_KEY_RE = /^cal:([A-Za-z0-9._-]{1,128}):(evt|task):([A-Za-z0-9._-]{1,128})$/;
 const CAL_LIST_RE = /^cal:([A-Za-z0-9._-]{1,128}):(evt|task):$/;
-const LEGACY_EVT_RE = /^cal:evt:([A-Za-z0-9._-]{1,128})$/;
-const LEGACY_TASK_RE = /^cal:task:([A-Za-z0-9._-]{1,128})$/;
 const SETTINGS_KEY = 'cal:settings';
 const GENERIC_FILE = 'kv';
 

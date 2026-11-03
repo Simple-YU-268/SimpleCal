@@ -29,10 +29,11 @@ import {
   writeModeOf,
 } from './ai-grants.mjs';
 import { busyIntervals, eventFromIcs, eventToIcs, eventsOf, matchesTimeRange, uidOf } from './ical.mjs';
+import { STRICT_UID_RE } from './identifiers.mjs';
 
 export const DAY_MS = 24 * 60 * 60 * 1000;
-/** 事件 UID：字母数字开头，允许 `._-@`，总长 ≤255（与 store 的文件名约束一致）。 */
-export const UID_RE = /^[A-Za-z0-9][A-Za-z0-9._@-]{0,254}$/;
+/** 事件 UID：字母数字开头，允许 `._-@`，总长 ≤128（与 store 的文件名约束一致）。 */
+export const UID_RE = STRICT_UID_RE;
 /** 事件写入允许的草稿字段（结构化写法）；缺 `ics` 时用它生成 iCalendar。 */
 const DRAFT_FIELDS = Object.freeze([
   'uid', 'title', 'start', 'end', 'allDay', 'location', 'description', 'note', 'status', 'timezone',
@@ -194,7 +195,7 @@ export function createAiService({
     const hasDraft = DRAFT_FIELDS.some((field) => body[field] !== undefined);
     if (!hasDraft) throw invalidError('ics', '需要 ics 或事件字段');
     const wantedUid = body.uid === undefined || body.uid === null ? '' : String(body.uid).trim();
-    if (wantedUid && !UID_RE.test(wantedUid)) throw invalidError('uid', 'uid 只允许字母数字与 . _ - @，长度 ≤255');
+    if (wantedUid && !UID_RE.test(wantedUid)) throw invalidError('uid', 'uid 只允许字母数字与 . _ - @，长度 ≤128');
     const start = body.start === undefined ? NaN : Date.parse(String(body.start));
     if (!Number.isFinite(start)) throw invalidError('start', 'start 必须是 ISO 时间');
     const end = body.end === undefined ? undefined : Date.parse(String(body.end));

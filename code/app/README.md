@@ -282,8 +282,11 @@ VALARM 展开再补。VTODO 暂不生成 `VTIMEZONE`（导出 `DUE` 为 UTC）�
 - **并发**：每日历一条串行队列，`meta.json` 读-改-写不交错；同对象并发 PUT 按队列顺序覆盖；
   带过期 `If-Match` → 412。
 - **原子写**：临时文件 + `rename`（对象、meta、state 一致）。
-- **安全**：UID/段白名单 `^[A-Za-z0-9._-]{1,128}$`；拒绝 `/ \ ..`、NUL、超长；写入前 realpath 校验
+- **安全**：UID/段白名单统一在 `lib/identifiers.mjs` 定义（UID `^[A-Za-z0-9._@-]{1,128}$`，
+  日历/用户段仍为 `^[A-Za-z0-9._-]{1,128}$`）；拒绝 `/ \ ..`、NUL、超长；写入前 realpath 校验
   目标仍在存储根内；单对象上限 **1 MB**（超限 413）。
+  0.5.0 起 UID 允许 `@`——真实客户端（Apple Calendar `…@apple`、Thunderbird `…@mozilla.org`）
+  的 UID 都带域后缀，早先的字符集会让它们 PUT 事件直接 400。详见 `docs/DAV_CLIENT_MATRIX.md`。
 - **自愈**：`meta.json` 损坏/缺字段时按磁盘对象重建（日期 ctag=1），写中文日志 `meta.json 损坏…`，服务不中断。
 - **首次启动**：每个账号自动建 `default` 日历（`默认日历`）。
 

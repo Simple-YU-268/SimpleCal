@@ -5,8 +5,8 @@ import { eventFromIcs, eventToIcs } from './ical.mjs';
 import { currentContext } from './request-context.mjs';
 import { createParsedObjectCache } from './storage-provider.mjs';
 import { mutateCalendarObject, preserveUnmodeledProperties } from './event-constraints.mjs';
+import { CAL_ID_RE, EVENT_ID_RE } from './identifiers.mjs';
 
-const ID = /^(?!\.{1,2}$)[A-Za-z0-9._-]{1,128}$/;
 const FIELDS = new Set(['title', 'start', 'end', 'allDay', 'location', 'description',
   'timezone', 'endTimezone', 'startDate', 'endDate', 'recurrence', 'exdates',
   'overrides', 'reminders', 'alarms', 'categories', 'status', 'transp', 'color']);
@@ -35,7 +35,7 @@ function inheritedExtras(previous, value) {
 export function createEventService({ store }) {
   const parsedObjects = createParsedObjectCache({ parser: eventFromIcs });
   function identifiers(calendarId, id) {
-    if (!ID.test(calendarId) || (id !== undefined && !ID.test(id))) {
+    if (!CAL_ID_RE.test(calendarId) || (id !== undefined && !EVENT_ID_RE.test(id))) {
       throw fail(400, 'invalid_id', '日历或事件标识无效');
     }
   }

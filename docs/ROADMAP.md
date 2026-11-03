@@ -33,6 +33,16 @@
 刷新回读（并核对服务端确实存了这条事件）、改名、删除与登出，桌面与移动均通过。
 端到端用例共 12 条通过。
 
+进展（2026-11-03）：建兼容矩阵时发现一个**真实客户端写不进事件**的缺陷——事件 UID 的
+字符集只允许 `[A-Za-z0-9._-]`，而 Apple Calendar（`…@apple`）、Thunderbird（`…@mozilla.org`）、
+DAVx5 的 UID 都带域后缀，`PUT` 直接返回 `400 invalid resource path`。字符集已统一收敛到
+`code/app/lib/identifiers.mjs`（唯一定义处），放宽为 `^[A-Za-z0-9._@-]{1,128}$`；
+路径分隔符、控制字符依旧不在集合内，穿越防护没有被削弱。新增
+`code/app/test/dav-uid-interop.test.mjs`（DAV ↔ Web 双向 + 穿越仍被拒）与
+`code/web/e2e/dav-client.spec.js`（引入 tsdav 当第三方客户端：Web 建 → tsdav 改 → Web 见 → 
+tsdav 删 → Web 不见）。新增 `docs/DAV_CLIENT_MATRIX.md` 记录各客户端的 UID 形态、
+验证方式与复现步骤，四个真实客户端的人工验证仍标为待确认。
+
 ## 0.6：日常使用体验
 
 - 设置页按外观、日历、同步与 AI 整理分组，完善错误、加载和空状态。

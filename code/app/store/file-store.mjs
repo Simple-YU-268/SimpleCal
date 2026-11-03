@@ -36,6 +36,7 @@ import { currentContext } from '../lib/request-context.mjs';
 import { commitMove, recoverMoves as recoverMoveIntents } from './move-journal.mjs';
 import { createStorageChangeHub } from '../lib/storage-provider.mjs';
 import { createSyncPages } from './sync-pages.mjs';
+import { UID_RE } from '../lib/identifiers.mjs';
 
 export const MAX_OBJECT_BYTES = 1024 * 1024; // 1 MB per object (M3.3 limit)
 export const TOMBSTONE_LIMIT = Math.max(1, Number(process.env.CALDAV_TOMBSTONE_LIMIT || 5000));
@@ -53,7 +54,6 @@ const PROTECTED_CALENDARS = new Set([DEFAULT_CALENDAR_ID, TASKS_CALENDAR_ID]);
 const TRASH_TTL_MS = Math.max(0, Number(process.env.CALDAV_TRASH_TTL_MS || 24 * 60 * 60 * 1000));
 
 const ID_RE = /^[A-Za-z0-9._-]{1,128}$/;
-const UID_RE = /^[A-Za-z0-9._-]{1,128}$/;
 const SYNC_TOKEN_RE = /^urn:uuid:([^:]+):(\d+):([0-9a-f-]+)$/;
 
 export function etagOf(content) {
